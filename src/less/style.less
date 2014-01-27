@@ -1,0 +1,259 @@
+
+// Colors.
+@text: #c8c8c8;
+@one: #00ffff;
+@two: #ff00ff;
+@link: #fefefe;
+@languageLink: #999999;
+
+// Sizes.
+@thin: 4px;
+@thick: 16px;
+
+// Transition.
+@transition: max-width 200ms linear;
+.transition (@direction) {
+	-moz-transition: @transition;
+	-webkit-transition: @transition;
+	-o-transition: @transition;
+	-ms-transition: @transition;
+	transition: @transition;
+	display: inline-block;
+	vertical-align: text-bottom;
+	white-space: nowrap;
+	overflow: hidden;
+}
+.transition (@direction) when (@direction = in) {
+	max-width: 7em;
+}
+.transition (@direction) when (@direction = out) {
+	max-width: 0;
+}
+
+
+// GENERAL
+
+* {
+	box-sizing: border-box;
+	// -moz-box-sizing: border-box;
+}
+
+html, body {
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+}
+body {
+	color: @text;
+	background: #333;
+
+	font: 80pt "Helvetica", "Verdana", sans;
+	text-transform: uppercase;
+	font-weight: bold;
+	letter-spacing: -0.05em;
+}
+
+h1, p {
+	font: inherit;
+	font-weight: inherit;
+	margin: 0;
+	padding: 0;
+}
+
+a, #title .option {
+	cursor: pointer;
+	color: @link;
+	text-decoration: none;
+	&:hover {
+		text-decoration: underline;
+	}
+}
+
+/////
+
+#title {
+	font-size: 20%;
+	letter-spacing: 0.01em;
+
+	display: none;
+	&.active {
+		display: block;
+	}
+
+	.languages {
+		position: absolute;
+		top: 50%;
+		right: 0;
+		margin-top: -4.5em;
+		text-align: right;
+
+		.language {
+			display: none;
+
+			h1, p {
+				display: inline-block;
+			}
+
+			.options {
+				display: none;
+				&.active {
+					display: inline-block;
+				}
+				.option {
+					.transition(in);
+				}
+				.mode {
+					.transition(out);
+				}
+			}
+		}
+	}
+
+	#online {
+		position: absolute;
+		top: 50%;
+		right: 0;
+		margin-top: 2.7em;
+		display: none;
+
+		&.active {
+			display: block;
+		}
+
+		.url {
+			text-transform: none;
+		}
+	}
+
+	#language-select {
+		position: absolute;
+		top: 50%;
+		right: 0;
+		margin-top: 4.2em;
+		right: 0;
+		display: none;
+
+		.option {
+			color: @languageLink;
+		}
+
+		&.active {
+			display: block;
+		}
+	}
+}
+
+body {
+	// Modes.
+	.setMode (@mode) {
+		&.@{mode}-mode {
+			#title .language .options {
+				.option.@{mode}-mode-option {
+					.transition(out);
+				}
+				.mode.@{mode}-mode {
+					.transition(in);
+				}
+			}
+		}
+	}
+
+	.setMode(single);
+	.setMode(double);
+
+	// Languages.
+	.setLanguage (@language) {
+		&.language-@{language} {
+			#title {
+				.language-@{language} {
+					display: block;
+				}
+				#language-select .@{language}-language-option {
+					display: none;
+				}
+			}
+		}
+	}
+
+	.setLanguage(en);
+	.setLanguage(es);
+}
+
+body.online-mode #title {
+	.languages .language .options,
+	#language-select,
+	#online {
+		display: none !important;
+	}
+}
+
+#game {
+	position: absolute;
+	top: 50%;
+	right: 0;
+	margin-top: -0.5em;
+	text-align: right;
+	white-space: nowrap;
+
+	.input {
+		&.active {
+			text-decoration: underline;
+		}
+		&.wrong {
+			text-decoration: line-through;
+		}
+		&.right:after {
+			content: "\2714";
+			line-height: 0.5;
+			margin-right: -0.2em;
+		}
+
+		.set (@name, @color) {
+			&.@{name} {
+				color: @color;
+				&.active {
+					border-right: @thick solid @color;
+				}
+			}
+		}
+
+		.set(one, @one);
+		.set(two, @two);
+	}
+}
+
+.time-bar {
+	width: 100%;
+	height: @thin;
+	position: absolute;
+
+	&.active {
+		height: @thick;
+	}
+
+	.bar {
+		height: 100%;
+		float: right;
+	}
+
+	&.one {
+		bottom: 0;
+	}
+	&.two {
+		top: 0;
+	}
+
+	.set (@name, @color) {
+		&.@{name} {
+			background: fadeout(@color, 70%);
+			.remaining {
+				background: @color;
+			}
+		}
+	}
+
+	.set(one, @one);
+	.set(two, @two);
+}
+
+

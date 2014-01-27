@@ -1,0 +1,238 @@
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+body {
+  color: #c8c8c8;
+  background: #333;
+  font: 80pt "Helvetica", "Verdana", sans;
+  text-transform: uppercase;
+  font-weight: bold;
+  letter-spacing: -0.05em;
+}
+h1,
+p {
+  font: inherit;
+  font-weight: inherit;
+  margin: 0;
+  padding: 0;
+}
+a,
+#title .option {
+  cursor: pointer;
+  color: #fefefe;
+  text-decoration: none;
+}
+a:hover,
+#title .option:hover {
+  text-decoration: underline;
+}
+#title {
+  font-size: 20%;
+  letter-spacing: 0.01em;
+  display: none;
+}
+#title.active {
+  display: block;
+}
+#title .languages {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  margin-top: -4.5em;
+  text-align: right;
+}
+#title .languages .language {
+  display: none;
+}
+#title .languages .language h1,
+#title .languages .language p {
+  display: inline-block;
+}
+#title .languages .language .options {
+  display: none;
+}
+#title .languages .language .options.active {
+  display: inline-block;
+}
+#title .languages .language .options .option {
+  -moz-transition: max-width 200ms linear;
+  -webkit-transition: max-width 200ms linear;
+  -o-transition: max-width 200ms linear;
+  -ms-transition: max-width 200ms linear;
+  transition: max-width 200ms linear;
+  display: inline-block;
+  vertical-align: text-bottom;
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 7em;
+}
+#title .languages .language .options .mode {
+  -moz-transition: max-width 200ms linear;
+  -webkit-transition: max-width 200ms linear;
+  -o-transition: max-width 200ms linear;
+  -ms-transition: max-width 200ms linear;
+  transition: max-width 200ms linear;
+  display: inline-block;
+  vertical-align: text-bottom;
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 0;
+}
+#title #online {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  margin-top: 2.7em;
+  display: none;
+}
+#title #online.active {
+  display: block;
+}
+#title #online .url {
+  text-transform: none;
+}
+#title #language-select {
+  position: absolute;
+  top: 50%;
+  margin-top: 4.2em;
+  right: 0;
+  display: none;
+}
+#title #language-select .option {
+  color: #999999;
+}
+#title #language-select.active {
+  display: block;
+}
+body.single-mode #title .language .options .option.single-mode-option {
+  -moz-transition: max-width 200ms linear;
+  -webkit-transition: max-width 200ms linear;
+  -o-transition: max-width 200ms linear;
+  -ms-transition: max-width 200ms linear;
+  transition: max-width 200ms linear;
+  display: inline-block;
+  vertical-align: text-bottom;
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 0;
+}
+body.single-mode #title .language .options .mode.single-mode {
+  -moz-transition: max-width 200ms linear;
+  -webkit-transition: max-width 200ms linear;
+  -o-transition: max-width 200ms linear;
+  -ms-transition: max-width 200ms linear;
+  transition: max-width 200ms linear;
+  display: inline-block;
+  vertical-align: text-bottom;
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 7em;
+}
+body.double-mode #title .language .options .option.double-mode-option {
+  -moz-transition: max-width 200ms linear;
+  -webkit-transition: max-width 200ms linear;
+  -o-transition: max-width 200ms linear;
+  -ms-transition: max-width 200ms linear;
+  transition: max-width 200ms linear;
+  display: inline-block;
+  vertical-align: text-bottom;
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 0;
+}
+body.double-mode #title .language .options .mode.double-mode {
+  -moz-transition: max-width 200ms linear;
+  -webkit-transition: max-width 200ms linear;
+  -o-transition: max-width 200ms linear;
+  -ms-transition: max-width 200ms linear;
+  transition: max-width 200ms linear;
+  display: inline-block;
+  vertical-align: text-bottom;
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 7em;
+}
+body.language-en #title .language-en {
+  display: block;
+}
+body.language-en #title #language-select .en-language-option {
+  display: none;
+}
+body.language-es #title .language-es {
+  display: block;
+}
+body.language-es #title #language-select .es-language-option {
+  display: none;
+}
+body.online-mode #title .languages .language .options,
+body.online-mode #title #language-select,
+body.online-mode #title #online {
+  display: none !important;
+}
+#game {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  margin-top: -0.5em;
+  text-align: right;
+  white-space: nowrap;
+}
+#game .input.active {
+  text-decoration: underline;
+}
+#game .input.wrong {
+  text-decoration: line-through;
+}
+#game .input.right:after {
+  content: "\2714";
+  line-height: 0.5;
+  margin-right: -0.2em;
+}
+#game .input.one {
+  color: #00ffff;
+}
+#game .input.one.active {
+  border-right: 16px solid #00ffff;
+}
+#game .input.two {
+  color: #ff00ff;
+}
+#game .input.two.active {
+  border-right: 16px solid #ff00ff;
+}
+.time-bar {
+  width: 100%;
+  height: 4px;
+  position: absolute;
+}
+.time-bar.active {
+  height: 16px;
+}
+.time-bar .bar {
+  height: 100%;
+  float: right;
+}
+.time-bar.one {
+  bottom: 0;
+}
+.time-bar.two {
+  top: 0;
+}
+.time-bar.one {
+  background: rgba(0, 255, 255, 0.30000000000000004);
+}
+.time-bar.one .remaining {
+  background: #00ffff;
+}
+.time-bar.two {
+  background: rgba(255, 0, 255, 0.30000000000000004);
+}
+.time-bar.two .remaining {
+  background: #ff00ff;
+}
