@@ -9,39 +9,46 @@
 	<link rel="icon" type="image/gif" href="/icon.gif" />
 	
 	<link href="css/style.less" rel="stylesheet/less" type="text/css" />
-	
-	<script src="js/libs/less.js" type="text/javascript"></script>
-	<script src="js/libs/mootools.js" type="text/javascript"></script>
-	<script src="js/libs/onhashchange.js" type="text/javascript"></script>
-	<script src="js/libs/signals.js" type="text/javascript"></script>
 
-	<script src="js/agj/agj.js" type="text/javascript"></script>
-	<script src="js/classes.js" type="text/javascript"></script>
-	<script src="js/lines.js" type="text/javascript"></script>
-	<script src="js/script2.js" type="text/javascript"></script>
+	<script src="js/libs/less.js"></script>
+	<script src="js/libs/mootools.js"></script>
+	<script src="js/libs/signals.js"></script>
+	<script src="http://lmn2.us.to:3742/socket.io/socket.io.js"></script>
+
+	<script src="js/agj/agj.js"></script>
+	<script src="js/classes1.js"></script>
+	<script src="js/lines.js"></script>
+	<script src="js/script.js"></script>
 </head>
 
 <body class="single-mode">
 	
 	<header id="title" class="active">
-		<div class="language language-en">
-			<h1>spwords, by <a href="http://www.agj.cl/">agj.</a></h1>
-			<p class="options active">
-				<span class="mode single-mode">single</span><span class="mode double-mode">hotseat</span>
-					mode.
-				(play
-					<span class="option single-mode-option">single</span><span class="option double-mode-option">hotseat</span>)
-			</p>
+		<div class="languages">
+			<div class="language language-en">
+				<h1>spwords, by <a href="http://www.agj.cl/">agj.</a></h1>
+				<p class="options active">
+					<span class="mode single-mode">single</span><span class="mode double-mode">hotseat</span>
+						mode.
+					(play
+						<span class="option single-mode-option">single</span><span class="option double-mode-option">hotseat</span>)
+				</p>
+			</div>
+			<div class="language language-es">
+				<h1>spwords, por <a href="http://www.agj.cl/">agj.</a></h1>
+				<p class="options active">
+					modo
+						<span class="mode single-mode">individual</span><span class="mode double-mode">doble</span>.
+					(juega
+						<span class="option single-mode-option">individual</span><span class="option double-mode-option">doble</span>)
+				</p>
+			</div>
 		</div>
-		<div class="language language-es">
-			<h1>spwords, por <a href="http://www.agj.cl/">agj.</a></h1>
-			<p class="options active">
-				modo
-					<span class="mode single-mode">individual</span><span class="mode double-mode">doble</span>.
-				(juega
-					<span class="option single-mode-option">individual</span><span class="option double-mode-option">doble</span>)
-			</p>
+		
+		<div id="online">
+			(play online, share: <span class="url">http://agj.cl/ip/spwords#<span class="id">someid</span> )</span>
 		</div>
+		
 		<div id="language-select" class="active">
 			<span class="option en-language-option">english</span> <span class="option es-language-option">español</span>
 		</div>
@@ -58,7 +65,6 @@
 	<div class="two time-bar">
 		<div class="bar remaining"></div>
 	</div>
-
 
 </body>
 </html>

@@ -1,6 +1,6 @@
 
 /**
- * Core utilities.
+ * Core utilities. Some global type extension used, but non-destructive.
  *
  * No dependencies.
  *
@@ -8,9 +8,7 @@
  */
 
 /*jshint proto:true*/
-/*global AGJ:false*/
-(function (that) {
-
+(function (g) {
 	"use strict";
 
 	var defineModule = function (obj, stringName, value) {
@@ -18,7 +16,7 @@
 		var modules = stringName.split(".");
 
 		if (!obj)
-			throw "Invalid object passed.";
+			throw new TypeError("Invalid object passed.");
 
 		canDefineProperties = "defineProperty" in Object && "defineProperties" in Object;
 
@@ -38,76 +36,83 @@
 			obj = obj[module];
 		}
 
-		return value ? value : obj;
+		return value !== undefined ? value : obj;
 	};
 
-	defineModule(that, "AGJ");
+	var defineModules = function (obj, objectProperties) {
+		for (var prop in objectProperties) {
+			if (!objectProperties.hasOwnProperty(prop))
+				continue;
+			defineModule(obj, prop, objectProperties[prop]);
+		}
+		return obj;
+	};
 
 
 	// GENERAL
 
-	defineModule(AGJ, "defineModule", defineModule);
+	var AGJ = defineModules(defineModule(g, "AGJ"), {
+		defineModule: defineModule,
+		defineModules: defineModules,
+
+		trace: function () {
+			if (AGJ.loggingIsEnabled && console && console.log)
+				console.log.apply(console, Array.prototype.slice.call(arguments));
+		},
+		warn: function () {
+			if (AGJ.loggingIsEnabled && console) {
+				if (console.warn)
+					console.warn.apply(console, Array.prototype.slice.call(arguments));
+				else if (console.log)
+					console.log.apply(console, Array.prototype.slice.call(arguments));
+			}
+		},
+
+		mixin: function (objectTarget, objectProperties) {
+			var canDefineProperties = "defineProperty" in Object && "defineProperties" in Object;
+
+			for (var prop in objectProperties) {
+				if (!(prop in objectTarget) || objectTarget[prop] === undefined) {
+					if (canDefineProperties) {
+						Object.defineProperty(objectTarget, prop, {
+							writable: false, enumerable: false, configurable: false,
+							value: objectProperties[prop]
+						});
+					} else {
+						objectTarget[prop] = objectProperties[prop];
+					}
+				} else {
+					var target = objectTarget.constructor ? objectTarget.constructor : objectTarget;
+					target = target.name ? target.name : typeof target;
+					AGJ.warn("agj: Could not mixin '" + prop + "' to '" + target + "' because it is already defined.");
+				}
+			}
+		},
+
+		destroy: function (arrayOfDestroyables) {
+			for (var i = 0, len = arrayOfDestroyables.length; i < len; i++) {
+				var current = arrayOfDestroyables[i];
+				if (!current)
+					continue;
+				if (is.array(current))
+					AGJ.destroy(current);
+				else if (current.destroy)
+					current.destroy();
+				else if (current.removeAll)
+					current.removeAll();
+			}
+		},
+
+		getCallback: function (fun, scope, arrayArgs) { // Function
+			return function () {
+				var args = arrayArgs ? arrayArgs.concat(Array.prototype.slice(arguments, 0)) : arguments;
+				fun.apply(scope, args);
+			};
+		}
+	});
 
 	AGJ.loggingIsEnabled = true;
 
-	defineModule(AGJ, "trace", function () {
-		if (AGJ.loggingIsEnabled && console && console.log)
-			console.log.apply(console, Array.prototype.slice.call(arguments));
-	});
-	defineModule(AGJ, "warn", function () {
-		if (AGJ.loggingIsEnabled && console) {
-			if (console.warn)
-				console.warn.apply(console, Array.prototype.slice.call(arguments));
-			else if (console.log)
-				console.log.apply(console, Array.prototype.slice.call(arguments));
-		}
-	});
-
-	defineModule(AGJ, "getTime", function () {
-		return new Date().getTime();
-	});
-
-	defineModule(AGJ, "mixin", function (objectTarget, objectProperties) {
-		var canDefineProperties = "defineProperty" in Object && "defineProperties" in Object;
-
-		for (var prop in objectProperties) {
-			if (!(prop in objectTarget) || objectTarget[prop] === undefined) {
-				if (canDefineProperties) {
-					Object.defineProperty(objectTarget, prop, {
-						writable: false, enumerable: false, configurable: false,
-						value: objectProperties[prop]
-					});
-				} else {
-					objectTarget[prop] = objectProperties[prop];
-				}
-			} else {
-				var target = objectTarget.constructor ? objectTarget.constructor : objectTarget;
-				target = target.name ? target.name : typeof target;
-				AGJ.warn("agj: Could not mixin '" + prop + "' to '" + target + "' because it is already defined.");
-			}
-		}
-	});
-
-	defineModule(AGJ, "destroy", function (arrayOfDestroyables) {
-		for (var i = 0, len = arrayOfDestroyables.length; i < len; i++) {
-			var current = arrayOfDestroyables[i];
-			if (!current)
-				continue;
-			if (typeof current === "array")
-				AGJ.destroy(current);
-			else if (current.destroy)
-				current.destroy();
-			else if (current.removeAll)
-				current.removeAll();
-		}
-	});
-
-	defineModule(AGJ, "getCallback", function (fun, arrayArgs, scope) { // Function
-		return function () {
-			var args = arrayArgs ? arrayArgs.concat(Array.prototype.slice(arguments, 0)) : arguments;
-			fun.apply(scope, args);
-		};
-	});
 
 	// UTIL
 
@@ -120,61 +125,116 @@
 	});
 
 
+	// IS
+
+	var is = defineModules(defineModule(AGJ, "is"), {
+		/**
+		 * Returns whether the object is neither undefined, null, an empty string, 0, or NaN.
+		 */
+		truthy: function (object) { // Boolean
+			return typeof object !== "undefined" && object !== null && object !== "" && object !== 0 && (typeof object !== "number" || !isNaN(object));
+		},
+
+		/**
+		 * Returns whether the object is neither null, undefined, or NaN.
+		 */
+		set: function (object) { // Boolean
+			return typeof object !== "undefined" && object !== null && (typeof object !== "number" || !isNaN(object));
+		},
+
+		number: function (object) { // Boolean
+			return typeof object === "number";
+		},
+
+		string: function (object) { // Boolean
+			return typeof object === "string";
+		},
+
+		array: function (object) { // Boolean
+			return typeof object === "array";
+		},
+
+		fn: function (object) { // Boolean
+			return typeof object === "function";
+		}
+	});
+
+
 	// OBJECT
 
-	defineModule(AGJ, "object");
-
-	defineModule(AGJ.object, "getKeyFromValue", function (obj, value) { // String
-		for (var key in obj) {
-			if (!obj.hasOwnProperty(key))
-				continue;
-			if (obj[key] === value) {
-				return key;
+	defineModules(defineModule(AGJ, "object"), {
+		getKeyFromValue: function (obj, value) { // String
+			for (var key in obj) {
+				if (!obj.hasOwnProperty(key))
+					continue;
+				if (obj[key] === value) {
+					return key;
+				}
 			}
+			return null;
+		},
+
+		isEmpty: function (obj) { // Boolean
+			for (var key in obj) {
+				if (!obj.hasOwnProperty(key))
+					continue;
+				return false;
+			}
+			return true;
 		}
-		return null;
 	});
 
-	defineModule(AGJ.object, "isEmpty", function (obj) { // Boolean
-		for (var key in obj) {
-			if (!obj.hasOwnProperty(key))
-				continue;
-			return false;
+	AGJ.mixin(Object, {
+		keys: function (obj) { // Array
+			var result = [];
+			for (var key in obj) {
+				if (!obj.hasOwnProperty(key))
+					continue;
+				result.push(key);
+			}
+			return result;
 		}
-		return true;
 	});
 
-	defineModule(AGJ.object, "getKeys", function (obj) { // Array
-		var result = [];
-		for (var key in obj) {
-			if (!obj.hasOwnProperty(key))
-				continue;
-			result.push(key);
+
+	// FUNCTION
+
+	AGJ.mixin(Function.prototype, {
+		bind: function (scope) { // Function
+			if (!is.fn(this))
+				throw new TypeError("What is trying to be bound is not callable.");
+			var fn = this;
+			var args = Array.prototype.slice.call(arguments, 1);
+			return function () {
+				var joinedArgs = args.concat(Array.prototype.slice.call(arguments));
+				fn.apply(scope, joinedArgs);
+			};
 		}
-		return result;
 	});
 
 
 	// NUMBER
 
-	defineModule(AGJ, "number");
-
 	AGJ.mixin(Number.prototype, {
 		degToRad: function () { // Number
-			return this * Math.PI / 180;
+			return this * Math.TAU / 360;
 		},
 		radToDeg: function () { // Number
-			return this * 180 / Math.PI;
+			return this * 360 / Math.TAU;
 		},
 
-		toHex: function (pad) { // String
-			var result = this.toString(16);
+		toBase: function (base, pad) { // String
+			var result = this.toString(base);
 			if (!isNaN(pad)) {
 				while (result.length < pad) {
 					result = "0" + result;
 				}
 			}
 			return result;
+		},
+
+		toHex: function (pad) { // String
+			return this.toBase(16, pad);
 		},
 
 		logBase: function (base) {
@@ -185,17 +245,19 @@
 
 	// MATH
 
-	defineModule(AGJ, "math");
-
-	defineModule(AGJ.math, "curve", function (numberValue, numberGentleness, numberPeak, numberValueSubtract) { // Number
-		if (numberValueSubtract)
-			numberValue = Math.max(numberValue - numberValueSubtract, 0);
-		if (numberGentleness < 1)
-			numberGentleness = 1;
-		return numberPeak / ((numberValue / numberGentleness) +1);
+	defineModules(defineModule(AGJ, "math"), {
+		curve: function (numberValue, numberGentleness, numberPeak, numberValueSubtract) { // Number
+			if (numberValueSubtract)
+				numberValue = Math.max(numberValue - numberValueSubtract, 0);
+			if (numberGentleness < 1)
+				numberGentleness = 1;
+			return numberPeak / ((numberValue / numberGentleness) + 1);
+		}
 	});
 
 	AGJ.mixin(Math, {
+		TAU: Math.PI * 2,
+
 		randomInt: function (numberMaxValue) { // Number
 			return Math.floor(Math.random() * numberMaxValue);
 		},
@@ -213,7 +275,7 @@
 	AGJ.mixin(String.prototype, {
 		startsWith: function (stringStart, caseSensitive) { // Boolean
 			var string = this;
-			if (!caseSensitive) {
+			if (caseSensitive !== true) {
 				string = string.toLowerCase();
 				stringStart = stringStart.toLowerCase();
 			}
@@ -221,7 +283,7 @@
 		},
 		endsWith: function (stringEnd, caseSensitive) { // Boolean
 			var string = this;
-			if (!caseSensitive) {
+			if (caseSensitive !== true) {
 				string = string.toLowerCase();
 				stringEnd = stringEnd.toLowerCase();
 			}
@@ -318,10 +380,10 @@
 				var item = arguments[i];
 				while (true) {
 					index = this.indexOf(item);
-				if (index >= 0)
-					this.splice(index, 1);
-				else
-					break;
+					if (index >= 0)
+						this.splice(index, 1);
+					else
+						break;
 				}
 			}
 			return this;
@@ -330,7 +392,7 @@
 		shuffle: function () { // self
 			for (var i = this.length - 1; i >= 0; i--) {
 				var temp = this[i];
-				var r = AGJ.number.randomInt(i + 1 );
+				var r = AGJ.number.randomInt(i + 1);
 				this[i] = this[r];
 				this[r] = temp;
 			}
@@ -389,84 +451,104 @@
 	});
 
 
+	// DATE
+	
+	AGJ.mixin(Date, {
+		now: function () {
+			return +(new Date());
+		}
+	});
+
+
 	// EVENT
 
 	defineModule(AGJ, "event");
 
-	defineModule(AGJ.event, "mouse");
-	defineModule(AGJ.event.mouse, "click", "click");
-	defineModule(AGJ.event.mouse, "doubleClick", "dblclick");
-	defineModule(AGJ.event.mouse, "down", "mousedown");
-	defineModule(AGJ.event.mouse, "up", "mouseup");
-	defineModule(AGJ.event.mouse, "move", "mousemove");
-	defineModule(AGJ.event.mouse, "over", "mouseover");
-	defineModule(AGJ.event.mouse, "out", "mouseout");
-	defineModule(AGJ.event.mouse, "enter", "mouseenter");
-	defineModule(AGJ.event.mouse, "leave", "mouseleave");
-	defineModule(AGJ.event.mouse, "wheel", "wheel");
-	defineModule(AGJ.event.mouse, "contextMenu", "contextmenu");
-	defineModule(AGJ.event.mouse, "contextMenuShow", "show");
+	defineModules(defineModule(AGJ.event, "mouse"), {
+		click: "click",
+		doubleClick: "dblclick",
+		down: "mousedown",
+		up: "mouseup",
+		move: "mousemove",
+		over: "mouseover",
+		out: "mouseout",
+		enter: "mouseenter",
+		leave: "mouseleave",
+		wheel: "wheel",
+		contextMenu: "contextmenu",
+		contextMenuShow: "show"
+	});
 
-	defineModule(AGJ.event, "key");
-	defineModule(AGJ.event.key, "down", "keydown");
-	defineModule(AGJ.event.key, "up", "keyup");
-	defineModule(AGJ.event.key, "press", "keypress");
+	defineModules(defineModule(AGJ.event, "key"), {
+		down: "keydown",
+		up: "keyup",
+		press: "keypress"
+	});
 
-	defineModule(AGJ.event, "composition");
-	defineModule(AGJ.event.composition, "start", "compositionstart");
-	defineModule(AGJ.event.composition, "update", "compositionupdate");
-	defineModule(AGJ.event.composition, "end", "compositionend");
+	defineModules(defineModule(AGJ.event, "composition"), {
+		start: "compositionstart",
+		update: "compositionupdate",
+		end: "compositionend"
+	});
 
-	defineModule(AGJ.event, "ui");
-	defineModule(AGJ.event.ui, "input", "input");
-	defineModule(AGJ.event.ui, "change", "change");
-	defineModule(AGJ.event.ui, "focus", "focus");
-	defineModule(AGJ.event.ui, "blur", "blur");
-	defineModule(AGJ.event.ui, "focusIn", "focusin");
-	defineModule(AGJ.event.ui, "focusOut", "focusout");
-	defineModule(AGJ.event.ui, "invalid", "invalid");
-	defineModule(AGJ.event.ui, "reset", "reset");
-	defineModule(AGJ.event.ui, "submit", "submit");
-	defineModule(AGJ.event.ui, "select", "select");
-	defineModule(AGJ.event.ui, "viewResize", "resize");
-	defineModule(AGJ.event.ui, "scroll", "scroll");
-	defineModule(AGJ.event.ui, "hashChange", "hashchange");
+	defineModules(defineModule(AGJ.event, "ui"), {
+		input: "input",
+		change: "change",
+		focus: "focus",
+		blur: "blur",
+		focusIn: "focusin",
+		focusOut: "focusout",
+		invalid: "invalid",
+		reset: "reset",
+		submit: "submit",
+		select: "select",
+		viewResize: "resize",
+		scroll: "scroll",
+		hashChange: "hashchange"
+	});
 
-	defineModule(AGJ.event, "motion");
-	defineModule(AGJ.event.motion, "orientationChange", "orientationchange");
-	defineModule(AGJ.event.motion, "gyroscope", "deviceorientation");
-	defineModule(AGJ.event.motion, "accelerometer", "devicemotion");
+	defineModules(defineModule(AGJ.event, "motion"), {
+		orientationChange: "orientationchange",
+		gyroscope: "deviceorientation",
+		accelerometer: "devicemotion"
+	});
 
-	defineModule(AGJ.event, "load");
-	defineModule(AGJ.event.load, "readyStateChange", "readystatechange");
-	defineModule(AGJ.event.load, "load", "load");
-	defineModule(AGJ.event.load, "unload", "unload");
-	defineModule(AGJ.event.load, "abort", "abort");
-	defineModule(AGJ.event.load, "error", "error");
+	defineModules(defineModule(AGJ.event, "load"), {
+		readyStateChange: "readystatechange",
+		load: "load",
+		unload: "unload",
+		abort: "abort",
+		error: "error"
+	});
 
-	defineModule(AGJ.event, "touch");
-	defineModule(AGJ.event.touch, "start", "touchstart");
-	defineModule(AGJ.event.touch, "end", "touchend");
-	defineModule(AGJ.event.touch, "move", "touchmove");
-	defineModule(AGJ.event.touch, "cancel", "touchcancel");
-	defineModule(AGJ.event.touch, "enter", "touchenter");
-	defineModule(AGJ.event.touch, "leave", "touchleave");
+	defineModules(defineModule(AGJ.event, "touch"), {
+		start: "touchstart",
+		end: "touchend",
+		move: "touchmove",
+		cancel: "touchcancel",
+		enter: "touchenter",
+		leave: "touchleave"
+	});
 
-	defineModule(AGJ.event, "mootools");
-	defineModule(AGJ.event.mootools, "domReady", "domready");
+	defineModules(defineModule(AGJ.event, "mootools"), {
+		domReady: "domready"
+	});
 
 
 	// CLASS DEFINITIONS
 
-	var BaseClass = defineModule(AGJ, "Class", function(){});
+	defineModule(AGJ, "Class", function () {});
 
 	// This method of creating classes is a modification of John Resig's: http://ejohn.org/blog/simple-javascript-inheritance/
 	// My changes make inheritance behave more like actionscript 3, and allow for easy statics declaration.
-	var initializing = false;
-	//var canDoSuperTest = /xyz/.test(function(){"xyz";});
-	var usesSuperTest = /xyz/.test(function(){"xyz";}) ? /\b_super\b/ : null;
+	var classInitializing = false;
+	var classUsesSuperTest = /xyz/.test(function () { "xyz"; }) ? /\b_super\b/ : null;
 
-	BaseClass.extend = function extend(properties) {
+	AGJ.Class.extend = function (properties) {
+		classInitializing = true;
+		var prototype = new this();
+		classInitializing = false;
+
 		var _super = this.prototype;
 		var superFn = function (name) {
 			return getSuperFn(_super[name], this);
@@ -477,22 +559,6 @@
 			};
 		};
 	 
-		initializing = true;
-		var prototype = new this();
-		initializing = false;
-
-		/*
-		var wrapFunction = function (fn) {
-			return function () {
-				var originalSuper = this._super;
-				this._super = _super;
-				var result = fn.apply(this, arguments);
-				this._super = originalSuper;
-
-				return result;
-			};
-		};
-		*/
 		var wrapFunction = function (fn) {
 			return function () {
 				var originalSuper = this._super;
@@ -505,33 +571,19 @@
 		};
 	 
 		for (var name in properties) {
-			if (name !== "statics") {
-				if (typeof properties[name] === "function" && (!usesSuperTest || usesSuperTest.test(properties[name]))) {
-				//if (typeof properties[name] === "function") {
-					//prototype[name] = wrapFunction(properties[name]);
-					prototype[name] = wrapFunction(properties[name]);
-					/*
-					prototype[name] = (function (fn) {
-						return function () {
-							var originalSuper = this._super;
-							this._super = _super;
-							var result = fn.apply(arguments.caller.this, arguments);
-							this._super = originalSuper;
+			if (name === "statics")
+				continue;
 
-							return result;
-						};
-					})(properties[name]);
-					*/
-
-				} else {
-					prototype[name] = properties[name];
-				}
+			if (typeof properties[name] === "function" && (!classUsesSuperTest || classUsesSuperTest.test(properties[name]))) {
+				prototype[name] = wrapFunction(properties[name]);
+			} else {
+				prototype[name] = properties[name];
 			}
 		}
 
 		function Class() {
 			// All construction is actually done in the init method
-			if (!initializing && this.init)
+			if (!classInitializing && this.init)
 				this.init.apply(this, arguments);
 		}
 
@@ -546,19 +598,64 @@
 		Class.prototype = prototype;
 		Class.prototype.constructor = Class;
 
-		Class.extend = BaseClass.extend;
+		Class.extend = AGJ.Class.extend;
 		return Class;
 	};
 
-	// 'Abstract' class meant for extending. Override 'destroy()' to clean up.
-	// Remember to call 'this._super("destroy")()'.
-	defineModule(AGJ, "Destroyable", BaseClass.extend({
+	/**
+	 * A simple way to check if an object has a set of matching properties.
+	 * Use like so:
+	 *    var myInterface = Interface.extend({ aProp: String, aMethod: Function });
+	 *    var objectMatchesMyInterface = myInterface.matches(someObject);
+	 *    var myExtendedInterface = myInterface.extend({ anotherProp: SomeClass });
+	 *    var objectMatchesMyExtendedInterface = myExtendedInterface.matches(someObject);
+	 */
+	defineModule(AGJ, "Interface", {
+		/**
+		 * Extends this interface by adding new properties.
+		 * @param  {object} properties An object whose properties' values are used to match the type of the matched object's properties.
+		 * @return {object} The new interface.
+		 */
+		extend: function extend(properties) {
+			if (this.properties) {
+				for (var prop in this.properties) {
+					if (!this.properties.hasOwnProperty(prop) || is.set(properties[prop]))
+						continue;
+					properties[prop] = this.properties[prop];
+				}
+			}
+			return {
+				properties: properties,
+				extend: AGJ.Interface.extend,
+				matches: AGJ.Interface.matches
+			};
+		},
+		/**
+		 * Returns whether this interface matches the passed object.
+		 * @param  {object} object
+		 * @return {boolean}
+		 */
+		matches: function (object) { // Boolean
+			for (var prop in this.properties) {
+				if (!this.properties.hasOwnProperty(prop))
+					continue;
+				if (!(object[prop] instanceof this.properties[prop]))
+					return false;
+			}
+			return true;
+		}
+	});
+
+	/**
+	 * 'Abstract' class meant for extending. Override 'destroy()' to clean up.
+	 * Remember to call 'this._super("destroy")()'.
+	 */
+	defineModule(AGJ, "Destroyable", AGJ.Class.extend({
 		init: function () {
 			this._isDestroyed = false;
 		},
 
 		destroy: function () {
-			//AGJ.trace("Destroyable: Destroying.");
 			this._isDestroyed = true;
 		},
 
@@ -568,7 +665,7 @@
 	}));
 
 	defineModule(AGJ, "Dictionary", AGJ.Destroyable.extend({
-		init: function() {
+		init: function () {
 			this._super("init")();
 
 			this._keys = [];
@@ -621,7 +718,7 @@
 		}
 	}));
 
-	defineModule(AGJ, "Point", BaseClass.extend({
+	defineModule(AGJ, "Point", AGJ.Class.extend({
 		init: function (x, y) {
 			this.set(x, y);
 		},
@@ -687,7 +784,7 @@
 			getDistance: function (point1, point2) { // Number
 				var x = point1.x - point2.x;
 				var y = point1.y - point2.y;
-				return Math.sqrt(x*x + y*y);
+				return Math.sqrt(x * x + y * y);
 			},
 
 			interpolate: function (point1, point2, position) { // Point
@@ -714,7 +811,7 @@
 		}
 	}));
 
-	defineModule(AGJ, "Rectangle", BaseClass.extend({
+	defineModule(AGJ, "Rectangle", AGJ.Class.extend({
 		init: function (x, y, width, height) {
 			this.set(x, y, width, height);
 		},
@@ -802,35 +899,6 @@
 			return "(x:" + this.x + ",y:" + this.y + ",w:" + this.width + ",h:" + this.height + ")";
 		}
 	}));
-
-
-	// MIXINS
-
-	/*
-	defineModule(AGJ, "mixins.apply");
-
-	// Adds a way for accessing private properties to classes.
-	// Apply: AGJ.mixin(this, AGJ.mixins.privates); // Within class closure.
-	// Use:   _private(this).property
-	defineModule(AGJ.mixins, "privates", {
-		_privates: new AGJ.Dictionary(),
-		_private: function (instance) {
-			var result = _privates.get(instance);
-			if (!result) {
-				_privates.set(instance, {});
-				result = _privates.get(instance);
-			}
-			return result;
-		},
-		destroy: function () {
-			console.log("destroy?!");
-		}
-	});
-
-	defineModule(AGJ.mixins.apply, "privates", function (classClosure, theClass) {
-		//AGJ.mixin(classClosure, );
-	});
-	*/
 
 
 }(this));

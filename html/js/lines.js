@@ -11,11 +11,14 @@
 				player: "player",
 				computer: "computer",
 				left: "left",
-				right: "right"
+				right: "right",
+				here: "here",
+				there: "there"
 			},
 			comments: {
 				loading: "(loading...)",
 				toStart: "(done. press enter.)",
+				playerOnline: "(opponent joined.)",
 				start: "welcome to tonight's exciting match! " +
 					"it's menacing {one} against favorite {two}! ",
 				rules: "remember the rules: " +
@@ -133,11 +136,14 @@
 				player: "jugador",
 				computer: "máquina",
 				left: "izquierda",
-				right: "derecha"
+				right: "derecha",
+				here: "aquí",
+				there: "allá"
 			},
 			comments: {
 				loading: "(cargando...)",
-				toStart: "(listo. apreta enter.)",
+				toStart: "(listo. aprieta enter.)",
+				playerOnline: "(entró contrincante.)",
 				start: "¡sean bienvenidos, esta noche, a una nueva lucha! " +
 					"hoy se miden {one} con {two}, dos grandes. ",
 				rules: "recuerden las reglas: " +

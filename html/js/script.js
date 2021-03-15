@@ -5,527 +5,364 @@
 ;(function (that) {
 	"use strict";
 
-	// Imports.
+	// IMPORTS
 	var trace = AGJ.trace;
+	var is = AGJ.is;
 	var Class = AGJ.Class;
+	var spwords = AGJ.projects.spwords;
 	var Signal = signals.Signal;
 
-	AGJ.loggingIsEnabled = false;
+	AGJ.loggingIsEnabled = true;
 
+	// CONFIG
 	var cfg = {
 		winPoints: 3,
-
-		comment: {
-			keyDelay: 80,
-			loading: "(loading...)",
-			toStart: "(done. press enter.)",
-			start: "welcome to tonight's exciting match! " +
-				"it's menacing computer against favorite player! ",
-			rules: "remember the rules: " +
-				"contestants type a word starting with the round's assigned letter, " +
-				"and containing the last letter of their opponent's play, then press enter. " +
-				"no repeats, and watch the time limit! " +
-				"first to seize three rounds is the victor. " +
-				"computer has the first say. now, let the match begin!",
-			roundStart: [
-				"let's see who comes out victorious in the next round!",
-				"now for another round full of suspense!",
-				"who will make the best of this round?"
-			],
-			letterAnnounce: [
-				"featuring letter \"{letter}\"!",
-				"time for letter \"{letter}\"!",
-				"watch for letter \"{letter}\"!",
-				"here we go, letter \"{letter}\"!",
-				"it's letter \"{letter}\"!",
-				"we want letter \"{letter}\"!",
-				"show us letter \"{letter}\"!"
-			],
-			interjection: [
-				"ooh!",
-				"nice!",
-				"good!",
-				"safe!",
-				"wow!",
-				"works!",
-				"fair!"
-			],
-			mistake: {
-				startLetter: "did not start with \"{letter}\"!",
-				lastLetter: "does not contain previous word's \"{letter}\"!",
-				alreadyPlayed: "we've seen that word before!",
-				doesntExist: "is that english?",
-				timeOut: "time is up!"
-			},
-			roundEnd: {
-				point: [
-					"brilliant point for {winner}!",
-					"{loser} wastes a chance!",
-					"tough luck!",
-					"what a shock!",
-					"{winner} scores!",
-					"too bad for {loser}!",
-					"close, but no dice!",
-					"it's {loser}'s miss!",
-					"{winner} takes this point!"
-				],
-				winning: [
-					"{winner} has the lead!",
-					"{winner} is ahead!",
-					"{loser} needs to step up!",
-					"{loser} is not looking good!"
-				],
-				tie: [
-					"it's tied!",
-					"{points} all!",
-					"it's a battle of noses!",
-					"both sides equal!",
-					"both with {points}!"
-				]
-			},
-			scoreTally: [
-				"we have our game at computer {computer}, player {player}!",
-				"the panel reads computer {computer} versus player {player}.",
-				"computer at {computer}, player at {player}!"
-			],
-			gameEnd: "and it's settled! {winner} defeats {loser} {winnerPoints} to {loserPoints} in a match to remember! " +
-				"we look forward to the next time these two titans have a face-off. " +
-				"see you next time!"
+		trimLength: 100,
+		mode: "single",
+		language: "en",
+		time: {
+			depletionRate: 0.05, // fraction per second
+			depletionInterval: 100 // ms
 		},
 		computer: {
 			key: {
 				delay: {
 					min: 20,
 					max: 150
-				}
+				},
+				errorProbability: 0.005
 			},
 			word: {
 				delay: {
 					min: 200,
 					max: 2500
 				},
-				findAttempts: 10
+				findAttempts: 20
 			}
 		},
-		letters: "abcdefghijklmnopqrstuvwxyz",
-		trimLength: 100,
-		time: {
-			depletionRate: 0.05, // fraction per second
-			depletionInterval: 100 // ms
-		}
+
+		letters: null,
+		names: null,
+		comment: {
+			keyDelay: 80,
+			lines: null
+		},
+
+		container: null,
+		words: null,
+		wordsByLetter: null,
+		playedWords: "",
+		networkID: null
 	};
 
 	var signal = {
-		commentFinished: new Signal(),
-		allCommentsFinished: new Signal(),
-		playerFinished: new Signal(),
-		computerFinished: new Signal(),
 		enterPressed: new Signal()
 	};
 
-	var mistake = {
-		startLetter: "startLetter",
-		lastLetter: "lastLetter",
-		alreadyPlayed: "alreadyPlayed",
-		doesntExist: "doesntExist",
-		timeOut: "timeOut"
+	var names = {
+		one: null,
+		two: null
 	};
+	var contestants = {};
+	var points = {};
+	var commentator;
+	var socket;
+	var options;
 
-	var point = {
-		computer: 0,
-		player: 0
-	};
-	var time = {
-		computer: 1,
-		player: 1
-	};
-	var counter = {
-		computer: null,
-		player: null
-	};
-
-	var container; // Element
 	var title; // Element
+	var request;
 
-	var words; // String
-	var playedWords = ""; // String
-	var wordsByLetter; // Object
-	var lastLetter; // String
+	var includeLetter; // String
 	var startLetter; // String
-	var timerInterval;
 	var ignoreKeys = false;
 
 	cfg.time.depletionRate = cfg.time.depletionRate * (cfg.time.depletionInterval / 1000);
 
-	window.addEvent("domready", onDOMReady);
+	/////
 
-	function onDOMReady(e) {
-		container = $("game");
+	// SETUP
+
+	socket = new spwords.Socket(cfg);
+
+	window.addEvent("domready", function (e) {
+		cfg.container = $("game");
 		title = $("title");
 
-		counter.computer = new Bar(cfg, $$(".computer.time-bar")[0]);
-		counter.player = new Bar(cfg, $$(".player.time-bar")[0]);
+		var lang = getLanguageFromHash();
+		if (!lang)
+			lang = cfg.language;
+		setLanguage(lang);
+
+		commentator = new spwords.Commentator(cfg, socket);
+		options = new spwords.Options(title);
+		options.selected.add(onOptionSelected);
+
+		var networkID = getNetworkIDFromHash();
+		if (networkID) {
+			setNetworkID(networkID);
+			cfg.mode = "online";
+		} else {
+			socket.idObtained.addOnce(function () {
+				setNetworkID(socket.getID());
+			});
+			socket.requestID();
+		}
+
+		socket.gotReady.add(function () {
+			enteredOnline();
+		});
+
+		setMode(cfg.mode);
 
 		// Events.
-		window.addEvent(AGJ.event.key.down, onKeyDown);
+		window.addEvent(AGJ.event.key.press, onKeyDown);
 
-		signal.playerFinished.add(onPlayerFinished);
-		signal.computerFinished.add(onComputerFinished);
+		load();
+	});
 
+	/////
+
+	function load() {
 		// Get words.
-		insertComment(cfg.comment.loading);
-		ignoreKeysDuringComment();
-		var request = new Request({ url: "data/words.txt" });
+		commentator.comment(cfg.comment.lines.loading, true);
+		request = new Request({ url: "data/words-" + cfg.language + ".txt" });
 		request.addEvent("success", onWordsObtained);
 		request.get();
 	}
 
-	/////
+	function ready() {
+		signal.enterPressed.addOnce(start);
+		commentator.comment(fixNames(cfg.comment.lines.toStart));
+	}
 
 	function start() {
-		signal.enterPressed.addOnce(start2);
-		insertComment(cfg.comment.toStart);
-	}
-
-	function start2() {
-		title.addClass("hidden");
-		insertComment(cfg.comment.start);
-		insertComment(cfg.comment.rules);
-		signal.allCommentsFinished.addOnce(startRound);
-	}
-
-	function startRound() {
-		trim();
-
-		lastLetter = null;
-		time.player = 1;
-		time.computer = 1;
-		updateCounters();
-
-		startLetter = getRandomLetter();
-		signal.allCommentsFinished.addOnce(startComputerInput);
-		insertComment(cfg.comment.letterAnnounce.getRandom().replace("{letter}", startLetter));
-	}
-
-	function finishRound(playerWon, error) {
-		var winner = playerWon ? "player" : "computer";
-		var loser = playerWon ? "computer" : "player";
-		if (playerWon) {
-			point.player++;
+		if (cfg.mode === "double") {
+			setupContestant("one", cfg.names.right, spwords.Player);
+			setupContestant("two", cfg.names.left, spwords.Player);
+		} else if (cfg.mode === "online") {
+			setupContestant("one", cfg.names.there, spwords.NetworkPlayer, socket);
+			setupContestant("two", cfg.names.here, spwords.Player);
 		} else {
-			point.computer++;
+			setupContestant("one", cfg.names.computer, spwords.Computer);
+			setupContestant("two", cfg.names.player, spwords.Player);
 		}
 
-		var mistakeComment = cfg.comment.mistake[error];
-		if (error === mistake.startLetter)
-			mistakeComment = mistakeComment.replace("{letter}", startLetter);
-		if (error === mistake.lastLetter)
-			mistakeComment = mistakeComment.replace("{letter}", lastLetter);
-		insertComment(mistakeComment);
+		if (cfg.mode !== "online") {
+			socket.destroy();
+			socket = null;
+		}
 
-		if (point.player < cfg.winPoints && point.computer < cfg.winPoints) {
+		commentator.online = cfg.mode === "online";
+
+		title.removeClass("active");
+		title.getElements(".options").removeClass("active");
+		title.getElements("#language-select").removeClass("active");
+		commentator.comment(fixNames(cfg.comment.lines.start));
+		commentator.comment(fixNames(cfg.comment.lines.rules));
+		commentator.allFinished.addOnce(startRound);
+	}
+
+	function reset() {
+		request.removeEvent("success", onWordsObtained);
+		commentator.interrupt();
+		// if (socket)
+		// 	socket.destroy();
+		cfg.container.empty();
+	}
+
+	function startRound(previousWinner) {
+		trim();
+
+		includeLetter = null;
+		contestants.one.reset();
+		contestants.two.reset();
+
+		var startID = "one";
+		if (cfg.mode !== "single") {
+			if (previousWinner)
+				startID = getOtherID(previousWinner);
+			else
+				startID = ["one", "two"].getRandom();
+		}
+		startLetter = getRandomLetter();
+		commentator.allFinished.addOnce(AGJ.getCallback(contestants[startID].startInput, contestants[startID], [startLetter, includeLetter]));
+		// commentator.comment(cfg.comment.lines.turn.getRandom().replace("{turn}", names[startID]), true);
+		// commentator.comment(cfg.comment.lines.letterAnnounce.getRandom().replace("{letter}", startLetter), true);
+		commentator.comment(cfg.comment.lines.turnAndLetter.getRandom().replace("{turn}", names[startID]).replace("{letter}", startLetter), true);
+	}
+
+	function getOtherID(id) { // String
+		return id === "one" ? "two" : "one";
+	}
+
+	function finishRound(winner, error, messages) {
+		var loser = getOtherID(winner);
+		points[winner]++;
+
+		var mistakeComment = cfg.comment.lines.mistake[error].getRandom();
+		if (error === spwords.mistake.startLetter)
+			mistakeComment = mistakeComment.replace("{letter}", startLetter);
+		if (error === spwords.mistake.includeLetter)
+			mistakeComment = mistakeComment.replace("{letter}", includeLetter);
+		commentator.comment(mistakeComment, true);
+
+		if (points[winner] < cfg.winPoints && points[loser] < cfg.winPoints) {
 			// Round end, but game continues.
-			var pointComment = cfg.comment.roundEnd.point.getRandom();
-			pointComment = pointComment.replace("{winner}", winner);
-			pointComment = pointComment.replace("{loser}", loser);
-			insertComment(pointComment);
-			insertComment(getScoreComment());
-			if (point.player !== point.computer) {
-				var winningComment = cfg.comment.roundEnd.winning.getRandom();
-				winningComment = winningComment.replace("{winner}", winner);
-				winningComment = winningComment.replace("{loser}", loser);
-				insertComment(winningComment);
+			var pointComment = cfg.comment.lines.roundEnd.point.getRandom();
+			pointComment = pointComment.replace("{winner}", names[winner]).replace("{loser}", names[loser]);
+			commentator.comment(pointComment);
+			commentator.comment(getScoreComment());
+			if (points[winner] !== points[loser]) {
+				var winningComment = cfg.comment.lines.roundEnd.winning.getRandom();
+				winningComment = winningComment.replace("{winner}", names[winner]);
+				winningComment = winningComment.replace("{loser}", names[loser]);
+				commentator.comment(winningComment);
 			} else {
-				insertComment(cfg.comment.roundEnd.tie.getRandom().replace("{points}", point.player));
+				commentator.comment(cfg.comment.lines.roundEnd.tie.getRandom().replace("{points}", points[winner]));
 			}
-			insertComment(cfg.comment.roundStart.getRandom());
-			ignoreKeysDuringComment();
-			startRound();
+			commentator.comment(cfg.comment.lines.roundStart.getRandom());
+			startRound(winner);
 
 		} else {
 			// Game end.
-			var gameEndComment = cfg.comment.gameEnd;
-			gameEndComment = gameEndComment.replace("{winner}", winner).replace("{loser}", loser);
-			gameEndComment = gameEndComment.replace("{winnerPoints}", playerWon ? point.player : point.computer).replace("{loserPoints}", playerWon ? point.computer : point.player);
+			var gameEndComment = cfg.comment.lines.gameEnd;
+			gameEndComment = gameEndComment.replace("{winner}", names[winner]).replace("{loser}", names[loser]);
+			gameEndComment = gameEndComment.replace("{winnerPoints}", points[winner]).replace("{loserPoints}", points[loser]);
 			ignoreKeys = true;
-			insertComment(gameEndComment);
+			commentator.comment(gameEndComment, true);
 
-			signal.allCommentsFinished.addOnce(onGameEnd);
+			commentator.allFinished.addOnce(onGameEnd);
 		}
 	}
 
-	function finish(element, error, word) {
-		element.removeClass("active");
-		if (!error) {
-			element.addClass("right");
-			if (word)
-				lastLetter = word.substr(-1);
-		} else {
-			element.addClass("wrong");
-			// lastLetter = null;
+	function setupContestant(id, name, type) {
+		names[id] = name;
+		contestants[id] = new type(cfg, new spwords.Bar($$("." + id + ".time-bar")[0]), id);
+		points[id] = 0;
+		contestants[id].finished.add(onContestantFinished);
+	}
+
+	function enteredOnline() {
+		setMode("online");
+		commentator.comment(cfg.comment.lines.playerOnline);
+	}
+
+	function setMode(name) {
+		var body = $$("body")[0];
+		var classes = body.get("class").split(" ");
+		for (var i = classes.length - 1; i >= 0; i--) {
+			if (classes[i].endsWith("-mode"))
+				classes.splice(i, 1);
 		}
-		clearInterval(timerInterval);
+		body.set("class", name + "-mode " + classes.join(" "));
+
+		cfg.mode = name;
 	}
 
-	function startInput() {
-		timerInterval = setInterval(onTimer, cfg.time.depletionInterval);
-		counter.player.setActive(false);
-		counter.computer.setActive(false);
-		setTimeout(fixWebkitBug, 0);
+	function changeLanguage(id) {
+		window.location.hash = "#" + id;
+		reset();
+		setLanguage(id);
+		load();
 	}
 
-	function updateCounters() {
-		counter.player.setValue(time.player);
-		counter.computer.setValue(time.computer);
+	function setLanguage(id) {
+		trace("Setting language:", id);
+
+		cfg.comment.lines = spwords.languages[id].comments;
+		cfg.letters = spwords.languages[id].letters;
+		cfg.names = spwords.languages[id].names;
+
+		var body = $$("body")[0];
+		var classes = body.get("class").split(" ");
+		for (var i = classes.length - 1; i >= 0; i--) {
+			if (classes[i].startsWith("language-"))
+				classes.splice(i, 1);
+		}
+		body.set("class", "language-" + id + " " + classes.join(" "));
+
+		cfg.language = id;
+		socket.setLanguage(id);
+		updateOnlineLink();
 	}
 
-	function addInputLetter(element, wordSoFar, letter) { // String
-		wordSoFar += letter;
-		element.set("html", wordSoFar);
-		return wordSoFar;
+	function setNetworkID(id) {
+		cfg.networkID = id;
+		socket.setID(id);
+		updateOnlineLink();
+	}
+
+	function updateOnlineLink() {
+		$$("#online .url .id").set("text", cfg.language + cfg.networkID);
+		$("online")[is.set(cfg.networkID) && is.set(cfg.language) ? "addClass" : "removeClass"]("active");
+	}
+
+	function getLanguageFromHash() { // String
+		var hash = window.location.hash;
+		var lang;
+		if (is.set(hash)) {
+			lang = (hash.charAt(0) === "#" ? hash.substr(1) : hash).substr(0, 2);
+		}
+		if (lang) {
+			var languages = Object.keys(spwords.languages);
+			if (languages.indexOf(lang) < 0)
+				lang = null;
+		}
+		return lang;
+	}
+
+	function getNetworkIDFromHash() { // String
+		var hash = window.location.hash;
+		var id;
+		if (is.set(hash) && hash.length > 2) {
+			id = (hash.charAt(0) === "#" ? hash.substr(1) : hash).substr(2);
+		}
+		return id;
 	}
 
 	function addPlayedWord(thisWord) {
-		trace("Adding played word:", thisWord, playedWords);
-		playedWords += "\n" + thisWord;
-	}
-
-	function insertInput(classes) {
-		var el = new Element("span", { "class": classes, html: "&nbsp;" } );
-		container.appendText(" ");
-		container.grab(el);
-		return el;
+		if (thisWord) {
+			cfg.playedWords += "\n" + thisWord;
+			includeLetter = thisWord.substr(-1);
+		}
 	}
 
 	function trim() {
-		var nodes = container.childNodes;
+		var nodes = cfg.container.childNodes;
 		var count = 0;
 		for (var i = nodes.length - 1; i >= 0; --i) {
 			var node = $(nodes[i]);
 			if (count < cfg.trimLength) {
 				count += node.textContent.length;
 			} else {
-				container.removeChild(node);
+				cfg.container.removeChild(node);
 			}
 		}
-	}
-
-	function ignoreKeysDuringComment() {
-		ignoreKeys = true;
-		signal.commentFinished.addOnce(stopIgnoringKeys);
-	}
-	function stopIgnoringKeys() {
-		ignoreKeys = false;
-	}
-
-	function getWordStartError(wordStart) { // String
-		wordStart = wordStart.toLowerCase();
-		if (wordStart.charAt(0) !== startLetter)
-			return mistake.startLetter;
-		var regex = new RegExp("^" + wordStart, "m");
-		if (!regex.test(words))
-			return mistake.doesntExist;
-		return null;
-	}
-
-	function getWordError(word) { // String
-		word = word.toLowerCase();
-		if (word.charAt(0) !== startLetter) //lastLetter)
-			return mistake.startLetter;
-		if (lastLetter && word.indexOf(lastLetter) < 0)
-			return mistake.lastLetter;
-		var regex = new RegExp("^" + word + "$", "m");
-		if (regex.test(playedWords))
-			return mistake.alreadyPlayed;
-		if (!regex.test(words))
-			return mistake.doesntExist;
-		return null;
 	}
 
 	function getRandomLetter() { // String
 		return cfg.letters.charAt(Math.randomInt(cfg.letters.length));
 	}
 
-	function getRandomBetween(min, max) { // number
-		return Math.randomInt(max - min) + min;
-	}
-
-	function fixWebkitBug() {
-		// Webkit graphic bug workaround
-		container.style.display = "none";
-		container.offsetHeight;
-		container.style.display = "block";
-	}
-
-	// Player input.
-
-	var playerInput; // Element
-	var playerWordSoFar = ""; // String
-
-	function startPlayerInput() {
-		startInput();
-		playerInput = insertInput("input player active");
-		playerWordSoFar = "";
-		counter.player.setActive(true);
-	}
-
-	function addPlayerLetter(letter) {
-		playerWordSoFar = addInputLetter(playerInput, playerWordSoFar, letter);
-		var error = getWordStartError(playerWordSoFar);
-		if (error) {
-			finishPlayerInput(error);
-		}
-	}
-
-	function checkPlayerInput() {
-		var error = getWordError(playerWordSoFar);
-		if (!error)
-			addPlayedWord(playerWordSoFar);
-		trace("Checking player input:", error);
-		finishPlayerInput(error);
-	}
-
-	function finishPlayerInput(error) {
-		finish(playerInput, error, playerWordSoFar);
-		playerInput = null;
-		counter.player.setActive(false);
-		signal.playerFinished.dispatch(error);
-	}
-
-	// Computer input.
-
-	var computerInput; // Element
-	var computerWordSoFar = "";
-	var computerWord; // String
-	var computerIndex; // Number
-	var computerTimeout;
-
-	function startComputerInput() {
-		startInput();
-		computerInput = insertInput("input computer active");
-		computerWordSoFar = "";
-		computerWord = wordsByLetter[startLetter].getRandom();
-		if (lastLetter) {
-			for (var i = 0; i < cfg.computer.word.findAttempts && computerWord.indexOf(lastLetter) < 0; i++) {
-				computerWord = wordsByLetter[startLetter].getRandom();
-			}
-		}
-		computerIndex = 0;
-		computerTimeout = setTimeout(onComputerTimeout, getRandomBetween(cfg.computer.word.delay.min, cfg.computer.word.delay.max));
-		counter.computer.setActive(true);
-	}
-
-	function addComputerLetter(letter) {
-		computerWordSoFar = addInputLetter(computerInput, computerWordSoFar, letter);
-		var error = getWordStartError(computerWordSoFar);
-		if (error) {
-			finishComputerInput(error);
-		}
-	}
-
-	function checkComputerInput() {
-		var error = getWordError(computerWordSoFar);
-		if (!error)
-			addPlayedWord(computerWordSoFar);
-		finishComputerInput(error);
-	}
-
-	function finishComputerInput(error) {
-		finish(computerInput, error, computerWordSoFar);
-		computerInput = null;
-		clearTimeout(computerTimeout);
-		counter.computer.setActive(false);
-		signal.computerFinished.dispatch(error);
-	}
-
-	function getComputerDelay() { // Number
-		return getRandomBetween(cfg.computer.key.delay.min, cfg.computer.key.delay.max);
-	}
-
-	function onComputerTimeout() {
-		if (computerIndex <= computerWord.length) {
-			if (AGJ.util.tossCoin(0.99)) {
-				addComputerLetter(computerWord.charAt(computerIndex));
-			} else {
-				addComputerLetter(getRandomLetter());
-			}
-			computerIndex++;
-			if (computerInput)
-				computerTimeout = setTimeout(onComputerTimeout, getComputerDelay());
-		} else {
-			checkComputerInput();
-		}
-	}
-
-	// Comments.
-
-	var commentElement; // Element
-	var comment; // String
-	var commentIndex; // Number
-	var commentQueue = [];
-
-	var commentInterval;
-
-	function insertComment(text) {
-		if (!commentElement) {
-			executeComment(text);
-		} else {
-			commentQueue.push(text);
-		}
-	}
-
-	function executeComment(text) {
-		clearInterval(commentInterval);
-		comment = text;
-		commentIndex = 0;
-		commentElement = new Element("span", { "class": "comment" });
-		container.appendText(" ");
-		container.grab(commentElement);
-		commentInterval = setInterval(onCommentInterval, cfg.comment.keyDelay);
-	}
-
-	function stopComment() {
-		if (commentElement) {
-			if (commentIndex < comment.length)
-				commentElement.appendText("\u2014");
-			commentElement = null;
-			clearInterval(commentInterval);
-			signal.commentFinished.dispatch();
-
-			if (commentQueue.length > 0) {
-				executeComment(commentQueue.shift());
-			} else {
-				signal.allCommentsFinished.dispatch();
-			}
-		}
-	}
-
 	function getScoreComment() { // String
-		var text = cfg.comment.scoreTally.getRandom();
-		text = text.replace("{player}", point.player);
-		text = text.replace("{computer}", point.computer);
-		return text;
+		var text = cfg.comment.lines.scoreTally.getRandom();
+		return fixNames(text);
 	}
 
-	function updateComment(index) {
-		commentElement.set("text", comment.substr(0, index));
-	}
-
-	function onCommentInterval() {
-		commentIndex++;
-		updateComment(commentIndex);
-		if (commentIndex > comment.length) {
-			stopComment();
-		}
+	function fixNames(text) { // String
+		return text.replace("{one}", names.one)
+			.replace("{two}", names.two)
+			.replace("{pointsOne}", points.one)
+			.replace("{pointsTwo}", points.two);
 	}
 
 
 	///// Events.
 
 	function onWordsObtained(contents, xml) {
-		words = contents;
+		cfg.words = contents;
 
-		wordsByLetter = {};
+		cfg.wordsByLetter = {};
 		while (contents.length > 0) {
 			var letter = contents.charAt(0);
 			var regex = new RegExp("(^" + letter + ".*$\\s*)+[^" + letter + "]", "m");
@@ -536,115 +373,64 @@
 				contents = contents.substr(index);
 				group = group.split("\n");
 				group.pop();
-				wordsByLetter[letter] = group;
+				cfg.wordsByLetter[letter] = group;
 			} else {
 				break;
 			}
 		}
-		trace(wordsByLetter);
 
-		start();
+		ready();
 	}
 
 	function onKeyDown(e) {
 		if (e.meta || e.control || e.alt)
 			return;
+		
 		e.preventDefault();
-		if (ignoreKeys)
-			return;
-		var char = e.key;
-		if (playerInput) {
-			if (char === "enter") {
-				if (playerWordSoFar.length > 0)
-					checkPlayerInput();
-			} else if (char.length === 1 && cfg.letters.indexOf(char) >= 0) {
-				addPlayerLetter(char);
-			}
-		} else if (char === "enter") {
-			if (commentElement)
-				stopComment();
+
+		if (!commentator.getIsCommenting() && e.key === "enter") {
 			signal.enterPressed.dispatch();
 		}
 	}
 
-	function onTimer() {
-		if (playerInput) {
-			time.player = Math.max(time.player - cfg.time.depletionRate, 0);
-			if (time.player <= 0)
-				finishPlayerInput(mistake.timeOut);
-		} else if (computerInput) {
-			time.computer = Math.max(time.computer - cfg.time.depletionRate, 0);
-			if (time.computer <= 0)
-				finishComputerInput(mistake.timeOut);
-		} else {
-			clearInterval(timerInterval);
-		}
-		updateCounters();
+	function onOptionSelected(type, name) {
+		trace("Option selected:", type, name);
+		if (type === "mode")
+			setMode(name);
+		else if (type === "language")
+			changeLanguage(name);
 	}
 
-	function onPlayerFinished(error) {
+	function onCommentInterrupted() {
+		signal.enterPressed.dispatch();
+	}
+
+	function onContestantFinished(cont, word, error, messages) {
+		var id = AGJ.object.getKeyFromValue(contestants, cont);
+		var other = getOtherID(id);
 		if (error) {
-			finishRound(false, error);
+			finishRound(other, error, messages);
 		} else {
-			signal.allCommentsFinished.addOnce(startComputerInput);
-			insertComment(cfg.comment.interjection.getRandom());
+			addPlayedWord(word);
+			commentator.allFinished.addOnce(AGJ.getCallback(contestants[other].startInput, contestants[other], [startLetter, includeLetter]));
+			if (messages) {
+				sayMessages(messages);
+			} else {
+				commentator.comment(cfg.comment.lines.interjection.getRandom());
+			}
 		}
 	}
 
-	function onComputerFinished(error) {
-		if (error) {
-			finishRound(true, error);
-		} else {
-			signal.allCommentsFinished.addOnce(startPlayerInput);
-			insertComment(cfg.comment.interjection.getRandom());
+	function sayMessages(messages) {
+		for (var i = 0, len = messages.length; i < len; i++) {
+			var message = messages[i];
+			commentator.comment(message.text, message.ignoreKeys, true);
 		}
 	}
 
 	function onGameEnd() {
-		title.removeClass("hidden");
+		title.addClass("active");
 	}
-
-
-	/////
-	///// Classes.
-
-	var Bar = Class.extend({
-		init: function (config, element) {
-			this._cfg = config;
-			this._element = element;
-
-			this._value = 1;
-			this._update();
-		},
-
-		setValue: function (value) {
-			this._value = value;
-			this._update();
-		},
-		getValue: function () { // Number
-			return this._value;
-		},
-
-		setActive: function (value) {
-			this._active = value;
-			this._update();
-		},
-		getActive: function (value) {
-			return this._active;
-		},
-
-		_update: function () {
-			this._element.getElements(".remaining")[0].setStyle("width", this._getPercent(this._value));
-			if (this._active)
-				this._element.addClass("active");
-			else
-				this._element.removeClass("active");
-		},
-
-		_getPercent: function (value) {
-			return (value * 100) + "%";
-		}
-	});
 
 
 })(this);

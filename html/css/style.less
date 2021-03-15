@@ -74,43 +74,63 @@ a, #title .option {
 #title {
 	font-size: 20%;
 	letter-spacing: 0.01em;
-	position: absolute;
-	top: 50%;
-	right: 0;
-	margin-top: -4.5em;
-	text-align: right;
 
 	display: none;
 	&.active {
 		display: block;
 	}
 
-	.language {
-		display: none;
+	.languages {
+		position: absolute;
+		top: 50%;
+		right: 0;
+		margin-top: -4.5em;
+		text-align: right;
 
-		h1, p {
-			display: inline-block;
-		}
-
-		.options {
+		.language {
 			display: none;
-			&.active {
+
+			h1, p {
 				display: inline-block;
 			}
-			.option {
-				.transition(in);
+
+			.options {
+				display: none;
+				&.active {
+					display: inline-block;
+				}
+				.option {
+					.transition(in);
+				}
+				.mode {
+					.transition(out);
+				}
 			}
-			.mode {
-				.transition(out);
-			}
+		}
+	}
+
+	#online {
+		position: absolute;
+		top: 50%;
+		right: 0;
+		margin-top: 2.7em;
+		display: none;
+
+		&.active {
+			display: block;
+		}
+
+		.url {
+			text-transform: none;
 		}
 	}
 
 	#language-select {
 		position: absolute;
-		top: 7.25em;
+		top: 50%;
 		right: 0;
-		width: auto;
+		margin-top: 4.2em;
+		right: 0;
 		display: none;
 
 		.option {
@@ -124,6 +144,7 @@ a, #title .option {
 }
 
 body {
+	// Modes.
 	.setMode (@mode) {
 		&.@{mode}-mode {
 			#title .language .options {
@@ -140,6 +161,7 @@ body {
 	.setMode(single);
 	.setMode(double);
 
+	// Languages.
 	.setLanguage (@language) {
 		&.language-@{language} {
 			#title {
@@ -155,6 +177,14 @@ body {
 
 	.setLanguage(en);
 	.setLanguage(es);
+}
+
+body.online-mode #title {
+	.languages .language .options,
+	#language-select,
+	#online {
+		display: none !important;
+	}
 }
 
 #game {

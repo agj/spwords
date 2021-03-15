@@ -2,12 +2,13 @@
 /*jshint mootools:true*/
 /*global signals:false*/
 /*global AGJ:false*/
-;(function (that) {
+;(function (g) {
 	"use strict";
 
 	// Imports.
 	var trace = AGJ.trace;
 	var defineModule = AGJ.defineModule;
+	var is = AGJ.is;
 	var Class = AGJ.Class;
 	var Destroyable = AGJ.Destroyable;
 	var Signal = signals.Signal;
@@ -32,11 +33,11 @@
 			this._bar = bar;
 			this._id = id;
 
-			this._finished = new Signal(); // self:Contestant, word:String, error:String
+			this.finished = new Signal(); // self:Contestant, word:String, error:String
 
 			this._time = 1;
 			this._timerInterval = null;
-			this._timerIntervalCallback = AGJ.getCallback(this._onTimer, null, this);
+			this._timerIntervalCallback = this._onTimer.bind(this);
 			this._element = null;
 			this._wordSoFar = null;
 			this._startLetter = null;
@@ -46,8 +47,8 @@
 		startInput: function (startLetter, includeLetter) {
 			this._startLetter = startLetter;
 			this._includeLetter = includeLetter;
-			that.clearInterval(this._timerInterval);
-			this._timerInterval = that.setInterval(this._timerIntervalCallback, this._cfg.time.depletionInterval);
+			clearInterval(this._timerInterval);
+			this._timerInterval = setInterval(this._timerIntervalCallback, this._cfg.time.depletionInterval);
 			this._insertElement(this._cfg.container);
 			this._wordSoFar = "";
 			this._bar.setActive(true);
@@ -55,7 +56,7 @@
 
 		reset: function () {
 			this._time = 1;
-			that.clearInterval(this._timerInterval);
+			clearInterval(this._timerInterval);
 			this._bar.setValue(this._time);
 			this._bar.setActive(false);
 		},
@@ -81,10 +82,10 @@
 		_finishInput: function (error) {
 			this._element.removeClass("active");
 			this._element.addClass(error ? "wrong" : "right");
-			that.clearInterval(this._timerInterval);
+			clearInterval(this._timerInterval);
 			this._element = null;
 			this._bar.setActive(false);
-			this._finished.dispatch(this, this._wordSoFar, error);
+			this.finished.dispatch(this, this._wordSoFar, error);
 		},
 
 		_insertElement: function (container) {
@@ -124,13 +125,13 @@
 				if (this._time <= 0)
 					this._finishInput(mistake.timeOut);
 			} else {
-				that.clearInterval(this._timerInterval);
+				clearInterval(this._timerInterval);
 			}
 		},
 
 		destroy: function () {
 			this._super("destroy")();
-			that.clearInterval(this._timerInterval);
+			clearInterval(this._timerInterval);
 			this._finished.removeAll();
 
 			this._cfg = null;
@@ -144,9 +145,9 @@
 		init: function (config, bar, name) {
 			this._super("init")(config, bar, name);
 
-			this._onKeyDownCB = AGJ.getCallback(this._onKeyDown, null, this);
+			this._onKeyDownCB = this._onKeyDown.bind(this);
 
-			that.addEvent(AGJ.event.key.press, this._onKeyDownCB);
+			g.addEvent(AGJ.event.key.press, this._onKeyDownCB);
 		},
 
 		_fixChar: function (char) { // String
@@ -173,7 +174,7 @@
 
 		destroy: function () {
 			this._super("destroy")();
-			that.removeEvent(AGJ.event.key.press, this._onKeyDownCB);
+			g.removeEvent(AGJ.event.key.press, this._onKeyDownCB);
 		}
 	}));
 
@@ -184,7 +185,7 @@
 			this._word = null;
 			this._wordIndex = NaN;
 			this._keyTimeout = null;
-			this._keyTimeoutCallback = AGJ.getCallback(this._onKeyTimeout, null, this);
+			this._keyTimeoutCallback = this._onKeyTimeout.bind(this);
 		},
 
 		startInput: function (startLetter, includeLetter) {
@@ -198,13 +199,12 @@
 			}
 			this._wordIndex = 0;
 			var delay = this._cfg.computer.word.delay;
-			this._keyTimeout = that.setTimeout(this._keyTimeoutCallback, Math.randomInt(delay.max - delay.min) + delay.min);
+			this._keyTimeout = setTimeout(this._keyTimeoutCallback, Math.randomInt(delay.max - delay.min) + delay.min);
 		},
 
 		_finishInput: function (error) {
 			this._super("_finishInput")(error);
-
-			that.clearTimeout(this._keyTimeout);
+			clearTimeout(this._keyTimeout);
 		},
 
 		_onKeyTimeout: function () {
@@ -221,7 +221,7 @@
 				this._wordIndex++;
 				if (this._element) {
 					var delay = this._cfg.computer.key.delay;
-					this._keyTimeout = that.setTimeout(this._keyTimeoutCallback, Math.randomInt(delay.max - delay.min) + delay.min);
+					this._keyTimeout = setTimeout(this._keyTimeoutCallback, Math.randomInt(delay.max - delay.min) + delay.min);
 				}
 			} else {
 				this._checkInput();
@@ -230,7 +230,23 @@
 
 		destroy: function () {
 			this._super("destroy")();
-			that.clearTimeout(this._keyTimeout);
+			clearTimeout(this._keyTimeout);
+		}
+	}));
+
+	var NetworkPlayer = defineModule(spwords, "NetworkPlayer", Contestant.extend({
+		init: function (config, bar, name, socket) {
+			this._super("init")(config, bar, name);
+
+			this._socket = socket;
+		},
+
+		startInput: function (startLetter, includeLetter) {
+			this._super("startInput")(startLetter, includeLetter);
+		},
+
+		_finishInput: function () {
+			// Do nothing. This is to prevent timeouts automatically ending turns. We want to wait for network confirmation.
 		}
 	}));
 
@@ -238,8 +254,7 @@
 	/////
 
 	var Bar = defineModule(spwords, "Bar", Class.extend({
-		init: function (config, element) {
-			this._cfg = config;
+		init: function (element) {
 			this._element = element;
 
 			this._value = 1;
@@ -278,29 +293,37 @@
 	/////
 
 	var Commentator = defineModule(spwords, "Commentator", Class.extend({
-		init: function (config) {
+		init: function (config, socket) {
 			this._cfg = config;
+			this._socket = socket;
 
-			this._finished = new Signal();
-			this._allFinished = new Signal();
-			this._interrupted = new Signal();
+			this.online = false;
+
+			this.finished = new Signal();
+			this.allFinished = new Signal();
+			this.interrupted = new Signal();
 
 			this._element = null;
 			this._queue = [];
 			this._interval = null;
-			this._intervalCallback = AGJ.getCallback(this._onInterval, null, this);
+			this._intervalCallback = this._onInterval.bind(this);
 			this._current = null;
 			this._index = NaN;
 			this._ignoreKeys = false;
 
-			that.addEvent(AGJ.event.key.down, AGJ.getCallback(this._onKeyDown, null, this));
+			g.addEvent(AGJ.event.key.down, this._onKeyDown.bind(this));
 		},
 
-		comment: function (text, ignoreKeys) {
-			if (!this._element) {
-				this._executeComment(text, ignoreKeys);
+		comment: function (text, ignoreKeys, dontSendOnline) {
+			trace("Commenting.", this.online, dontSendOnline);
+			if (!this.online || dontSendOnline) {
+				if (!this._element) {
+					this._executeComment(text, ignoreKeys);
+				} else {
+					this._queue.push( { text: text, ignoreKeys: ignoreKeys } );
+				}
 			} else {
-				this._queue.push( { text: text, ignoreKeys: ignoreKeys } );
+				this._socket.sendComments( { text: text, ignoreKeys: ignoreKeys } );
 			}
 		},
 
@@ -308,48 +331,36 @@
 			if (allComments)
 				this._queue = [];
 
-			that.clearInterval(this._interval);
+			clearInterval(this._interval);
 
 			if (this._element) {
 				if (this._index < this._current.length)
 					this._element.appendText("\u2014");
 				this._element = null;
-				this._finished.dispatch();
+				this.finished.dispatch();
 
 				if (this._queue.length > 0) {
 					var cmt = this._queue.shift();
 					this._executeComment(cmt.text, cmt.ignoreKeys);
 				} else {
-					this._allFinished.dispatch();
+					this.allFinished.dispatch();
 				}
 			}
 		},
 
-		getFinished: function () { // Signal
-			return this._finished;
-		},
-
-		getAllFinished: function () { // Signal
-			return this._allFinished;
-		},
-
-		getInterrupted: function () { // Signal
-			return this._interrupted;
-		},
-
-		isCommenting: function () { // Boolean
+		getIsCommenting: function () { // Boolean
 			return !!this._element;
 		},
 
 		_executeComment: function (text, ignoreKeys) {
 			this._ignoreKeys = ignoreKeys;
-			that.clearInterval(this._interval);
+			clearInterval(this._interval);
 			this._current = text;
 			this._index = 0;
 			this._element = new Element("span", { "class": "comment" });
 			this._cfg.container.appendText(" ");
 			this._cfg.container.grab(this._element);
-			this._interval = that.setInterval(this._intervalCallback, this._cfg.comment.keyDelay);
+			this._interval = setInterval(this._intervalCallback, this._cfg.comment.keyDelay);
 		},
 
 		_updateComment: function (index) {
@@ -375,33 +386,131 @@
 				return;
 			if (this._element && this._index > 0 && e.key === "enter") {
 				this.interrupt();
-				this._interrupted.dispatch();
+				this.interrupted.dispatch();
 			}
 		}
 	}));
 
 	/////
 
-	var Options = defineModule(spwords, "Options", Class.extend({
+	defineModule(spwords, "Options", Class.extend({
 		init: function (container) {
 			this._container = container;
 
-			this._selected = new Signal(); // type:String, name:String
+			this.selected = new Signal(); // type:String, name:String
 
 			var options = container.getElements(".option");
-			var cb = AGJ.getCallback(this._onOptionClicked, null, this);
-			options.addEvent(AGJ.event.mouse.click, cb);
-		},
-
-		getSelected: function () { // Signal
-			return this._selected;
+			options.addEvent(AGJ.event.mouse.click, this._onOptionClicked.bind(this));
 		},
 
 		_onOptionClicked: function (e) {
 			var regexResult = /(\w+)-(\w+)-option/.exec(e.target.get("class"));
 			var type = regexResult[2];
 			var name = regexResult[1];
-			this._selected.dispatch(type, name);
+			this.selected.dispatch(type, name);
+		}
+	}));
+
+	/////
+
+	defineModule(spwords, "Socket", Destroyable.extend({
+		init: function (config) {
+			this._super("init")();
+
+			trace("Creating Socket object.");
+
+			this.idObtained = new Signal();
+			this.commentsArrived = new Signal(); // comments:Array
+			this.gotReady = new Signal();
+			this.characterReceived = new Signal(); // char:String
+
+			this._cfg = config;
+			this._socket = g.io.connect("http://lmn2.us.to:3742");
+			this._roomID = null;
+			this._lang = null;
+			this._joinedRoom = null;
+			this._localID = null;
+
+			this._socket.on("connect", this._onConnected.bind(this));
+			this._socket.on("comment", this._onComments.bind(this));
+			this._socket.on("player number", this._onLocalID.bind(this));
+			this._socket.on("players", this._onPlayers.bind(this));
+			this._socket.on("char", this._onCharacter.bind(this));
+		},
+
+		/**
+		 * @param  {array} arrayComments List of comment objects: { text: "comment", ignoreKeys: false }
+		 */
+		sendComments: function (arrayComments) {
+			this._socket.emit("comment", arrayComments);
+		},
+
+		requestID: function () {
+			this._socket.emit("get random id", {}, (function (id) {
+				this._roomID = id;
+				this._checkEnterRoom();
+				this.idObtained.dispatch();
+			}).bind(this));
+		},
+
+		getID: function () { // String
+			return this._roomID;
+		},
+		setID: function (id) {
+			this._roomID = id;
+			this._checkEnterRoom();
+		},
+
+		setLanguage: function (lang) {
+			this._language = lang;
+			this._checkEnterRoom();
+		},
+
+		_checkEnterRoom: function () {
+			var room = this._language + this._roomID;
+			if (is.set(this._id) && is.set(this._language) && this._joinedRoom !== room) {
+				this._joinedRoom = room;
+				this._socket.emit("set room", { room: room });
+			}
+		},
+
+		_onConnected: function () {
+			trace("Connected.");
+		},
+
+		_onComments: function (comments) {
+			trace("Comments arrived.", comments);
+			this.commentsArrived.dispatch(comments);
+		},
+
+		_onLocalID: function (id) {
+			trace("Local ID:", id);
+			this._localID = id;
+		},
+
+		_onPlayers: function (players) {
+			trace("On players.", players);
+			if (players.length === 2)
+				this.gotReady.dispatch();
+		},
+
+		_onCharacter: function (data) {
+			if (data.player_num !== this._playerID)
+				this.characterReceived.dispatch(data.char);
+		},
+
+		destroy: function () {
+			this._super("destroy")();
+			this._socket.disconnect();
+			AGJ.destroy([
+				this.idObtained,
+				this.commentsArrived,
+				this.gotReady
+			]);
+			this._socket = null;
+			this.idObtained = null;
+			this.commentsArrived = null;
+			this.gotReady = null;
 		}
 	}));
 
