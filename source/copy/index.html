@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Spwords</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Styles and scripts -->
+    <script src="js/script.js"></script>
+  </head>
+  <body>
+    <div id="elm"></div>
+    <script>
+      var app = Elm.Main.init({
+        node: document.getElementById("elm"),
+        flags: {
+          viewport: {
+            width: window.innerWidth,
+            height: window.innerHeight,
+          },
+        },
+      });
+
+      app.ports.getViewport.subscribe(() => {
+        app.ports.gotViewport.send({
+          width: document.body.clientWidth,
+          height: document.body.clientHeight,
+        });
+      });
+    </script>
+  </body>
+</html>

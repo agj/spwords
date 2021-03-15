@@ -1,0 +1,10 @@
+
+output/
+
+
+# Standard stuff below
+
+elm-stuff/
+node_modules/
+**/npm-debug.log
+.vscode/
