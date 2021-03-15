@@ -38,7 +38,14 @@ main =
 
 
 type alias Model =
-    { viewport : Viewport
+    { game : Game
+    , viewport : Viewport
+    }
+
+
+type alias Game =
+    { message : String
+    , letterTicks : Int
     }
 
 
@@ -49,7 +56,8 @@ type alias Flags =
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( { viewport = flags.viewport
+    ( { game = { message = "Spwords", letterTicks = 0 }
+      , viewport = flags.viewport
       }
     , Cmd.none
     )
@@ -106,16 +114,16 @@ view model =
             , Background.color Palette.dark
             , padding 0
             ]
-            mainScreen
+            (mainScreen model.game)
         ]
     }
 
 
-mainScreen : Element Msg
-mainScreen =
+mainScreen : Game -> Element Msg
+mainScreen game =
     column [ height fill, width fill ]
         [ bar AthleteA (TimeLeft 0.5)
-        , statusDisplay
+        , statusDisplay game
         , bar AthleteB (TimeLeft 0.5)
         ]
 
@@ -173,15 +181,18 @@ bar athlete (TimeLeft timeLeft) =
         ]
 
 
-statusDisplay : Element Msg
-statusDisplay =
+statusDisplay : Game -> Element Msg
+statusDisplay game =
     el
         [ clip
         , width fill
         , centerY
         , Font.size Palette.textSizeLarger
         ]
-        (el [ alignRight ] <| text "Welcome to Spwords!")
+        (el
+            [ alignRight ]
+            (text game.message)
+        )
 
 
 
