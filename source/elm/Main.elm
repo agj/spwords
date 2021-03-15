@@ -114,9 +114,9 @@ view model =
 mainScreen : Element Msg
 mainScreen =
     column [ height fill, width fill ]
-        [ bar AthleteA
+        [ bar AthleteA (TimeLeft 0.5)
         , statusDisplay
-        , bar AthleteB
+        , bar AthleteB (TimeLeft 0.5)
         ]
 
 
@@ -125,21 +125,52 @@ type Athlete
     | AthleteB
 
 
-bar : Athlete -> Element Msg
-bar athlete =
-    el
-        [ width fill
-        , height (px Palette.spaceSmall)
-        , Background.color
-            (case athlete of
+type TimeLeft
+    = TimeLeft Float
+
+
+bar : Athlete -> TimeLeft -> Element Msg
+bar athlete (TimeLeft timeLeft) =
+    let
+        filledPortion =
+            round (timeLeft * 10000)
+
+        emptyPortion =
+            10000 - filledPortion
+
+        filledColor =
+            case athlete of
                 AthleteA ->
                     Palette.athleteA
 
                 AthleteB ->
                     Palette.athleteB
-            )
+
+        emptyColor =
+            case athlete of
+                AthleteA ->
+                    Palette.athleteADark
+
+                AthleteB ->
+                    Palette.athleteBDark
+    in
+    row
+        [ width fill
+        , height (px Palette.spaceSmall)
         ]
-        none
+        [ el
+            [ width (fillPortion filledPortion)
+            , height fill
+            , Background.color filledColor
+            ]
+            none
+        , el
+            [ width (fillPortion emptyPortion)
+            , height fill
+            , Background.color emptyColor
+            ]
+            none
+        ]
 
 
 statusDisplay : Element Msg

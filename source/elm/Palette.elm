@@ -23,9 +23,19 @@ athleteA =
     rgb 1 0 1
 
 
+athleteADark : Color
+athleteADark =
+    rgb 0.3 0 0.3
+
+
 athleteB : Color
 athleteB =
     rgb 0 1 1
+
+
+athleteBDark : Color
+athleteBDark =
+    rgb 0 0.3 0.3
 
 
 transparent : Color
