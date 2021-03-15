@@ -102,11 +102,24 @@ view model =
         [ layout
             [ Font.family Palette.font
             , Font.size Palette.textSizeNormal
+            , Font.color Palette.light
+            , Background.color Palette.dark
             , padding 0
             ]
-            (text "Hello World")
+            statusDisplay
         ]
     }
+
+
+statusDisplay : Element Msg
+statusDisplay =
+    el
+        [ clip
+        , width fill
+        , centerY
+        , Font.size Palette.textSizeLarger
+        ]
+        (el [ alignRight ] <| text "Welcome to Spwords!")
 
 
 

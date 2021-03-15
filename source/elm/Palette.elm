@@ -8,49 +8,14 @@ import Element.Font as Font exposing (Font)
 -- COLOR
 
 
-highlight : Color
-highlight =
-    rgb 0.95 0.6 0.24
-
-
-warning : Color
-warning =
-    rgb 0.95 0.24 0.24
-
-
 light : Color
 light =
-    rgb 1 1 1
+    rgb 0.9 0.9 0.9
 
 
 dark : Color
 dark =
-    rgb 0 0 0
-
-
-darkish : Color
-darkish =
-    rgb 0.4 0.4 0.4
-
-
-mid : Color
-mid =
-    rgb 0.7 0.7 0.7
-
-
-backA : Color
-backA =
-    rgb 0.9 0.9 0.9
-
-
-backALight : Color
-backALight =
-    rgb 0.95 0.95 0.95
-
-
-darkishTransparent : Color
-darkishTransparent =
-    rgba 0.4 0.4 0.4 0.7
+    rgb 0.2 0.2 0.2
 
 
 transparent : Color
@@ -64,7 +29,7 @@ transparent =
 
 font : List Font
 font =
-    [ Font.sansSerif
+    [ Font.monospace
     ]
 
 
@@ -85,7 +50,7 @@ textSizeLarge =
 
 textSizeLarger : Int
 textSizeLarger =
-    36
+    75
 
 
 textLineSpacing : Int -> Int
