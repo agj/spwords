@@ -18,6 +18,16 @@ dark =
     rgb 0.2 0.2 0.2
 
 
+athleteA : Color
+athleteA =
+    rgb 1 0 1
+
+
+athleteB : Color
+athleteB =
+    rgb 0 1 1
+
+
 transparent : Color
 transparent =
     rgba 0 0 0 0

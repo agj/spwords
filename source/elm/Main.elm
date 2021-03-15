@@ -106,9 +106,40 @@ view model =
             , Background.color Palette.dark
             , padding 0
             ]
-            statusDisplay
+            mainScreen
         ]
     }
+
+
+mainScreen : Element Msg
+mainScreen =
+    column [ height fill, width fill ]
+        [ bar AthleteA
+        , statusDisplay
+        , bar AthleteB
+        ]
+
+
+type Athlete
+    = AthleteA
+    | AthleteB
+
+
+bar : Athlete -> Element Msg
+bar athlete =
+    el
+        [ width fill
+        , height (px Palette.spaceSmall)
+        , Background.color
+            (case athlete of
+                AthleteA ->
+                    Palette.athleteA
+
+                AthleteB ->
+                    Palette.athleteB
+            )
+        ]
+        none
 
 
 statusDisplay : Element Msg
