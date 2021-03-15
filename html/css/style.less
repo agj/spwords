@@ -4,6 +4,7 @@
 @one: #00ffff;
 @two: #ff00ff;
 @link: #fefefe;
+@languageLink: #999999;
 
 // Sizes.
 @thin: 4px;
@@ -34,7 +35,7 @@
 
 * {
 	box-sizing: border-box;
-	-moz-box-sizing: border-box;
+	// -moz-box-sizing: border-box;
 }
 
 html, body {
@@ -77,35 +78,56 @@ a, #title .option {
 	top: 50%;
 	right: 0;
 	margin-top: -4.5em;
-
-	h1, p {
-		display: inline-block;
-	}
+	text-align: right;
 
 	display: none;
 	&.active {
 		display: block;
 	}
 
-	.options {
+	.language {
 		display: none;
-		&.active {
+
+		h1, p {
 			display: inline-block;
 		}
-		.option {
-			.transition(in);
+
+		.options {
+			display: none;
+			&.active {
+				display: inline-block;
+			}
+			.option {
+				.transition(in);
+			}
+			.mode {
+				.transition(out);
+			}
 		}
-		.mode {
-			.transition(out);
+	}
+
+	#language-select {
+		position: absolute;
+		top: 7.25em;
+		right: 0;
+		width: auto;
+		display: none;
+
+		.option {
+			color: @languageLink;
+		}
+
+		&.active {
+			display: block;
 		}
 	}
 }
 
 body {
-	.set (@mode) {
+	.setMode (@mode) {
 		&.@{mode}-mode {
-			#title .options {
-				.option.@{mode}-option {
+			#title .language .options {
+				.option.@{mode}-mode-option {
 					.transition(out);
 				}
 				.mode.@{mode}-mode {
@@ -115,8 +137,24 @@ body {
 		}
 	}
 
-	.set(single);
-	.set(double);
+	.setMode(single);
+	.setMode(double);
+
+	.setLanguage (@language) {
+		&.language-@{language} {
+			#title {
+				.language-@{language} {
+					display: block;
+				}
+				#language-select .@{language}-language-option {
+					display: none;
+				}
+			}
+		}
+	}
+
+	.setLanguage(en);
+	.setLanguage(es);
 }
 
 #game {

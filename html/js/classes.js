@@ -9,6 +9,7 @@
 	var trace = AGJ.trace;
 	var defineModule = AGJ.defineModule;
 	var Class = AGJ.Class;
+	var Destroyable = AGJ.Destroyable;
 	var Signal = signals.Signal;
 
 	var spwords = defineModule(AGJ, "projects.spwords");
@@ -23,8 +24,10 @@
 		timeOut: "timeOut"
 	});
 
-	var Contestant = defineModule(spwords, "Contestant", Class.extend({
+	var Contestant = defineModule(spwords, "Contestant", Destroyable.extend({
 		init: function (config, bar, id) {
+			this._super("init")();
+
 			this._cfg = config;
 			this._bar = bar;
 			this._id = id;
@@ -123,6 +126,17 @@
 			} else {
 				that.clearInterval(this._timerInterval);
 			}
+		},
+
+		destroy: function () {
+			this._super("destroy")();
+			that.clearInterval(this._timerInterval);
+			this._finished.removeAll();
+
+			this._cfg = null;
+			this._bar = null;
+			this._element = null;
+			this._finished = null;
 		}
 	}));
 
@@ -130,14 +144,24 @@
 		init: function (config, bar, name) {
 			this._super("init")(config, bar, name);
 
-			that.addEvent(AGJ.event.key.down, AGJ.getCallback(this._onKeyDown, null, this));
+			this._onKeyDownCB = AGJ.getCallback(this._onKeyDown, null, this);
+
+			that.addEvent(AGJ.event.key.press, this._onKeyDownCB);
+		},
+
+		_fixChar: function (char) { // String
+			var index = "áéíóúàèìòùâêîôûäëïöü".indexOf(char);
+			if (index >= 0) {
+				return  "aeiouaeiouaeiouaeiou".charAt(index);
+			}
+			return char;
 		},
 
 		_onKeyDown: function (e) {
 			if (e.meta || e.control || e.alt)
 				return;
 			if (this._element) {
-				var char = e.key;
+				var char = this._fixChar(e.key);
 				if (char === "enter") {
 					if (this._wordSoFar.length > 0)
 						this._checkInput();
@@ -145,6 +169,11 @@
 					this._addLetter(char);
 				}
 			}
+		},
+
+		destroy: function () {
+			this._super("destroy")();
+			that.removeEvent(AGJ.event.key.press, this._onKeyDownCB);
 		}
 	}));
 
@@ -179,6 +208,10 @@
 		},
 
 		_onKeyTimeout: function () {
+			while (this._wordIndex < this._word.length && this._cfg.letters.indexOf(this._word.charAt(this._wordIndex)) < 0) {
+				this._wordIndex++;
+			}
+
 			if (this._wordIndex <= this._word.length) {
 				if (!AGJ.util.tossCoin(this._cfg.computer.key.errorProbability)) {
 					this._addLetter(this._word.charAt(this._wordIndex));
@@ -193,6 +226,11 @@
 			} else {
 				this._checkInput();
 			}
+		},
+
+		destroy: function () {
+			this._super("destroy")();
+			that.clearTimeout(this._keyTimeout);
 		}
 	}));
 
@@ -266,12 +304,16 @@
 			}
 		},
 
-		interrupt: function () {
+		interrupt: function (allComments) {
+			if (allComments)
+				this._queue = [];
+
+			that.clearInterval(this._interval);
+
 			if (this._element) {
 				if (this._index < this._current.length)
 					this._element.appendText("\u2014");
 				this._element = null;
-				that.clearInterval(this._interval);
 				this._finished.dispatch();
 
 				if (this._queue.length > 0) {
@@ -344,7 +386,7 @@
 		init: function (container) {
 			this._container = container;
 
-			this._selected = new Signal(); // name:String
+			this._selected = new Signal(); // type:String, name:String
 
 			var options = container.getElements(".option");
 			var cb = AGJ.getCallback(this._onOptionClicked, null, this);
@@ -356,8 +398,10 @@
 		},
 
 		_onOptionClicked: function (e) {
-			var name = /(\w+)-option/.exec(e.target.get("class"))[1];
-			this._selected.dispatch(name);
+			var regexResult = /(\w+)-(\w+)-option/.exec(e.target.get("class"));
+			var type = regexResult[2];
+			var name = regexResult[1];
+			this._selected.dispatch(type, name);
 		}
 	}));
 

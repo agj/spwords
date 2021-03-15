@@ -15,9 +15,9 @@
 
 	var cfg = {
 		winPoints: 3,
-		letters: "abcdefghijklmnopqrstuvwxyz",
 		trimLength: 100,
 		mode: "single",
+		language: "en",
 		time: {
 			depletionRate: 0.05, // fraction per second
 			depletionInterval: 100 // ms
@@ -39,114 +39,11 @@
 			}
 		},
 
+		letters: null,
+		names: null,
 		comment: {
 			keyDelay: 80,
-			loading: "(loading...)",
-			toStart: "(done. press enter.)",
-			start: "welcome to tonight's exciting match! " +
-				"it's menacing {one} against favorite {two}! ",
-			rules: "remember the rules: " +
-				"in turns, contestants type words that start with the assigned letter, " +
-				"and which contain the last letter of the previous word, then press enter. " +
-				"no repeats, and watch the time limit! " +
-				"first to seize three rounds is the victor. " +
-				"now, let the match begin!",
-			roundStart: [
-				"let's see who comes out victorious in the next round!",
-				"now for another round full of suspense!",
-				"who will make the best of this round?"
-			],
-			turn: [
-				"{turn}'s turn!",
-				"{turn} starts!",
-				"{turn} speaks!",
-				"{turn} serves!"
-			],
-			letterAnnounce: [
-				"featuring letter \"{letter}\"!",
-				"time for letter \"{letter}\"!",
-				"watch for letter \"{letter}\"!",
-				"here we go, letter \"{letter}\"!",
-				"it's letter \"{letter}\"!",
-				"we want letter \"{letter}\"!",
-				"show us letter \"{letter}\"!"
-			],
-			turnAndLetter: [
-				"starting, it's {turn} with \"{letter}\"!",
-				"it's {turn} with \"{letter}\"!",
-				"serving is {turn}, with \"{letter}\"!",
-				"here we go, turn for {turn}, with \"{letter}\"!",
-				"watch for that \"{letter}\", {turn}!",
-				"time for \"{letter}\", {turn}!",
-				"featuring \"{letter}\", speaks {turn}!",
-				"we want letter \"{letter}\", {turn}!",
-				"show us that \"{letter}\", {turn}!"
-			],
-			interjection: [
-				"ooh!",
-				"nice!",
-				"good!",
-				"safe!",
-				"wow!",
-				"works!",
-				"fair!"
-			],
-			mistake: {
-				startLetter: [
-					"did not start with \"{letter}\"!"
-				],
-				includeLetter: [
-					"does not contain previous word's \"{letter}\"!"
-				],
-				alreadyPlayed: [
-					"we've seen that word before!",
-					"that one's a repeat!"
-				],
-				doesntExist: [
-					"is that english?",
-					"no such word in my dictionary!",
-					"what does that even mean?"
-				],
-				timeOut: [
-					"time is up!",
-					"time ran out!",
-					"no more time!"
-				]
-			},
-			roundEnd: {
-				point: [
-					"brilliant point for {winner}!",
-					"{loser} wastes a chance!",
-					"tough luck!",
-					"what a shock!",
-					"{winner} scores!",
-					"too bad for {loser}!",
-					"close, but no dice!",
-					"it's {loser}'s miss!",
-					"{winner} takes this point!"
-				],
-				winning: [
-					"{winner} has the lead!",
-					"{winner} is ahead!",
-					"{loser} needs to step up!",
-					"{loser} is not looking good!"
-				],
-				tie: [
-					"it's tied!",
-					"{points} all!",
-					"it's a battle of noses!",
-					"both sides equal!",
-					"both with {points}!"
-				]
-			},
-			scoreTally: [
-				"we have our game at {one} {pointsOne}, {two} {pointsTwo}!",
-				"the panel reads {one} {pointsOne} versus {two} {pointsTwo}.",
-				"{one} at {pointsOne}, {two} at {pointsTwo}!"
-			],
-			gameEnd: "and it's settled! {winner} defeats {loser} {winnerPoints} to {loserPoints} in a match to remember! " +
-				"we look forward to when these two titans have another face-off. " +
-				"see you next time!"
+			lines: null
 		},
 
 		container: null,
@@ -169,6 +66,7 @@
 	var options;
 
 	var title; // Element
+	var request;
 
 	var includeLetter; // String
 	var startLetter; // String
@@ -182,6 +80,10 @@
 		cfg.container = $("game");
 		title = $("title");
 
+		var lang = getLanguageFromHash();
+		if (!lang)
+			lang = cfg.language;
+		setLanguage(lang);
 		setMode(cfg.mode);
 
 		commentator = new spwords.Commentator(cfg);
@@ -189,35 +91,62 @@
 		options.getSelected().add(onOptionSelected);
 
 		// Events.
-		window.addEvent(AGJ.event.key.down, onKeyDown);
+		// window.addEvent("hashchange", onHashChange);
+		window.addEvent(AGJ.event.key.press, onKeyDown);
 
-		// Get words.
-		commentator.comment(cfg.comment.loading, true);
-		var request = new Request({ url: "data/words.txt" });
-		request.addEvent("success", onWordsObtained);
-		request.get();
+		load();
+	}
+
+	function getLanguageFromHash() { // String
+		var hash = window.location.hash;
+		var lang;
+		if (hash) {
+			lang = (hash.charAt(0) === "#" ? hash.substr(1) : hash).substr(0, 2);
+		}
+		if (lang) {
+			var languages = AGJ.object.getKeys(spwords.languages);
+			if (languages.indexOf(lang) < 0)
+				lang = null;
+		}
+		trace(hash, lang);
+		return lang;
 	}
 
 	/////
 
+	function reset() {
+		request.removeEvent("success", onWordsObtained);
+		commentator.interrupt();
+		cfg.container.empty();
+	}
+
+	function load() {
+		// Get words.
+		commentator.comment(cfg.comment.lines.loading, true);
+		request = new Request({ url: "data/words-" + cfg.language + ".txt" });
+		request.addEvent("success", onWordsObtained);
+		request.get();
+	}
+
 	function ready() {
 		signal.enterPressed.addOnce(start);
-		commentator.comment(fixNames(cfg.comment.toStart));
+		commentator.comment(fixNames(cfg.comment.lines.toStart));
 	}
 
 	function start() {
 		if (cfg.mode === "double") {
-			setupContestant("one", "right", spwords.Player);
-			setupContestant("two", "left", spwords.Player);
+			setupContestant("one", cfg.names.right, spwords.Player);
+			setupContestant("two", cfg.names.left, spwords.Player);
 		} else {
-			setupContestant("one", "computer", spwords.Computer);
-			setupContestant("two", "player", spwords.Player);
+			setupContestant("one", cfg.names.computer, spwords.Computer);
+			setupContestant("two", cfg.names.player, spwords.Player);
 		}
 
 		title.removeClass("active");
 		title.getElements(".options").removeClass("active");
-		commentator.comment(fixNames(cfg.comment.start));
-		commentator.comment(fixNames(cfg.comment.rules));
+		title.getElements("#language-select").removeClass("active");
+		commentator.comment(fixNames(cfg.comment.lines.start));
+		commentator.comment(fixNames(cfg.comment.lines.rules));
 		commentator.getAllFinished().addOnce(startRound);
 	}
 
@@ -237,9 +166,9 @@
 		}
 		startLetter = getRandomLetter();
 		commentator.getAllFinished().addOnce(AGJ.getCallback(contestants[startID].startInput, [startLetter, includeLetter], contestants[startID]));
-		// commentator.comment(cfg.comment.turn.getRandom().replace("{turn}", names[startID]), true);
-		// commentator.comment(cfg.comment.letterAnnounce.getRandom().replace("{letter}", startLetter), true);
-		commentator.comment(cfg.comment.turnAndLetter.getRandom().replace("{turn}", names[startID]).replace("{letter}", startLetter), true);
+		// commentator.comment(cfg.comment.lines.turn.getRandom().replace("{turn}", names[startID]), true);
+		// commentator.comment(cfg.comment.lines.letterAnnounce.getRandom().replace("{letter}", startLetter), true);
+		commentator.comment(cfg.comment.lines.turnAndLetter.getRandom().replace("{turn}", names[startID]).replace("{letter}", startLetter), true);
 	}
 
 	function getOtherID(id) { // String
@@ -250,7 +179,7 @@
 		var loser = getOtherID(winner);
 		points[winner]++;
 
-		var mistakeComment = cfg.comment.mistake[error].getRandom();
+		var mistakeComment = cfg.comment.lines.mistake[error].getRandom();
 		if (error === spwords.mistake.startLetter)
 			mistakeComment = mistakeComment.replace("{letter}", startLetter);
 		if (error === spwords.mistake.includeLetter)
@@ -259,24 +188,24 @@
 
 		if (points[winner] < cfg.winPoints && points[loser] < cfg.winPoints) {
 			// Round end, but game continues.
-			var pointComment = cfg.comment.roundEnd.point.getRandom();
+			var pointComment = cfg.comment.lines.roundEnd.point.getRandom();
 			pointComment = pointComment.replace("{winner}", names[winner]).replace("{loser}", names[loser]);
 			commentator.comment(pointComment);
 			commentator.comment(getScoreComment());
 			if (points[winner] !== points[loser]) {
-				var winningComment = cfg.comment.roundEnd.winning.getRandom();
+				var winningComment = cfg.comment.lines.roundEnd.winning.getRandom();
 				winningComment = winningComment.replace("{winner}", names[winner]);
 				winningComment = winningComment.replace("{loser}", names[loser]);
 				commentator.comment(winningComment);
 			} else {
-				commentator.comment(cfg.comment.roundEnd.tie.getRandom().replace("{points}", points[winner]));
+				commentator.comment(cfg.comment.lines.roundEnd.tie.getRandom().replace("{points}", points[winner]));
 			}
-			commentator.comment(cfg.comment.roundStart.getRandom());
+			commentator.comment(cfg.comment.lines.roundStart.getRandom());
 			startRound(winner);
 
 		} else {
 			// Game end.
-			var gameEndComment = cfg.comment.gameEnd;
+			var gameEndComment = cfg.comment.lines.gameEnd;
 			gameEndComment = gameEndComment.replace("{winner}", names[winner]).replace("{loser}", names[loser]);
 			gameEndComment = gameEndComment.replace("{winnerPoints}", points[winner]).replace("{loserPoints}", points[loser]);
 			ignoreKeys = true;
@@ -294,10 +223,40 @@
 	}
 
 	function setMode(name) {
-		trace("setting mode", name);
 		var body = $$("body")[0];
-		body.set("class", name + "-mode");
+		var classes = body.get("class").split(" ");
+		for (var i = classes.length - 1; i >= 0; i--) {
+			if (classes[i].endsWith("-mode"))
+				classes.splice(i, 1);
+		}
+		body.set("class", name + "-mode " + classes.join(" "));
+
 		cfg.mode = name;
+	}
+
+	function changeLanguage(id) {
+		window.location.hash = "#" + id;
+		reset();
+		setLanguage(id);
+		load();
+	}
+
+	function setLanguage(id) {
+		trace("Setting language:", id);
+
+		cfg.comment.lines = spwords.languages[id].comments;
+		cfg.letters = spwords.languages[id].letters;
+		cfg.names = spwords.languages[id].names;
+
+		var body = $$("body")[0];
+		var classes = body.get("class").split(" ");
+		for (var i = classes.length - 1; i >= 0; i--) {
+			if (classes[i].startsWith("language-"))
+				classes.splice(i, 1);
+		}
+		body.set("class", "language-" + id + " " + classes.join(" "));
+
+		cfg.language = id;
 	}
 
 	function addPlayedWord(thisWord) {
@@ -325,7 +284,7 @@
 	}
 
 	function getScoreComment() { // String
-		var text = cfg.comment.scoreTally.getRandom();
+		var text = cfg.comment.lines.scoreTally.getRandom();
 		return fixNames(text);
 	}
 
@@ -365,6 +324,7 @@
 	function onKeyDown(e) {
 		if (e.meta || e.control || e.alt)
 			return;
+		
 		e.preventDefault();
 
 		if (!commentator.isCommenting() && e.key === "enter") {
@@ -372,8 +332,12 @@
 		}
 	}
 
-	function onOptionSelected(name) {
-		setMode(name);
+	function onOptionSelected(type, name) {
+		trace("Option selected:", type, name);
+		if (type === "mode")
+			setMode(name);
+		else if (type === "language")
+			changeLanguage(name);
 	}
 
 	function onCommentInterrupted() {
@@ -388,7 +352,7 @@
 		} else {
 			addPlayedWord(word);
 			commentator.getAllFinished().addOnce(AGJ.getCallback(contestants[other].startInput, [startLetter, includeLetter], contestants[other]));
-			commentator.comment(cfg.comment.interjection.getRandom());
+			commentator.comment(cfg.comment.lines.interjection.getRandom());
 		}
 	}
 
