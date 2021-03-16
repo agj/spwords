@@ -38,7 +38,7 @@ main =
 
 
 type alias Model =
-    { ticker : List TickerStatus
+    { ticker : List TickerText
     , viewport : Viewport
     }
 
@@ -53,22 +53,23 @@ type alias Model =
 
 type TickerText
     = Announcement TickerAnnouncement
-    | AthleteInput { athlete : Athlete, input : String, status : InputStatus }
+    | AthleteInput TickerAthleteInput
 
 
-type alias TickerAnnouncement =
-    { text : String, ticks : Int }
-
-
-type TickerStatus
+type TickerAnnouncement
     = TickingTicker String Int
     | InterruptedTicker String Int
     | FinishedTicker String
 
 
-type InputStatus
-    = Correct
-    | Incorrect
+type TickerAthleteInput
+    = InputtingTicker String
+
+
+
+-- type InputStatus
+--     = Correct
+--     | Incorrect
 
 
 type alias Flags =
@@ -78,7 +79,12 @@ type alias Flags =
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( { ticker = [ TickingTicker "Spwords!" 0, InterruptedTicker "My name is Ale" 5, FinishedTicker "Go!" ]
+    ( { ticker =
+            [ AthleteInput (InputtingTicker "eh")
+            , Announcement (TickingTicker "Spwords!" 0)
+            , Announcement (InterruptedTicker "My name is Ale" 5)
+            , Announcement (FinishedTicker "Go!")
+            ]
       , viewport = flags.viewport
       }
     , doLetterTick
@@ -97,6 +103,7 @@ doLetterTick =
 type Msg
     = LetterTicked
     | Interrupted
+    | LetterInputted Char
     | Resized
     | GotViewport Viewport
     | NoOp
@@ -111,14 +118,14 @@ update msg model =
     case msg of
         LetterTicked ->
             case model.ticker of
-                (TickingTicker text ticks) :: rest ->
+                (Announcement (TickingTicker text ticks)) :: rest ->
                     if ticks < String.length text then
-                        ( { model | ticker = TickingTicker text (ticks + 1) :: rest }
+                        ( { model | ticker = Announcement (TickingTicker text (ticks + 1)) :: rest }
                         , doLetterTick
                         )
 
                     else
-                        ( { model | ticker = FinishedTicker text :: rest }
+                        ( { model | ticker = Announcement (FinishedTicker text) :: rest }
                         , Cmd.none
                         )
 
@@ -127,8 +134,18 @@ update msg model =
 
         Interrupted ->
             case model.ticker of
-                (TickingTicker text ticks) :: rest ->
-                    ( { model | ticker = InterruptedTicker text ticks :: rest }
+                (Announcement (TickingTicker text ticks)) :: rest ->
+                    ( { model | ticker = Announcement (InterruptedTicker text ticks) :: rest }
+                    , Cmd.none
+                    )
+
+                _ ->
+                    modelMsg
+
+        LetterInputted char ->
+            case model.ticker of
+                (AthleteInput (InputtingTicker text)) :: rest ->
+                    ( { model | ticker = AthleteInput (InputtingTicker (text ++ String.fromChar char)) :: rest }
                     , Cmd.none
                     )
 
@@ -194,11 +211,25 @@ ticker model =
         ]
         (row
             [ alignRight ]
-            (model.ticker |> List.map tickerAnnouncement |> List.reverse |> List.intersperse (text " "))
+            (model.ticker
+                |> List.map tickerText
+                |> List.reverse
+                |> List.intersperse (text " ")
+            )
         )
 
 
-tickerAnnouncement : TickerStatus -> Element Msg
+tickerText : TickerText -> Element Msg
+tickerText tt =
+    case tt of
+        Announcement ta ->
+            tickerAnnouncement ta
+
+        AthleteInput tai ->
+            tickerTickerAthleteInput tai
+
+
+tickerAnnouncement : TickerAnnouncement -> Element Msg
 tickerAnnouncement t =
     case t of
         TickingTicker txt ticks ->
@@ -208,6 +239,13 @@ tickerAnnouncement t =
             text <| String.left ticks txt ++ "--"
 
         FinishedTicker txt ->
+            text txt
+
+
+tickerTickerAthleteInput : TickerAthleteInput -> Element Msg
+tickerTickerAthleteInput t =
+    case t of
+        InputtingTicker txt ->
             text txt
 
 
@@ -275,7 +313,22 @@ subscriptions model =
             \w h -> Resized
         , Viewport.got GotViewport NoOp
         , Browser.Events.onKeyDown (keyDecoder "Enter" Interrupted)
+        , Browser.Events.onKeyDown (letterDecoder LetterInputted)
         ]
+
+
+letterDecoder : (Char -> Msg) -> Decode.Decoder Msg
+letterDecoder msgr =
+    Decode.field "key" Decode.string
+        |> Decode.map
+            (\k ->
+                case String.uncons k of
+                    Just ( char, "" ) ->
+                        msgr char
+
+                    _ ->
+                        NoOp
+            )
 
 
 keyDecoder : String -> Msg -> Decode.Decoder Msg
