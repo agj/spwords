@@ -38,7 +38,7 @@ main =
 
 
 type alias Model =
-    { ticker : TickerStatus
+    { ticker : List TickerStatus
     , viewport : Viewport
     }
 
@@ -78,7 +78,7 @@ type alias Flags =
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( { ticker = TickingTicker "Spwords!" 0
+    ( { ticker = [ TickingTicker "Spwords!" 0, InterruptedTicker "My name is Ale" 5, FinishedTicker "Go!" ]
       , viewport = flags.viewport
       }
     , doLetterTick
@@ -111,14 +111,14 @@ update msg model =
     case msg of
         LetterTicked ->
             case model.ticker of
-                TickingTicker text ticks ->
+                (TickingTicker text ticks) :: rest ->
                     if ticks < String.length text then
-                        ( { model | ticker = TickingTicker text (ticks + 1) }
+                        ( { model | ticker = TickingTicker text (ticks + 1) :: rest }
                         , doLetterTick
                         )
 
                     else
-                        ( { model | ticker = FinishedTicker text }
+                        ( { model | ticker = FinishedTicker text :: rest }
                         , Cmd.none
                         )
 
@@ -127,8 +127,8 @@ update msg model =
 
         Interrupted ->
             case model.ticker of
-                TickingTicker text ticks ->
-                    ( { model | ticker = InterruptedTicker text ticks }
+                (TickingTicker text ticks) :: rest ->
+                    ( { model | ticker = InterruptedTicker text ticks :: rest }
                     , Cmd.none
                     )
 
@@ -194,8 +194,7 @@ ticker model =
         ]
         (row
             [ alignRight ]
-            [ tickerAnnouncement model.ticker
-            ]
+            (model.ticker |> List.map tickerAnnouncement |> List.reverse |> List.intersperse (text " "))
         )
 
 
