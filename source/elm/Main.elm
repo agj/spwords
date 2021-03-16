@@ -2,8 +2,6 @@ module Main exposing (..)
 
 import Browser
 import Browser.Events
-import CustomEl
-import Debug
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -46,7 +44,7 @@ type alias Model =
 
 
 type alias Flags =
-    { viewport : { width : Int, height : Int }
+    { viewport : Viewport
     }
 
 
