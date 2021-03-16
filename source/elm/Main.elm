@@ -37,7 +37,7 @@ main =
 
 
 type alias Model =
-    { ticker : TickerAnnouncement
+    { ticker : TickerStatus
     , viewport : Viewport
     }
 
@@ -59,6 +59,12 @@ type alias TickerAnnouncement =
     { text : String, ticks : Int }
 
 
+type TickerStatus
+    = TickingTicker String Int
+    | InterruptedTicker String Int
+    | FinishedTicker String
+
+
 type InputStatus
     = Correct
     | Incorrect
@@ -71,7 +77,7 @@ type alias Flags =
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( { ticker = { text = "Spwords!", ticks = 0 }
+    ( { ticker = TickingTicker "Spwords!" 0
       , viewport = flags.viewport
       }
     , doLetterTick
@@ -99,24 +105,23 @@ update msg model =
     let
         modelMsg =
             ( model, Cmd.none )
-
-        letterTicksLens : (Int -> Int) -> Model -> Model
-        letterTicksLens updater m =
-            let
-                t =
-                    m.ticker
-            in
-            { m | ticker = { t | ticks = updater t.ticks } }
     in
     case msg of
         LetterTicked ->
-            ( letterTicksLens (\lt -> lt + 1) model
-            , if model.ticker.ticks < String.length model.ticker.text then
-                doLetterTick
+            case model.ticker of
+                TickingTicker text ticks ->
+                    if ticks < String.length text then
+                        ( { model | ticker = TickingTicker text (ticks + 1) }
+                        , doLetterTick
+                        )
 
-              else
-                Cmd.none
-            )
+                    else
+                        ( { model | ticker = FinishedTicker text }
+                        , Cmd.none
+                        )
+
+                _ ->
+                    modelMsg
 
         Resized ->
             ( model
@@ -182,9 +187,17 @@ ticker model =
         )
 
 
-tickerAnnouncement : TickerAnnouncement -> Element Msg
+tickerAnnouncement : TickerStatus -> Element Msg
 tickerAnnouncement t =
-    text <| String.left t.ticks t.text
+    case t of
+        TickingTicker txt ticks ->
+            text <| String.left ticks txt
+
+        InterruptedTicker txt ticks ->
+            text <| String.left ticks txt
+
+        FinishedTicker txt ->
+            text txt
 
 
 type Athlete
