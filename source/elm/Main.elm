@@ -12,6 +12,7 @@ import Element.Font as Font
 import Element.Input as Input
 import Html exposing (Html)
 import Palette
+import Process
 import Return as R exposing (Return)
 import Task
 import Texts
@@ -59,8 +60,13 @@ init flags =
     ( { game = { message = "Spwords", letterTicks = 0 }
       , viewport = flags.viewport
       }
-    , Cmd.none
+    , doLetterTick
     )
+
+
+doLetterTick : Cmd Msg
+doLetterTick =
+    Task.perform (always LetterTicked) (Process.sleep 200)
 
 
 
@@ -68,7 +74,8 @@ init flags =
 
 
 type Msg
-    = Resized
+    = LetterTicked
+    | Resized
     | GotViewport Viewport
     | NoOp
 
@@ -78,11 +85,24 @@ update msg model =
     let
         modelMsg =
             ( model, Cmd.none )
+
+        letterTicksLens updater m =
+            let
+                game =
+                    m.game
+            in
+            { m | game = { game | letterTicks = updater game.letterTicks } }
     in
     case msg of
+        LetterTicked ->
+            ( letterTicksLens (\lt -> lt + 1) model
+            , doLetterTick
+            )
+
         Resized ->
-            modelMsg
-                |> R.command Viewport.get
+            ( model
+            , Viewport.get
+            )
 
         GotViewport viewport ->
             ( { model | viewport = viewport }
@@ -191,7 +211,7 @@ statusDisplay game =
         ]
         (el
             [ alignRight ]
-            (text game.message)
+            (text (String.left game.letterTicks game.message))
         )
 
 
