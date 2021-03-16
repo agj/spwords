@@ -37,7 +37,7 @@ main =
 
 
 type alias Model =
-    { ticker : { text : String, ticks : Int }
+    { ticker : TickerAnnouncement
     , viewport : Viewport
     }
 
@@ -51,8 +51,12 @@ type alias Model =
 
 
 type TickerText
-    = Announcement { text : String, ticks : Int }
+    = Announcement TickerAnnouncement
     | AthleteInput { athlete : Athlete, input : String, status : InputStatus }
+
+
+type alias TickerAnnouncement =
+    { text : String, ticks : Int }
 
 
 type InputStatus
@@ -99,10 +103,10 @@ update msg model =
         letterTicksLens : (Int -> Int) -> Model -> Model
         letterTicksLens updater m =
             let
-                ticker =
+                t =
                     m.ticker
             in
-            { m | ticker = { ticker | ticks = updater ticker.ticks } }
+            { m | ticker = { t | ticks = updater t.ticks } }
     in
     case msg of
         LetterTicked ->
@@ -158,9 +162,29 @@ mainScreen : Model -> Element Msg
 mainScreen model =
     column [ height fill, width fill ]
         [ bar AthleteA (TimeLeft 0.5)
-        , statusDisplay model
+        , ticker model
         , bar AthleteB (TimeLeft 0.5)
         ]
+
+
+ticker : Model -> Element Msg
+ticker model =
+    el
+        [ clip
+        , width fill
+        , centerY
+        , Font.size Palette.textSizeLarger
+        ]
+        (row
+            [ alignRight ]
+            [ tickerAnnouncement model.ticker
+            ]
+        )
+
+
+tickerAnnouncement : TickerAnnouncement -> Element Msg
+tickerAnnouncement t =
+    text <| String.left t.ticks t.text
 
 
 type Athlete
@@ -214,20 +238,6 @@ bar athlete (TimeLeft timeLeft) =
             ]
             none
         ]
-
-
-statusDisplay : Model -> Element Msg
-statusDisplay model =
-    el
-        [ clip
-        , width fill
-        , centerY
-        , Font.size Palette.textSizeLarger
-        ]
-        (el
-            [ alignRight ]
-            (text (String.left model.ticker.ticks model.ticker.text))
-        )
 
 
 
