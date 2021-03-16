@@ -37,10 +37,27 @@ main =
 
 
 type alias Model =
-    { message : String
-    , letterTicks : Int
+    { ticker : { text : String, ticks : Int }
     , viewport : Viewport
     }
+
+
+
+-- type Status
+--     = Intro
+--     | Announcement
+--     | Typing
+--     | MachinesTurn
+
+
+type TickerText
+    = Announcement { text : String, ticks : Int }
+    | AthleteInput { athlete : Athlete, input : String, status : InputStatus }
+
+
+type InputStatus
+    = Correct
+    | Incorrect
 
 
 type alias Flags =
@@ -50,8 +67,7 @@ type alias Flags =
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( { message = "Spwords"
-      , letterTicks = 0
+    ( { ticker = { text = "Spwords!", ticks = 0 }
       , viewport = flags.viewport
       }
     , doLetterTick
@@ -80,13 +96,18 @@ update msg model =
         modelMsg =
             ( model, Cmd.none )
 
+        letterTicksLens : (Int -> Int) -> Model -> Model
         letterTicksLens updater m =
-            { m | letterTicks = updater m.letterTicks }
+            let
+                ticker =
+                    m.ticker
+            in
+            { m | ticker = { ticker | ticks = updater ticker.ticks } }
     in
     case msg of
         LetterTicked ->
             ( letterTicksLens (\lt -> lt + 1) model
-            , if model.letterTicks < String.length model.message then
+            , if model.ticker.ticks < String.length model.ticker.text then
                 doLetterTick
 
               else
@@ -205,7 +226,7 @@ statusDisplay model =
         ]
         (el
             [ alignRight ]
-            (text (String.left model.letterTicks model.message))
+            (text (String.left model.ticker.ticks model.ticker.text))
         )
 
 
