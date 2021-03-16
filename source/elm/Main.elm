@@ -324,7 +324,15 @@ letterDecoder msgr =
             (\k ->
                 case String.uncons k of
                     Just ( char, "" ) ->
-                        msgr char
+                        let
+                            upChar =
+                                Char.toUpper char
+                        in
+                        if String.any ((==) upChar) "ABCDEFGHIJKLMNOPQRSTUVWXYZÑ-'" then
+                            msgr upChar
+
+                        else
+                            NoOp
 
                     _ ->
                         NoOp
