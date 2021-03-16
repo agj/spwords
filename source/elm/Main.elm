@@ -39,14 +39,9 @@ main =
 
 
 type alias Model =
-    { game : Game
-    , viewport : Viewport
-    }
-
-
-type alias Game =
     { message : String
     , letterTicks : Int
+    , viewport : Viewport
     }
 
 
@@ -57,7 +52,8 @@ type alias Flags =
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( { game = { message = "Spwords", letterTicks = 0 }
+    ( { message = "Spwords"
+      , letterTicks = 0
       , viewport = flags.viewport
       }
     , doLetterTick
@@ -87,16 +83,16 @@ update msg model =
             ( model, Cmd.none )
 
         letterTicksLens updater m =
-            let
-                game =
-                    m.game
-            in
-            { m | game = { game | letterTicks = updater game.letterTicks } }
+            { m | letterTicks = updater m.letterTicks }
     in
     case msg of
         LetterTicked ->
             ( letterTicksLens (\lt -> lt + 1) model
-            , doLetterTick
+            , if model.letterTicks < String.length model.message then
+                doLetterTick
+
+              else
+                Cmd.none
             )
 
         Resized ->
@@ -134,16 +130,16 @@ view model =
             , Background.color Palette.dark
             , padding 0
             ]
-            (mainScreen model.game)
+            (mainScreen model)
         ]
     }
 
 
-mainScreen : Game -> Element Msg
-mainScreen game =
+mainScreen : Model -> Element Msg
+mainScreen model =
     column [ height fill, width fill ]
         [ bar AthleteA (TimeLeft 0.5)
-        , statusDisplay game
+        , statusDisplay model
         , bar AthleteB (TimeLeft 0.5)
         ]
 
@@ -201,8 +197,8 @@ bar athlete (TimeLeft timeLeft) =
         ]
 
 
-statusDisplay : Game -> Element Msg
-statusDisplay game =
+statusDisplay : Model -> Element Msg
+statusDisplay model =
     el
         [ clip
         , width fill
@@ -211,7 +207,7 @@ statusDisplay game =
         ]
         (el
             [ alignRight ]
-            (text (String.left game.letterTicks game.message))
+            (text (String.left model.letterTicks model.message))
         )
 
 
