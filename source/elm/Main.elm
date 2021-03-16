@@ -9,6 +9,7 @@ import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import Html exposing (Html)
+import Json.Decode as Decode
 import Palette
 import Process
 import Return as R exposing (Return)
@@ -95,6 +96,7 @@ doLetterTick =
 
 type Msg
     = LetterTicked
+    | Interrupted
     | Resized
     | GotViewport Viewport
     | NoOp
@@ -119,6 +121,16 @@ update msg model =
                         ( { model | ticker = FinishedTicker text }
                         , Cmd.none
                         )
+
+                _ ->
+                    modelMsg
+
+        Interrupted ->
+            case model.ticker of
+                TickingTicker text ticks ->
+                    ( { model | ticker = InterruptedTicker text ticks }
+                    , Cmd.none
+                    )
 
                 _ ->
                     modelMsg
@@ -194,7 +206,7 @@ tickerAnnouncement t =
             text <| String.left ticks txt
 
         InterruptedTicker txt ticks ->
-            text <| String.left ticks txt
+            text <| String.left ticks txt ++ "--"
 
         FinishedTicker txt ->
             text txt
@@ -263,4 +275,18 @@ subscriptions model =
         [ Browser.Events.onResize <|
             \w h -> Resized
         , Viewport.got GotViewport NoOp
+        , Browser.Events.onKeyDown (keyDecoder "Enter" Interrupted)
         ]
+
+
+keyDecoder : String -> Msg -> Decode.Decoder Msg
+keyDecoder key msg =
+    Decode.field "key" Decode.string
+        |> Decode.map
+            (\k ->
+                if k == key then
+                    msg
+
+                else
+                    NoOp
+            )
