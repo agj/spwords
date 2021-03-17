@@ -16,6 +16,7 @@ import Return as R exposing (Return)
 import Task
 import Texts
 import Ticker exposing (Ticker)
+import Ticker.Queued as Queued
 import Ticker.Text
 import Time
 import Utils exposing (..)
@@ -42,7 +43,6 @@ main =
 
 type alias Model =
     { ticker : Ticker
-    , queue : TickerQueue
     , viewport : Viewport
     }
 
@@ -53,18 +53,6 @@ type alias Model =
 --     | Announcement
 --     | Typing
 --     | MachinesTurn
-
-
-type alias TickerQueue =
-    List QueueText
-
-
-type QueueText
-    = QueuedAnnouncement String
-    | QueuedAthleteInput
-
-
-
 -- type InputStatus
 --     = Correct
 --     | Incorrect
@@ -79,11 +67,9 @@ init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { ticker =
             Ticker.fromList [ Ticker.Text.Announcement (Ticker.Text.TickingAnnouncement "Spwords!" 0) ]
-      , queue =
-            [ QueuedAnnouncement "Go!"
-            , QueuedAnnouncement "My name is Ale"
-            , QueuedAthleteInput
-            ]
+                |> Ticker.queueUp (Queued.Announcement "Go!")
+                |> Ticker.queueUp (Queued.Announcement "My name is Ale")
+                |> Ticker.queueUp Queued.AthleteInput
       , viewport = flags.viewport
       }
     , Cmd.none
@@ -108,30 +94,29 @@ update msg model =
         modelMsg =
             ( model, Cmd.none )
     in
-    R.map checkAdvanceQueue <|
-        case msg of
-            Ticked _ ->
-                ( { model | ticker = Ticker.tick model.ticker }
-                , Cmd.none
-                )
+    case msg of
+        Ticked _ ->
+            ( { model | ticker = Ticker.tick model.ticker }
+            , Cmd.none
+            )
 
-            TextEntered enteredText ->
-                ( { model | ticker = Ticker.input enteredText model.ticker }
-                , Cmd.none
-                )
+        TextEntered enteredText ->
+            ( { model | ticker = Ticker.input enteredText model.ticker }
+            , Cmd.none
+            )
 
-            Resized ->
-                ( model
-                , Viewport.get
-                )
+        Resized ->
+            ( model
+            , Viewport.get
+            )
 
-            GotViewport viewport ->
-                ( { model | viewport = viewport }
-                , Cmd.none
-                )
+        GotViewport viewport ->
+            ( { model | viewport = viewport }
+            , Cmd.none
+            )
 
-            NoOp ->
-                modelMsg
+        NoOp ->
+            modelMsg
 
 
 
@@ -305,42 +290,3 @@ subscriptions model =
 
 
 -- OTHER
-
-
-checkAdvanceQueue : Model -> Model
-checkAdvanceQueue m =
-    case Ticker.current m.ticker of
-        Just (Ticker.Text.Announcement (Ticker.Text.FinishedAnnouncement _)) ->
-            m |> advanceQueue
-
-        Just (Ticker.Text.Announcement (Ticker.Text.InterruptedAnnouncement _ _)) ->
-            m |> advanceQueue
-
-        _ ->
-            m
-
-
-advanceQueue : Model -> Model
-advanceQueue model =
-    { model
-        | ticker =
-            case List.head model.queue of
-                Just current ->
-                    fromQueued current
-                        :: Ticker.toList model.ticker
-                        |> Ticker.fromList
-
-                Nothing ->
-                    model.ticker
-        , queue = List.tail model.queue |> Maybe.withDefault []
-    }
-
-
-fromQueued : QueueText -> Ticker.Text.Text
-fromQueued qt =
-    case qt of
-        QueuedAnnouncement text ->
-            Ticker.Text.Announcement (Ticker.Text.TickingAnnouncement text 0)
-
-        QueuedAthleteInput ->
-            Ticker.Text.AthleteInput (Ticker.Text.InputtingAthleteInput "")
