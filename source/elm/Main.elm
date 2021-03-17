@@ -103,7 +103,7 @@ doLetterTick =
 type Msg
     = LetterTicked
     | Interrupted
-    | LetterInputted Char
+    | TextEntered String
     | Resized
     | GotViewport Viewport
     | NoOp
@@ -142,10 +142,19 @@ update msg model =
                 _ ->
                     modelMsg
 
-        LetterInputted char ->
+        TextEntered txt ->
+            let
+                fixedText =
+                    txt
+                        |> String.toUpper
+                        |> String.filter
+                            (\ch ->
+                                String.any ((==) ch) "ABCDEFGHIJKLMNOPQRSTUVWXYZÑ-'"
+                            )
+            in
             case model.ticker of
                 (AthleteInput (InputtingTicker text)) :: rest ->
-                    ( { model | ticker = AthleteInput (InputtingTicker (text ++ String.fromChar char)) :: rest }
+                    ( { model | ticker = AthleteInput (InputtingTicker (text ++ fixedText)) :: rest }
                     , Cmd.none
                     )
 
@@ -197,6 +206,12 @@ mainScreen model =
     column [ height fill, width fill ]
         [ bar AthleteA (TimeLeft 0.5)
         , ticker model
+        , Input.text []
+            { text = ""
+            , onChange = TextEntered
+            , placeholder = Nothing
+            , label = Input.labelHidden ""
+            }
         , bar AthleteB (TimeLeft 0.5)
         ]
 
@@ -313,30 +328,7 @@ subscriptions model =
             \w h -> Resized
         , Viewport.got GotViewport NoOp
         , Browser.Events.onKeyDown (keyDecoder "Enter" Interrupted)
-        , Browser.Events.onKeyDown (letterDecoder LetterInputted)
         ]
-
-
-letterDecoder : (Char -> Msg) -> Decode.Decoder Msg
-letterDecoder msgr =
-    Decode.field "key" Decode.string
-        |> Decode.map
-            (\k ->
-                case String.uncons k of
-                    Just ( char, "" ) ->
-                        let
-                            upChar =
-                                Char.toUpper char
-                        in
-                        if String.any ((==) upChar) "ABCDEFGHIJKLMNOPQRSTUVWXYZÑ-'" then
-                            msgr upChar
-
-                        else
-                            NoOp
-
-                    _ ->
-                        NoOp
-            )
 
 
 keyDecoder : String -> Msg -> Decode.Decoder Msg
