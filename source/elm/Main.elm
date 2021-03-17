@@ -80,9 +80,9 @@ type alias Flags =
 init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { ticker =
-            [ AthleteInput (InputtingTicker "eh")
+            [ Announcement (TickingTicker "My name is Ale" 0)
             , Announcement (TickingTicker "Spwords!" 0)
-            , Announcement (InterruptedTicker "My name is Ale" 5)
+            , AthleteInput (InputtingTicker "eh")
             , Announcement (FinishedTicker "Go!")
             ]
       , viewport = flags.viewport
@@ -102,7 +102,6 @@ doLetterTick =
 
 type Msg
     = LetterTicked
-    | Interrupted
     | TextEntered String
     | Resized
     | GotViewport Viewport
@@ -132,28 +131,27 @@ update msg model =
                 _ ->
                     modelMsg
 
-        Interrupted ->
+        TextEntered enteredText ->
             case model.ticker of
                 (Announcement (TickingTicker text ticks)) :: rest ->
-                    ( { model | ticker = Announcement (InterruptedTicker text ticks) :: rest }
-                    , Cmd.none
-                    )
+                    if enteredText == "\n" then
+                        ( { model | ticker = Announcement (InterruptedTicker text ticks) :: rest }
+                        , Cmd.none
+                        )
 
-                _ ->
-                    modelMsg
+                    else
+                        modelMsg
 
-        TextEntered txt ->
-            let
-                fixedText =
-                    txt
-                        |> String.toUpper
-                        |> String.filter
-                            (\ch ->
-                                String.any ((==) ch) "ABCDEFGHIJKLMNOPQRSTUVWXYZÑ-'"
-                            )
-            in
-            case model.ticker of
                 (AthleteInput (InputtingTicker text)) :: rest ->
+                    let
+                        fixedText =
+                            enteredText
+                                |> String.toUpper
+                                |> String.filter
+                                    (\ch ->
+                                        String.any ((==) ch) "ABCDEFGHIJKLMNOPQRSTUVWXYZÑ-'"
+                                    )
+                    in
                     ( { model | ticker = AthleteInput (InputtingTicker (text ++ fixedText)) :: rest }
                     , Cmd.none
                     )
@@ -214,21 +212,25 @@ ticker : Model -> Element Msg
 ticker model =
     let
         input =
-            Input.text
+            Input.multiline
                 [ width fill
+                , height (px Palette.textSizeLarger)
                 , Font.size Palette.textSizeLarger
                 , Background.color Palette.transparent
                 , Border.color Palette.transparent
+                , focused [ Border.glow Palette.transparent 0 ]
                 ]
                 { text = ""
                 , onChange = TextEntered
                 , placeholder = Nothing
                 , label = Input.labelHidden ""
+                , spellcheck = False
                 }
     in
     el
         [ clip
         , width fill
+        , height (px Palette.textSizeLarger)
         , centerY
         , Font.size Palette.textSizeLarger
         , inFront input
@@ -336,18 +338,4 @@ subscriptions model =
         [ Browser.Events.onResize <|
             \w h -> Resized
         , Viewport.got GotViewport NoOp
-        , Browser.Events.onKeyDown (keyDecoder "Enter" Interrupted)
         ]
-
-
-keyDecoder : String -> Msg -> Decode.Decoder Msg
-keyDecoder key msg =
-    Decode.field "key" Decode.string
-        |> Decode.map
-            (\k ->
-                if k == key then
-                    msg
-
-                else
-                    NoOp
-            )
