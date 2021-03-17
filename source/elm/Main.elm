@@ -40,7 +40,7 @@ main =
 
 type alias Model =
     { ticker : List TickerText
-    , queue : List TickerText
+    , queue : List QueueText
     , viewport : Viewport
     }
 
@@ -56,6 +56,11 @@ type alias Model =
 type TickerText
     = Announcement TickerAnnouncement
     | AthleteInput TickerAthleteInput
+
+
+type QueueText
+    = QueuedAnnouncement String
+    | QueuedAthleteInput
 
 
 type TickerAnnouncement
@@ -84,9 +89,9 @@ init flags =
     ( { ticker =
             [ Announcement (TickingTicker "Spwords!" 0) ]
       , queue =
-            [ Announcement (TickingTicker "Go!" 0)
-            , Announcement (TickingTicker "My name is Ale" 0)
-            , AthleteInput (InputtingTicker "eh")
+            [ QueuedAnnouncement "Go!"
+            , QueuedAnnouncement "My name is Ale"
+            , QueuedAthleteInput
             ]
       , viewport = flags.viewport
       }
@@ -366,9 +371,19 @@ advanceQueue model =
         | ticker =
             case List.head model.queue of
                 Just head ->
-                    head :: model.ticker
+                    fromQueued head :: model.ticker
 
                 Nothing ->
                     model.ticker
         , queue = List.tail model.queue |> Maybe.withDefault []
     }
+
+
+fromQueued : QueueText -> TickerText
+fromQueued qt =
+    case qt of
+        QueuedAnnouncement text ->
+            Announcement (TickingTicker text 0)
+
+        QueuedAthleteInput ->
+            AthleteInput (InputtingTicker "")
