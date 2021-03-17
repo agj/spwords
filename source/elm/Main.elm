@@ -15,6 +15,7 @@ import Process
 import Return as R exposing (Return)
 import Task
 import Texts
+import Time
 import Utils exposing (..)
 import Viewport exposing (Viewport)
 
@@ -83,13 +84,13 @@ init flags =
     ( { ticker =
             [ Announcement (TickingTicker "Spwords!" 0) ]
       , queue =
-            [ Announcement (TickingTicker "Go!" 1)
+            [ Announcement (TickingTicker "Go!" 0)
             , Announcement (TickingTicker "My name is Ale" 0)
             , AthleteInput (InputtingTicker "eh")
             ]
       , viewport = flags.viewport
       }
-    , doLetterTick
+    , Cmd.none
     )
 
 
@@ -98,7 +99,7 @@ init flags =
 
 
 type Msg
-    = LetterTicked
+    = LetterTicked Time.Posix
     | TextEntered String
     | Resized
     | GotViewport Viewport
@@ -111,52 +112,52 @@ update msg model =
         modelMsg =
             ( model, Cmd.none )
     in
-    case msg of
-        LetterTicked ->
-            modelMsg
-                |> R.map performTick
-                |> R.effect_ checkNextTick
+    R.map checkAdvanceQueue <|
+        case msg of
+            LetterTicked _ ->
+                modelMsg
+                    |> R.map performTick
 
-        TextEntered enteredText ->
-            case model.ticker of
-                (Announcement (TickingTicker text ticks)) :: rest ->
-                    if enteredText == "\n" then
-                        ( { model | ticker = Announcement (InterruptedTicker text ticks) :: rest }
+            TextEntered enteredText ->
+                case model.ticker of
+                    (Announcement (TickingTicker text ticks)) :: rest ->
+                        if enteredText == "\n" then
+                            ( { model | ticker = Announcement (InterruptedTicker text ticks) :: rest }
+                            , Cmd.none
+                            )
+
+                        else
+                            modelMsg
+
+                    (AthleteInput (InputtingTicker text)) :: rest ->
+                        let
+                            fixedText =
+                                enteredText
+                                    |> String.toUpper
+                                    |> String.filter
+                                        (\ch ->
+                                            String.any ((==) ch) "ABCDEFGHIJKLMNOPQRSTUVWXYZÑ-'"
+                                        )
+                        in
+                        ( { model | ticker = AthleteInput (InputtingTicker (text ++ fixedText)) :: rest }
                         , Cmd.none
                         )
 
-                    else
+                    _ ->
                         modelMsg
 
-                (AthleteInput (InputtingTicker text)) :: rest ->
-                    let
-                        fixedText =
-                            enteredText
-                                |> String.toUpper
-                                |> String.filter
-                                    (\ch ->
-                                        String.any ((==) ch) "ABCDEFGHIJKLMNOPQRSTUVWXYZÑ-'"
-                                    )
-                    in
-                    ( { model | ticker = AthleteInput (InputtingTicker (text ++ fixedText)) :: rest }
-                    , Cmd.none
-                    )
+            Resized ->
+                ( model
+                , Viewport.get
+                )
 
-                _ ->
-                    modelMsg
+            GotViewport viewport ->
+                ( { model | viewport = viewport }
+                , Cmd.none
+                )
 
-        Resized ->
-            ( model
-            , Viewport.get
-            )
-
-        GotViewport viewport ->
-            ( { model | viewport = viewport }
-            , Cmd.none
-            )
-
-        NoOp ->
-            modelMsg
+            NoOp ->
+                modelMsg
 
 
 
@@ -324,11 +325,25 @@ subscriptions model =
         [ Browser.Events.onResize <|
             \w h -> Resized
         , Viewport.got GotViewport NoOp
+        , Time.every 200 LetterTicked
         ]
 
 
 
 -- OTHER
+
+
+checkAdvanceQueue : Model -> Model
+checkAdvanceQueue m =
+    case m.ticker of
+        (Announcement (FinishedTicker _)) :: _ ->
+            m |> advanceQueue
+
+        (Announcement (InterruptedTicker _ _)) :: _ ->
+            m |> advanceQueue
+
+        _ ->
+            m
 
 
 performTick : Model -> Model
@@ -340,7 +355,6 @@ performTick model =
 
             else
                 { model | ticker = Announcement (FinishedTicker text) :: rest }
-                    |> advanceQueue
 
         _ ->
             model
@@ -358,22 +372,3 @@ advanceQueue model =
                     model.ticker
         , queue = List.tail model.queue |> Maybe.withDefault []
     }
-
-
-checkNextTick : Model -> Cmd Msg
-checkNextTick model =
-    case model.ticker of
-        (Announcement (TickingTicker text ticks)) :: _ ->
-            if ticks < String.length text + 1 then
-                doLetterTick
-
-            else
-                Cmd.none
-
-        _ ->
-            Cmd.none
-
-
-doLetterTick : Cmd Msg
-doLetterTick =
-    Task.perform (always LetterTicked) (Process.sleep 200)
