@@ -95,7 +95,7 @@ init flags =
 
 
 type Msg
-    = LetterTicked Time.Posix
+    = Ticked Time.Posix
     | TextEntered String
     | Resized
     | GotViewport Viewport
@@ -110,37 +110,15 @@ update msg model =
     in
     R.map checkAdvanceQueue <|
         case msg of
-            LetterTicked _ ->
-                modelMsg
-                    |> R.map performTick
+            Ticked _ ->
+                ( { model | ticker = Ticker.tick model.ticker }
+                , Cmd.none
+                )
 
             TextEntered enteredText ->
-                case model.ticker of
-                    (Ticker.Text.Announcement (Ticker.Text.TickingAnnouncement text ticks)) :: rest ->
-                        if enteredText == "\n" then
-                            ( { model | ticker = Ticker.Text.Announcement (Ticker.Text.InterruptedAnnouncement text ticks) :: rest }
-                            , Cmd.none
-                            )
-
-                        else
-                            modelMsg
-
-                    (Ticker.Text.AthleteInput (Ticker.Text.InputtingAthleteInput text)) :: rest ->
-                        let
-                            fixedText =
-                                enteredText
-                                    |> String.toUpper
-                                    |> String.filter
-                                        (\ch ->
-                                            String.any ((==) ch) "ABCDEFGHIJKLMNOPQRSTUVWXYZÑ-'"
-                                        )
-                        in
-                        ( { model | ticker = Ticker.Text.AthleteInput (Ticker.Text.InputtingAthleteInput (text ++ fixedText)) :: rest }
-                        , Cmd.none
-                        )
-
-                    _ ->
-                        modelMsg
+                ( { model | ticker = Ticker.input enteredText model.ticker }
+                , Cmd.none
+                )
 
             Resized ->
                 ( model
@@ -220,7 +198,7 @@ ticker model =
         ]
         (row
             [ alignRight ]
-            (model.ticker
+            (Ticker.toList model.ticker
                 |> List.map tickerText
                 |> List.reverse
                 |> List.intersperse (text " ")
@@ -321,7 +299,7 @@ subscriptions model =
         [ Browser.Events.onResize <|
             \w h -> Resized
         , Viewport.got GotViewport NoOp
-        , Time.every 200 LetterTicked
+        , Time.every 200 Ticked
         ]
 
 
@@ -331,24 +309,15 @@ subscriptions model =
 
 checkAdvanceQueue : Model -> Model
 checkAdvanceQueue m =
-    case m.ticker of
-        (Ticker.Text.Announcement (Ticker.Text.FinishedAnnouncement _)) :: _ ->
+    case Ticker.current m.ticker of
+        Just (Ticker.Text.Announcement (Ticker.Text.FinishedAnnouncement _)) ->
             m |> advanceQueue
 
-        (Ticker.Text.Announcement (Ticker.Text.InterruptedAnnouncement _ _)) :: _ ->
+        Just (Ticker.Text.Announcement (Ticker.Text.InterruptedAnnouncement _ _)) ->
             m |> advanceQueue
 
         _ ->
             m
-
-
-performTick : Model -> Model
-performTick model =
-    if Ticker.ticking model.ticker then
-        { model | ticker = Ticker.tick model.ticker }
-
-    else
-        model
 
 
 advanceQueue : Model -> Model
@@ -356,8 +325,10 @@ advanceQueue model =
     { model
         | ticker =
             case List.head model.queue of
-                Just head ->
-                    fromQueued head :: model.ticker
+                Just current ->
+                    fromQueued current
+                        :: Ticker.toList model.ticker
+                        |> Ticker.fromList
 
                 Nothing ->
                     model.ticker
