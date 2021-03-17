@@ -39,6 +39,7 @@ main =
 
 type alias Model =
     { ticker : List TickerText
+    , queue : List TickerText
     , viewport : Viewport
     }
 
@@ -80,10 +81,11 @@ type alias Flags =
 init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { ticker =
-            [ Announcement (TickingTicker "My name is Ale" 0)
-            , Announcement (TickingTicker "Spwords!" 0)
+            [ Announcement (TickingTicker "Spwords!" 0) ]
+      , queue =
+            [ Announcement (FinishedTicker "Go!")
+            , Announcement (TickingTicker "My name is Ale" 0)
             , AthleteInput (InputtingTicker "eh")
-            , Announcement (FinishedTicker "Go!")
             ]
       , viewport = flags.viewport
       }
