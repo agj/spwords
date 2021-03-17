@@ -206,23 +206,32 @@ mainScreen model =
     column [ height fill, width fill ]
         [ bar AthleteA (TimeLeft 0.5)
         , ticker model
-        , Input.text []
-            { text = ""
-            , onChange = TextEntered
-            , placeholder = Nothing
-            , label = Input.labelHidden ""
-            }
         , bar AthleteB (TimeLeft 0.5)
         ]
 
 
 ticker : Model -> Element Msg
 ticker model =
+    let
+        input =
+            Input.text
+                [ width fill
+                , Font.size Palette.textSizeLarger
+                , Background.color Palette.transparent
+                , Border.color Palette.transparent
+                ]
+                { text = ""
+                , onChange = TextEntered
+                , placeholder = Nothing
+                , label = Input.labelHidden ""
+                }
+    in
     el
         [ clip
         , width fill
         , centerY
         , Font.size Palette.textSizeLarger
+        , inFront input
         ]
         (row
             [ alignRight ]
