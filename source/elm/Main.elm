@@ -16,6 +16,7 @@ import Return as R exposing (Return)
 import Task
 import Texts
 import Ticker exposing (Ticker)
+import Ticker.Text
 import Time
 import Utils exposing (..)
 import Viewport exposing (Viewport)
@@ -77,7 +78,7 @@ type alias Flags =
 init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { ticker =
-            [ Ticker.Announcement (Ticker.TickingTicker "Spwords!" 0) ]
+            Ticker.fromList [ Ticker.Text.Announcement (Ticker.Text.TickingAnnouncement "Spwords!" 0) ]
       , queue =
             [ QueuedAnnouncement "Go!"
             , QueuedAnnouncement "My name is Ale"
@@ -115,16 +116,16 @@ update msg model =
 
             TextEntered enteredText ->
                 case model.ticker of
-                    (Ticker.Announcement (Ticker.TickingTicker text ticks)) :: rest ->
+                    (Ticker.Text.Announcement (Ticker.Text.TickingAnnouncement text ticks)) :: rest ->
                         if enteredText == "\n" then
-                            ( { model | ticker = Ticker.Announcement (Ticker.InterruptedTicker text ticks) :: rest }
+                            ( { model | ticker = Ticker.Text.Announcement (Ticker.Text.InterruptedAnnouncement text ticks) :: rest }
                             , Cmd.none
                             )
 
                         else
                             modelMsg
 
-                    (Ticker.AthleteInput (Ticker.InputtingTicker text)) :: rest ->
+                    (Ticker.Text.AthleteInput (Ticker.Text.InputtingAthleteInput text)) :: rest ->
                         let
                             fixedText =
                                 enteredText
@@ -134,7 +135,7 @@ update msg model =
                                             String.any ((==) ch) "ABCDEFGHIJKLMNOPQRSTUVWXYZÑ-'"
                                         )
                         in
-                        ( { model | ticker = Ticker.AthleteInput (Ticker.InputtingTicker (text ++ fixedText)) :: rest }
+                        ( { model | ticker = Ticker.Text.AthleteInput (Ticker.Text.InputtingAthleteInput (text ++ fixedText)) :: rest }
                         , Cmd.none
                         )
 
@@ -227,33 +228,33 @@ ticker model =
         )
 
 
-tickerText : Ticker.Text -> Element Msg
+tickerText : Ticker.Text.Text -> Element Msg
 tickerText tt =
     case tt of
-        Ticker.Announcement ta ->
+        Ticker.Text.Announcement ta ->
             tickerAnnouncement ta
 
-        Ticker.AthleteInput tai ->
+        Ticker.Text.AthleteInput tai ->
             tickerTickerAthleteInput tai
 
 
-tickerAnnouncement : Ticker.Announcement -> Element Msg
+tickerAnnouncement : Ticker.Text.Announcement -> Element Msg
 tickerAnnouncement t =
     case t of
-        Ticker.TickingTicker txt ticks ->
+        Ticker.Text.TickingAnnouncement txt ticks ->
             text <| String.left ticks txt
 
-        Ticker.InterruptedTicker txt ticks ->
+        Ticker.Text.InterruptedAnnouncement txt ticks ->
             text <| String.left ticks txt ++ "--"
 
-        Ticker.FinishedTicker txt ->
+        Ticker.Text.FinishedAnnouncement txt ->
             text txt
 
 
-tickerTickerAthleteInput : Ticker.AthleteInput -> Element Msg
+tickerTickerAthleteInput : Ticker.Text.AthleteInput -> Element Msg
 tickerTickerAthleteInput t =
     case t of
-        Ticker.InputtingTicker txt ->
+        Ticker.Text.InputtingAthleteInput txt ->
             text txt
 
 
@@ -331,10 +332,10 @@ subscriptions model =
 checkAdvanceQueue : Model -> Model
 checkAdvanceQueue m =
     case m.ticker of
-        (Ticker.Announcement (Ticker.FinishedTicker _)) :: _ ->
+        (Ticker.Text.Announcement (Ticker.Text.FinishedAnnouncement _)) :: _ ->
             m |> advanceQueue
 
-        (Ticker.Announcement (Ticker.InterruptedTicker _ _)) :: _ ->
+        (Ticker.Text.Announcement (Ticker.Text.InterruptedAnnouncement _ _)) :: _ ->
             m |> advanceQueue
 
         _ ->
@@ -343,16 +344,11 @@ checkAdvanceQueue m =
 
 performTick : Model -> Model
 performTick model =
-    case model.ticker of
-        (Ticker.Announcement (Ticker.TickingTicker text ticks)) :: rest ->
-            if ticks < String.length text then
-                { model | ticker = Ticker.Announcement (Ticker.TickingTicker text (ticks + 1)) :: rest }
+    if Ticker.ticking model.ticker then
+        { model | ticker = Ticker.tick model.ticker }
 
-            else
-                { model | ticker = Ticker.Announcement (Ticker.FinishedTicker text) :: rest }
-
-        _ ->
-            model
+    else
+        model
 
 
 advanceQueue : Model -> Model
@@ -369,11 +365,11 @@ advanceQueue model =
     }
 
 
-fromQueued : QueueText -> Ticker.Text
+fromQueued : QueueText -> Ticker.Text.Text
 fromQueued qt =
     case qt of
         QueuedAnnouncement text ->
-            Ticker.Announcement (Ticker.TickingTicker text 0)
+            Ticker.Text.Announcement (Ticker.Text.TickingAnnouncement text 0)
 
         QueuedAthleteInput ->
-            Ticker.AthleteInput (Ticker.InputtingTicker "")
+            Ticker.Text.AthleteInput (Ticker.Text.InputtingAthleteInput "")
