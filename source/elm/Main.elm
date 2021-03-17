@@ -83,7 +83,7 @@ init flags =
     ( { ticker =
             [ Announcement (TickingTicker "Spwords!" 0) ]
       , queue =
-            [ Announcement (FinishedTicker "Go!")
+            [ Announcement (TickingTicker "Go!" 1)
             , Announcement (TickingTicker "My name is Ale" 0)
             , AthleteInput (InputtingTicker "eh")
             ]
@@ -91,11 +91,6 @@ init flags =
       }
     , doLetterTick
     )
-
-
-doLetterTick : Cmd Msg
-doLetterTick =
-    Task.perform (always LetterTicked) (Process.sleep 200)
 
 
 
@@ -118,20 +113,9 @@ update msg model =
     in
     case msg of
         LetterTicked ->
-            case model.ticker of
-                (Announcement (TickingTicker text ticks)) :: rest ->
-                    if ticks < String.length text then
-                        ( { model | ticker = Announcement (TickingTicker text (ticks + 1)) :: rest }
-                        , doLetterTick
-                        )
-
-                    else
-                        ( { model | ticker = Announcement (FinishedTicker text) :: rest }
-                        , Cmd.none
-                        )
-
-                _ ->
-                    modelMsg
+            modelMsg
+                |> R.map performTick
+                |> R.effect_ checkNextTick
 
         TextEntered enteredText ->
             case model.ticker of
@@ -341,3 +325,55 @@ subscriptions model =
             \w h -> Resized
         , Viewport.got GotViewport NoOp
         ]
+
+
+
+-- OTHER
+
+
+performTick : Model -> Model
+performTick model =
+    case model.ticker of
+        (Announcement (TickingTicker text ticks)) :: rest ->
+            if ticks < String.length text then
+                { model | ticker = Announcement (TickingTicker text (ticks + 1)) :: rest }
+
+            else
+                { model | ticker = Announcement (FinishedTicker text) :: rest }
+                    |> advanceQueue
+
+        _ ->
+            model
+
+
+advanceQueue : Model -> Model
+advanceQueue model =
+    { model
+        | ticker =
+            case List.head model.queue of
+                Just head ->
+                    head :: model.ticker
+
+                Nothing ->
+                    model.ticker
+        , queue = List.tail model.queue |> Maybe.withDefault []
+    }
+
+
+checkNextTick : Model -> Cmd Msg
+checkNextTick model =
+    case model.ticker of
+        (Announcement (TickingTicker text ticks)) :: _ ->
+            if ticks < String.length text + 1 then
+                doLetterTick
+
+            else
+                Cmd.none
+
+        _ ->
+            Cmd.none
+
+
+doLetterTick : Cmd Msg
+doLetterTick =
+    Task.perform (always LetterTicked) (Process.sleep 200)
