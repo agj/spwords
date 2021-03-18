@@ -45,26 +45,16 @@ main =
 
 type alias Model =
     { ticker : Ticker
-    , words : WordsStatus
+    , words : GameStatus
     , viewport : Viewport
     }
 
 
-type WordsStatus
-    = WordsLoading
-    | WordsLoaded Words
+type GameStatus
+    = GameLoading
+    | GameIntro Words
+    | GamePlaying Words
     | WordsLoadError Http.Error
-
-
-
--- type Status
---     = Intro
---     | Announcement
---     | Typing
---     | MachinesTurn
--- type InputStatus
---     = Correct
---     | Incorrect
 
 
 type alias Flags =
@@ -75,12 +65,8 @@ type alias Flags =
 init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { ticker =
-            Ticker.empty
-                |> Ticker.queueUp (Queued.Announcement "Welcome to Spwords!")
-                |> Ticker.queueUp (Queued.Instruction "Try a word with \"S\"!")
-                |> Ticker.queueUp Queued.AthleteInput
-                |> Ticker.queueUp (Queued.Announcement "Too bad! That didn't go well.")
-      , words = WordsLoading
+            Ticker.empty |> Ticker.queueUp (Queued.Instruction "(Loading…)")
+      , words = GameLoading
       , viewport = flags.viewport
       }
     , Http.get
@@ -96,7 +82,7 @@ init flags =
 
 type Msg
     = Ticked Time.Posix
-    | TextEntered String
+    | Inputted String
     | GotWords (Result Http.Error String)
     | Resized
     | GotViewport Viewport
@@ -110,24 +96,20 @@ update msg model =
             ( model, Cmd.none )
     in
     case ( msg, model.words ) of
-        ( Ticked _, _ ) ->
-            ( { model | ticker = Ticker.tick model.ticker }
-            , Cmd.none
-            )
-
-        ( TextEntered enteredText, WordsLoaded words ) ->
-            ( { model | ticker = Ticker.input enteredText model.ticker }
-            , Cmd.none
-            )
-                |> R.map checkInput
-
-        ( TextEntered _, _ ) ->
-            modelCmd
-
-        ( GotWords result, WordsLoading ) ->
+        ( GotWords result, GameLoading ) ->
             case result of
                 Ok words ->
-                    ( { model | words = WordsLoaded (Words.parse words) }
+                    ( { model
+                        | words = GamePlaying (Words.parse words)
+                        , ticker =
+                            model.ticker
+                                |> Ticker.queueUp (Queued.Announcement "Welcome to Spwords!")
+                                |> Ticker.queueUp (Queued.Instruction "Try a word with \"S\"!")
+                                |> Ticker.queueUp Queued.AthleteInput
+                                |> Ticker.queueUp (Queued.Announcement "Too bad! That didn't go well.")
+
+                        -- , ticker = model.ticker |> Ticker.queueUp (Queued.Announcement "Done. Press Enter.")
+                      }
                     , Cmd.none
                     )
 
@@ -137,6 +119,33 @@ update msg model =
                     )
 
         ( GotWords _, _ ) ->
+            modelCmd
+
+        ( Ticked _, _ ) ->
+            ( { model | ticker = Ticker.tick model.ticker }
+            , Cmd.none
+            )
+
+        -- ( TextEntered enteredText, GameIntro words ) ->
+        --     case enteredText of
+        --         "\n" ->
+        --             ( { model | ticker = Ticker.input enteredText model.ticker }
+        --             , Cmd.none
+        --             )
+        ( Inputted text, GamePlaying words ) ->
+            if isEnter text then
+                ( { model | ticker = Ticker.enter model.ticker }
+                , Cmd.none
+                )
+                    |> R.map checkInput
+
+            else
+                ( { model | ticker = Ticker.input text model.ticker }
+                , Cmd.none
+                )
+                    |> R.map checkInput
+
+        ( Inputted _, _ ) ->
             modelCmd
 
         ( Resized, _ ) ->
@@ -201,7 +210,7 @@ ticker model =
                 , focused [ Border.glow Palette.transparent 0 ]
                 ]
                 { text = ""
-                , onChange = TextEntered
+                , onChange = Inputted
                 , placeholder = Nothing
                 , label = Input.labelHidden ""
                 , spellcheck = False
@@ -374,3 +383,7 @@ isWrong text =
             (\w ->
                 String.left (String.length text) w /= text
             )
+
+
+isEnter text =
+    text == "\n"

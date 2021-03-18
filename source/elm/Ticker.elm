@@ -2,6 +2,7 @@ module Ticker exposing
     ( Ticker
     , current
     , empty
+    , enter
     , fromList
     , input
     , inputWrong
@@ -99,17 +100,21 @@ tick ticker =
                 ticker
 
 
+enter : Ticker -> Ticker
+enter ticker =
+    checkAdvanceQueue <|
+        case current ticker of
+            Just (Text.Announcement (Text.TickingAnnouncement txt ticks)) ->
+                swapCurrent (Text.Announcement (Text.InterruptedAnnouncement txt ticks)) ticker
+
+            _ ->
+                ticker
+
+
 input : String -> Ticker -> Ticker
 input text ticker =
     checkAdvanceQueue <|
         case current ticker of
-            Just (Text.Announcement (Text.TickingAnnouncement txt ticks)) ->
-                if text == "\n" then
-                    swapCurrent (Text.Announcement (Text.InterruptedAnnouncement txt ticks)) ticker
-
-                else
-                    ticker
-
             Just (Text.AthleteInput (Text.InputtingAthleteInput txt)) ->
                 let
                     fixedText =
