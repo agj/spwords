@@ -119,10 +119,10 @@ input text ticker =
                 let
                     fixedText =
                         text
-                            |> String.toUpper
+                            |> String.toLower
                             |> String.filter
                                 (\ch ->
-                                    String.any ((==) ch) "ABCDEFGHIJKLMNOPQRSTUVWXYZÑ-'"
+                                    String.any ((==) ch) "abcdefghijklmnopqrstuvwxyzñ-'"
                                 )
                 in
                 swapCurrent (Text.AthleteInput (Text.InputtingAthleteInput (txt ++ fixedText))) ticker

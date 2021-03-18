@@ -143,13 +143,13 @@ update msg model =
                 ( { model | ticker = Ticker.enter model.ticker }
                 , Cmd.none
                 )
-                    |> R.map checkInput
+                    |> R.map (checkInput words)
 
             else
                 ( { model | ticker = Ticker.input text model.ticker }
                 , Cmd.none
                 )
-                    |> R.map checkInput
+                    |> R.map (checkInput words)
 
         ( Inputted _, _ ) ->
             modelCmd
@@ -360,11 +360,11 @@ subscriptions model =
 -- OTHER
 
 
-checkInput : Model -> Model
-checkInput model =
+checkInput : Words -> Model -> Model
+checkInput words model =
     case Ticker.inputted model.ticker of
         Just text ->
-            if isWrong text then
+            if not (Words.candidate text words) then
                 { model | ticker = Ticker.inputWrong model.ticker }
 
             else
@@ -372,23 +372,6 @@ checkInput model =
 
         Nothing ->
             model
-
-
-dictionary =
-    [ "stadium"
-    , "state"
-    , "store"
-    , "stain"
-    ]
-        |> List.map String.toUpper
-
-
-isWrong text =
-    dictionary
-        |> List.all
-            (\w ->
-                String.left (String.length text) w /= text
-            )
 
 
 isEnter text =

@@ -27,8 +27,8 @@ const developElm = () =>
       `--open ` +
       `--hot ` +
       `-- ` +
-      `--output="${cfg.outputDir}js/script.js" ` +
-      `--debug`
+      `--output="${cfg.outputDir}js/script.js" ` //+
+    //`--debug`
   );
 
 const watchElm = () =>
