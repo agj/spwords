@@ -46,6 +46,7 @@ main =
 type alias Model =
     { ticker : Ticker
     , words : GameStatus
+    , constraints : Constraints
     , viewport : Viewport
     }
 
@@ -55,6 +56,16 @@ type GameStatus
     | GameIntro Words
     | GamePlaying Words
     | WordsLoadError Http.Error
+
+
+type Constraints
+    = ServeConstraints
+        { initial : Char
+        }
+    | RallyConstraints
+        { initial : Char
+        , includes : Char
+        }
 
 
 type alias Flags =
@@ -67,6 +78,7 @@ init flags =
     ( { ticker =
             Ticker.empty |> Ticker.queueUp (Queued.Instruction "(Loading…)")
       , words = GameLoading
+      , constraints = ServeConstraints { initial = 's' }
       , viewport = flags.viewport
       }
     , Http.get
@@ -143,13 +155,13 @@ update msg model =
                 ( { model | ticker = Ticker.enter model.ticker }
                 , Cmd.none
                 )
-                    |> R.map (checkInput words)
+                    |> R.map (checkInput model.constraints words)
 
             else
                 ( { model | ticker = Ticker.input text model.ticker }
                 , Cmd.none
                 )
-                    |> R.map (checkInput words)
+                    |> R.map (checkInput model.constraints words)
 
         ( Inputted _, _ ) ->
             modelCmd
@@ -360,11 +372,11 @@ subscriptions model =
 -- OTHER
 
 
-checkInput : Words -> Model -> Model
-checkInput words model =
+checkInput : Constraints -> Words -> Model -> Model
+checkInput cnts words model =
     case Ticker.inputted model.ticker of
         Just text ->
-            if not (inputIsCandidate text words) then
+            if not (inputIsCandidate text cnts words) then
                 { model | ticker = Ticker.inputWrong model.ticker }
 
             else
@@ -374,11 +386,20 @@ checkInput words model =
             model
 
 
-inputIsCandidate : String -> Words -> Bool
-inputIsCandidate text words =
+inputIsCandidate : String -> Constraints -> Words -> Bool
+inputIsCandidate text cnts words =
+    let
+        initial_ =
+            case cnts of
+                ServeConstraints { initial } ->
+                    initial
+
+                RallyConstraints { initial } ->
+                    initial
+    in
     case Utils.stringHead text of
         Just head ->
-            (head == 's')
+            (head == initial_)
                 && Words.candidate text words
 
         Nothing ->
