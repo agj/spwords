@@ -302,9 +302,28 @@ subscriptions model =
 
 checkInput : Model -> Model
 checkInput model =
+    let
+        dictionary =
+            [ "stadium"
+            , "state"
+            , "store"
+            , "stain"
+            ]
+
+        isWrong text =
+            dictionary
+                |> List.all
+                    (\w ->
+                        String.left (String.length text) (String.toUpper w) /= text
+                    )
+    in
     case Ticker.inputted model.ticker of
         Just text ->
-            model
+            if isWrong text then
+                { model | ticker = Ticker.inputWrong model.ticker }
+
+            else
+                model
 
         Nothing ->
             model

@@ -4,6 +4,7 @@ module Ticker exposing
     , empty
     , fromList
     , input
+    , inputWrong
     , inputted
     , queueUp
     , tick
@@ -116,6 +117,16 @@ input text ticker =
 
             _ ->
                 ticker
+
+
+inputWrong : Ticker -> Ticker
+inputWrong ticker =
+    case current ticker of
+        Just (Text.AthleteInput (Text.InputtingAthleteInput text)) ->
+            swapCurrent (Text.AthleteInput (Text.WrongAthleteInput text)) ticker
+
+        _ ->
+            ticker
 
 
 
