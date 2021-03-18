@@ -22,6 +22,7 @@ import Ticker.Text
 import Time
 import Utils exposing (..)
 import Viewport exposing (Viewport)
+import Words exposing (Words)
 
 
 
@@ -51,7 +52,7 @@ type alias Model =
 
 type WordsStatus
     = WordsLoading
-    | WordsLoaded String
+    | WordsLoaded Words
     | WordsLoadError Http.Error
 
 
@@ -105,7 +106,7 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     let
-        modelMsg =
+        modelCmd =
             ( model, Cmd.none )
     in
     case msg of
@@ -121,16 +122,21 @@ update msg model =
                 |> R.map checkInput
 
         GotWords result ->
-            case result of
-                Ok words ->
-                    ( { model | words = WordsLoaded words }
-                    , Cmd.none
-                    )
+            case model.words of
+                WordsLoading ->
+                    case result of
+                        Ok words ->
+                            ( { model | words = WordsLoaded (Words.parse words) }
+                            , Cmd.none
+                            )
 
-                Err err ->
-                    ( { model | words = WordsLoadError err }
-                    , Cmd.none
-                    )
+                        Err err ->
+                            ( { model | words = WordsLoadError err }
+                            , Cmd.none
+                            )
+
+                _ ->
+                    modelCmd
 
         Resized ->
             ( model
@@ -143,7 +149,7 @@ update msg model =
             )
 
         NoOp ->
-            modelMsg
+            modelCmd
 
 
 
