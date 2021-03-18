@@ -77,32 +77,32 @@ queueUp q ((Ticker list queue) as ticker) =
 
 
 tick : Ticker -> Ticker
-tick ((Ticker list queue) as ticker) =
+tick ticker =
     checkAdvanceQueue <|
-        case list of
-            (Text.Announcement (Text.TickingAnnouncement text ticks)) :: rest ->
+        case current ticker of
+            Just (Text.Announcement (Text.TickingAnnouncement text ticks)) ->
                 if ticks < String.length text then
-                    Ticker (Text.Announcement (Text.TickingAnnouncement text (ticks + 1)) :: rest) queue
+                    swapCurrent (Text.Announcement (Text.TickingAnnouncement text (ticks + 1))) ticker
 
                 else
-                    Ticker (Text.Announcement (Text.FinishedAnnouncement text) :: rest) queue
+                    swapCurrent (Text.Announcement (Text.FinishedAnnouncement text)) ticker
 
             _ ->
                 ticker
 
 
 input : String -> Ticker -> Ticker
-input text ((Ticker list queue) as ticker) =
+input text ticker =
     checkAdvanceQueue <|
-        case list of
-            (Text.Announcement (Text.TickingAnnouncement txt ticks)) :: rest ->
+        case current ticker of
+            Just (Text.Announcement (Text.TickingAnnouncement txt ticks)) ->
                 if text == "\n" then
-                    Ticker (Text.Announcement (Text.InterruptedAnnouncement txt ticks) :: rest) queue
+                    swapCurrent (Text.Announcement (Text.InterruptedAnnouncement txt ticks)) ticker
 
                 else
                     ticker
 
-            (Text.AthleteInput (Text.InputtingAthleteInput txt)) :: rest ->
+            Just (Text.AthleteInput (Text.InputtingAthleteInput txt)) ->
                 let
                     fixedText =
                         text
@@ -112,7 +112,7 @@ input text ((Ticker list queue) as ticker) =
                                     String.any ((==) ch) "ABCDEFGHIJKLMNOPQRSTUVWXYZÑ-'"
                                 )
                 in
-                Ticker (Text.AthleteInput (Text.InputtingAthleteInput (txt ++ fixedText)) :: rest) queue
+                swapCurrent (Text.AthleteInput (Text.InputtingAthleteInput (txt ++ fixedText))) ticker
 
             _ ->
                 ticker
@@ -159,3 +159,13 @@ fromQueued qt =
 
         Queued.AthleteInput ->
             Text.AthleteInput (Text.InputtingAthleteInput "")
+
+
+swapCurrent : Text -> Ticker -> Ticker
+swapCurrent tt ((Ticker list queue) as ticker) =
+    case list of
+        head :: rest ->
+            Ticker (tt :: rest) queue
+
+        _ ->
+            ticker
