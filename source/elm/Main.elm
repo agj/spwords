@@ -100,15 +100,10 @@ update msg model =
             case result of
                 Ok words ->
                     ( { model
-                        | words = GamePlaying (Words.parse words)
+                        | words = GameIntro (Words.parse words)
                         , ticker =
                             model.ticker
-                                |> Ticker.queueUp (Queued.Announcement "Welcome to Spwords!")
-                                |> Ticker.queueUp (Queued.Instruction "Try a word with \"S\"!")
-                                |> Ticker.queueUp Queued.AthleteInput
-                                |> Ticker.queueUp (Queued.Announcement "Too bad! That didn't go well.")
-
-                        -- , ticker = model.ticker |> Ticker.queueUp (Queued.Announcement "Done. Press Enter.")
+                                |> Ticker.queueUp (Queued.Announcement "(Done. Press Enter.)")
                       }
                     , Cmd.none
                     )
@@ -126,12 +121,23 @@ update msg model =
             , Cmd.none
             )
 
-        -- ( TextEntered enteredText, GameIntro words ) ->
-        --     case enteredText of
-        --         "\n" ->
-        --             ( { model | ticker = Ticker.input enteredText model.ticker }
-        --             , Cmd.none
-        --             )
+        ( Inputted text, GameIntro words ) ->
+            if isEnter text then
+                ( { model
+                    | words = GamePlaying words
+                    , ticker =
+                        model.ticker
+                            |> Ticker.queueUp (Queued.Instruction "Try a word with \"S\"!")
+                            |> Ticker.queueUp Queued.AthleteInput
+                            |> Ticker.queueUp (Queued.Announcement "Too bad! That didn't go well.")
+                            |> Ticker.enter
+                  }
+                , Cmd.none
+                )
+
+            else
+                modelCmd
+
         ( Inputted text, GamePlaying words ) ->
             if isEnter text then
                 ( { model | ticker = Ticker.enter model.ticker }
