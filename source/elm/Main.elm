@@ -109,46 +109,47 @@ update msg model =
         modelCmd =
             ( model, Cmd.none )
     in
-    case msg of
-        Ticked _ ->
+    case ( msg, model.words ) of
+        ( Ticked _, _ ) ->
             ( { model | ticker = Ticker.tick model.ticker }
             , Cmd.none
             )
 
-        TextEntered enteredText ->
+        ( TextEntered enteredText, WordsLoaded words ) ->
             ( { model | ticker = Ticker.input enteredText model.ticker }
             , Cmd.none
             )
                 |> R.map checkInput
 
-        GotWords result ->
-            case model.words of
-                WordsLoading ->
-                    case result of
-                        Ok words ->
-                            ( { model | words = WordsLoaded (Words.parse words) }
-                            , Cmd.none
-                            )
+        ( TextEntered _, _ ) ->
+            modelCmd
 
-                        Err err ->
-                            ( { model | words = WordsLoadError err }
-                            , Cmd.none
-                            )
+        ( GotWords result, WordsLoading ) ->
+            case result of
+                Ok words ->
+                    ( { model | words = WordsLoaded (Words.parse words) }
+                    , Cmd.none
+                    )
 
-                _ ->
-                    modelCmd
+                Err err ->
+                    ( { model | words = WordsLoadError err }
+                    , Cmd.none
+                    )
 
-        Resized ->
+        ( GotWords _, _ ) ->
+            modelCmd
+
+        ( Resized, _ ) ->
             ( model
             , Viewport.get
             )
 
-        GotViewport viewport ->
+        ( GotViewport viewport, _ ) ->
             ( { model | viewport = viewport }
             , Cmd.none
             )
 
-        NoOp ->
+        ( NoOp, _ ) ->
             modelCmd
 
 
