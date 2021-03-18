@@ -364,7 +364,7 @@ checkInput : Words -> Model -> Model
 checkInput words model =
     case Ticker.inputted model.ticker of
         Just text ->
-            if not (inputOkay text words) then
+            if not (inputIsCandidate text words) then
                 { model | ticker = Ticker.inputWrong model.ticker }
 
             else
@@ -374,9 +374,15 @@ checkInput words model =
             model
 
 
-inputOkay : String -> Words -> Bool
-inputOkay text words =
-    Words.candidate text words
+inputIsCandidate : String -> Words -> Bool
+inputIsCandidate text words =
+    case Utils.stringHead text of
+        Just head ->
+            (head == 's')
+                && Words.candidate text words
+
+        Nothing ->
+            False
 
 
 isEnter text =

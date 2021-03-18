@@ -1,7 +1,6 @@
 module Utils exposing (..)
 
 import Element exposing (Color)
-import Palette
 
 
 fraction : Float -> Int -> Int
@@ -49,9 +48,7 @@ toCssColor color =
         ++ ")"
 
 
-intersperse : a -> List a -> List a
-intersperse thing list =
-    list
-        |> List.concatMap (\v -> [ thing, v ])
-        |> List.tail
-        |> Maybe.withDefault []
+stringHead : String -> Maybe Char
+stringHead str =
+    String.uncons str
+        |> Maybe.map Tuple.first
