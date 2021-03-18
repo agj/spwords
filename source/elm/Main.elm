@@ -9,6 +9,7 @@ import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import Html exposing (Html)
+import Http
 import Json.Decode as Decode
 import Palette
 import Process
@@ -43,8 +44,15 @@ main =
 
 type alias Model =
     { ticker : Ticker
+    , words : WordsStatus
     , viewport : Viewport
     }
+
+
+type WordsStatus
+    = WordsLoading
+    | WordsLoaded String
+    | WordsLoadError Http.Error
 
 
 
@@ -71,9 +79,13 @@ init flags =
                 |> Ticker.queueUp (Queued.Instruction "Try a word with \"S\"!")
                 |> Ticker.queueUp Queued.AthleteInput
                 |> Ticker.queueUp (Queued.Announcement "Too bad! That didn't go well.")
+      , words = WordsLoading
       , viewport = flags.viewport
       }
-    , Cmd.none
+    , Http.get
+        { url = "data/words-en.txt"
+        , expect = Http.expectString GotWords
+        }
     )
 
 
@@ -84,6 +96,7 @@ init flags =
 type Msg
     = Ticked Time.Posix
     | TextEntered String
+    | GotWords (Result Http.Error String)
     | Resized
     | GotViewport Viewport
     | NoOp
@@ -106,6 +119,18 @@ update msg model =
             , Cmd.none
             )
                 |> R.map checkInput
+
+        GotWords result ->
+            case result of
+                Ok words ->
+                    ( { model | words = WordsLoaded words }
+                    , Cmd.none
+                    )
+
+                Err err ->
+                    ( { model | words = WordsLoadError err }
+                    , Cmd.none
+                    )
 
         Resized ->
             ( model
