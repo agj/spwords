@@ -136,13 +136,19 @@ inputWrong ticker =
 checkAdvanceQueue : Ticker -> Ticker
 checkAdvanceQueue ((Ticker list queue) as ticker) =
     case current ticker of
+        Nothing ->
+            advanceQueue ticker
+
         Just (Text.Announcement (Text.FinishedAnnouncement _)) ->
             advanceQueue ticker
 
         Just (Text.Announcement (Text.InterruptedAnnouncement _ _)) ->
             advanceQueue ticker
 
-        Nothing ->
+        Just (Text.AthleteInput (Text.CorrectAthleteInput _)) ->
+            advanceQueue ticker
+
+        Just (Text.AthleteInput (Text.WrongAthleteInput _)) ->
             advanceQueue ticker
 
         _ ->

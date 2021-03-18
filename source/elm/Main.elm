@@ -67,10 +67,10 @@ init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { ticker =
             Ticker.empty
-                |> Ticker.queueUp (Queued.Announcement "Spwords!")
-                |> Ticker.queueUp (Queued.Announcement "Go!")
-                |> Ticker.queueUp (Queued.Announcement "My name is Ale")
+                |> Ticker.queueUp (Queued.Announcement "Welcome to Spwords!")
+                |> Ticker.queueUp (Queued.Announcement "Try a word with \"S\"!")
                 |> Ticker.queueUp Queued.AthleteInput
+                |> Ticker.queueUp (Queued.Announcement "Too bad! That didn't go well.")
       , viewport = flags.viewport
       }
     , Cmd.none
@@ -302,21 +302,6 @@ subscriptions model =
 
 checkInput : Model -> Model
 checkInput model =
-    let
-        dictionary =
-            [ "stadium"
-            , "state"
-            , "store"
-            , "stain"
-            ]
-
-        isWrong text =
-            dictionary
-                |> List.all
-                    (\w ->
-                        String.left (String.length text) (String.toUpper w) /= text
-                    )
-    in
     case Ticker.inputted model.ticker of
         Just text ->
             if isWrong text then
@@ -327,3 +312,20 @@ checkInput model =
 
         Nothing ->
             model
+
+
+dictionary =
+    [ "stadium"
+    , "state"
+    , "store"
+    , "stain"
+    ]
+        |> List.map String.toUpper
+
+
+isWrong text =
+    dictionary
+        |> List.all
+            (\w ->
+                String.left (String.length text) w /= text
+            )
