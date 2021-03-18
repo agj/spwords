@@ -66,7 +66,8 @@ type alias Flags =
 init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { ticker =
-            Ticker.fromList [ Ticker.Text.Announcement (Ticker.Text.TickingAnnouncement "Spwords!" 0) ]
+            Ticker.empty
+                |> Ticker.queueUp (Queued.Announcement "Spwords!")
                 |> Ticker.queueUp (Queued.Announcement "Go!")
                 |> Ticker.queueUp (Queued.Announcement "My name is Ale")
                 |> Ticker.queueUp Queued.AthleteInput

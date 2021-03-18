@@ -120,6 +120,9 @@ checkAdvanceQueue ((Ticker list queue) as ticker) =
         Just (Text.Announcement (Text.InterruptedAnnouncement _ _)) ->
             advanceQueue ticker
 
+        Nothing ->
+            advanceQueue ticker
+
         _ ->
             ticker
 
