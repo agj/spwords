@@ -105,6 +105,7 @@ update msg model =
             ( { model | ticker = Ticker.input enteredText model.ticker }
             , Cmd.none
             )
+                |> R.map checkInput
 
         Resized ->
             ( model
@@ -221,6 +222,12 @@ tickerTickerAthleteInput t =
         Ticker.Text.InputtingAthleteInput txt ->
             text txt
 
+        Ticker.Text.CorrectAthleteInput txt ->
+            text (txt ++ "🙆")
+
+        Ticker.Text.WrongAthleteInput txt ->
+            text (txt ++ "🙅")
+
 
 type Athlete
     = AthleteA
@@ -291,3 +298,13 @@ subscriptions model =
 
 
 -- OTHER
+
+
+checkInput : Model -> Model
+checkInput model =
+    case Ticker.inputted model.ticker of
+        Just text ->
+            model
+
+        Nothing ->
+            model

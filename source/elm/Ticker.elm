@@ -4,6 +4,7 @@ module Ticker exposing
     , empty
     , fromList
     , input
+    , inputted
     , queueUp
     , tick
     , ticking
@@ -54,6 +55,16 @@ ticking ticker =
 
         _ ->
             False
+
+
+inputted : Ticker -> Maybe String
+inputted ticker =
+    case current ticker of
+        Just (Text.AthleteInput (Text.InputtingAthleteInput text)) ->
+            Just text
+
+        _ ->
+            Nothing
 
 
 

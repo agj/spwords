@@ -14,3 +14,5 @@ type Announcement
 
 type AthleteInput
     = InputtingAthleteInput String
+    | CorrectAthleteInput String
+    | WrongAthleteInput String
