@@ -88,6 +88,13 @@ tick ticker =
                 else
                     swapCurrent (Text.Announcement (Text.FinishedAnnouncement text)) ticker
 
+            Just (Text.Instruction (Text.TickingInstruction text ticks)) ->
+                if ticks < String.length text then
+                    swapCurrent (Text.Instruction (Text.TickingInstruction text (ticks + 1))) ticker
+
+                else
+                    swapCurrent (Text.Instruction (Text.FinishedInstruction text)) ticker
+
             _ ->
                 ticker
 
@@ -139,20 +146,35 @@ checkAdvanceQueue ((Ticker list queue) as ticker) =
         Nothing ->
             advanceQueue ticker
 
-        Just (Text.Announcement (Text.FinishedAnnouncement _)) ->
-            advanceQueue ticker
+        Just (Text.Announcement ta) ->
+            case ta of
+                Text.FinishedAnnouncement _ ->
+                    advanceQueue ticker
 
-        Just (Text.Announcement (Text.InterruptedAnnouncement _ _)) ->
-            advanceQueue ticker
+                Text.InterruptedAnnouncement _ _ ->
+                    advanceQueue ticker
 
-        Just (Text.AthleteInput (Text.CorrectAthleteInput _)) ->
-            advanceQueue ticker
+                Text.TickingAnnouncement _ _ ->
+                    ticker
 
-        Just (Text.AthleteInput (Text.WrongAthleteInput _)) ->
-            advanceQueue ticker
+        Just (Text.Instruction ti) ->
+            case ti of
+                Text.FinishedInstruction _ ->
+                    advanceQueue ticker
 
-        _ ->
-            ticker
+                Text.TickingInstruction _ _ ->
+                    ticker
+
+        Just (Text.AthleteInput tai) ->
+            case tai of
+                Text.CorrectAthleteInput _ ->
+                    advanceQueue ticker
+
+                Text.WrongAthleteInput _ ->
+                    advanceQueue ticker
+
+                Text.InputtingAthleteInput _ ->
+                    ticker
 
 
 advanceQueue : Ticker -> Ticker
@@ -173,6 +195,9 @@ fromQueued qt =
     case qt of
         Queued.Announcement text ->
             Text.Announcement (Text.TickingAnnouncement text 0)
+
+        Queued.Instruction text ->
+            Text.Instruction (Text.TickingInstruction text 0)
 
         Queued.AthleteInput ->
             Text.AthleteInput (Text.InputtingAthleteInput "")

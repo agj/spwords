@@ -68,7 +68,7 @@ init flags =
     ( { ticker =
             Ticker.empty
                 |> Ticker.queueUp (Queued.Announcement "Welcome to Spwords!")
-                |> Ticker.queueUp (Queued.Announcement "Try a word with \"S\"!")
+                |> Ticker.queueUp (Queued.Instruction "Try a word with \"S\"!")
                 |> Ticker.queueUp Queued.AthleteInput
                 |> Ticker.queueUp (Queued.Announcement "Too bad! That didn't go well.")
       , viewport = flags.viewport
@@ -199,6 +199,9 @@ tickerText tt =
         Ticker.Text.Announcement ta ->
             tickerAnnouncement ta
 
+        Ticker.Text.Instruction ti ->
+            tickerInstruction ti
+
         Ticker.Text.AthleteInput tai ->
             tickerTickerAthleteInput tai
 
@@ -213,6 +216,16 @@ tickerAnnouncement t =
             text <| String.left ticks txt ++ "--"
 
         Ticker.Text.FinishedAnnouncement txt ->
+            text txt
+
+
+tickerInstruction : Ticker.Text.Instruction -> Element Msg
+tickerInstruction t =
+    case t of
+        Ticker.Text.TickingInstruction txt ticks ->
+            text <| String.left ticks txt
+
+        Ticker.Text.FinishedInstruction txt ->
             text txt
 
 
