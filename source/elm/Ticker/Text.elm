@@ -1,13 +1,14 @@
 module Ticker.Text exposing (..)
 
-import Ticker.Text.AthleteInput as AthleteInput exposing (AthleteInput)
 import Ticker.Text.Constraints as Constraints exposing (Constraints)
 
 
 type Text
-    = Announcement Announcement
-    | Instruction Instruction
-    | AthleteInput AthleteInput
+    = InterruptedAnnouncement String Int
+    | FinishedAnnouncement String
+    | Instruction String
+    | CorrectAthleteInput String
+    | WrongAthleteInput String
 
 
 type Active
@@ -16,12 +17,7 @@ type Active
     | ActiveAthleteInput String Constraints
 
 
-type Announcement
-    = TickingAnnouncement String Int
-    | InterruptedAnnouncement String Int
-    | FinishedAnnouncement String
-
-
-type Instruction
-    = TickingInstruction String Int
-    | FinishedInstruction String
+type Queued
+    = QueuedAnnouncement String
+    | QueuedInstruction String
+    | QueuedAthleteInput

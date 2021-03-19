@@ -5,10 +5,8 @@ import Utils
 import Words exposing (Words)
 
 
-type AthleteInput
-    = Inputting String Constraints
-    | Correct String
-    | Wrong String
+temp =
+    ()
 
 
 

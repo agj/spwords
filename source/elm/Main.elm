@@ -17,9 +17,7 @@ import Return as R exposing (Return)
 import Task
 import Texts
 import Ticker exposing (Ticker)
-import Ticker.Queued as Queued
-import Ticker.Text
-import Ticker.Text.AthleteInput as AthleteInput exposing (AthleteInput)
+import Ticker.Text as Text
 import Ticker.Text.Constraints as Constraints exposing (Constraints)
 import Time
 import Utils exposing (..)
@@ -68,7 +66,7 @@ type alias Flags =
 init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { ticker =
-            Ticker.empty |> Ticker.queueUp (Queued.Instruction "(Loading…)")
+            Ticker.empty |> Ticker.queueUp (Text.QueuedInstruction "(Loading…)")
       , words = GameLoading
       , constraints = Constraints.Serve { initial = 's' }
       , viewport = flags.viewport
@@ -107,7 +105,7 @@ update msg model =
                         | words = GameIntro (Words.parse words)
                         , ticker =
                             model.ticker
-                                |> Ticker.queueUp (Queued.Announcement "(Done. Press Enter.)")
+                                |> Ticker.queueUp (Text.QueuedAnnouncement "(Done. Press Enter.)")
                       }
                     , Cmd.none
                     )
@@ -131,9 +129,9 @@ update msg model =
                     | words = GamePlaying words
                     , ticker =
                         model.ticker
-                            |> Ticker.queueUp (Queued.Instruction "Try a word with \"S\"!")
-                            |> Ticker.queueUp Queued.AthleteInput
-                            |> Ticker.queueUp (Queued.Announcement "Too bad! That didn't go well.")
+                            |> Ticker.queueUp (Text.QueuedInstruction "Try a word with \"S\"!")
+                            |> Ticker.queueUp Text.QueuedAthleteInput
+                            |> Ticker.queueUp (Text.QueuedAnnouncement "Too bad! That didn't go well.")
                             |> Ticker.enter
                   }
                 , Cmd.none
@@ -225,6 +223,21 @@ ticker model =
                 , label = Input.labelHidden ""
                 , spellcheck = False
                 }
+
+        passed =
+            Ticker.passed model.ticker
+                |> List.map tickerText
+
+        tickerTexts =
+            (case Ticker.current model.ticker of
+                Just cur ->
+                    tickerActive cur :: passed
+
+                Nothing ->
+                    passed
+            )
+                |> List.reverse
+                |> List.intersperse (text " ")
     in
     el
         [ clip
@@ -236,78 +249,39 @@ ticker model =
         ]
         (row
             [ alignRight ]
-            ((Ticker.current model.ticker
-                |> Maybe.withDefault (Ticker.Text.ActiveAnnouncement "" 0)
-                |> tickerActive
-             )
-                :: (Ticker.passed model.ticker
-                        |> List.map tickerText
-                   )
-                |> List.reverse
-                |> List.intersperse (text " ")
-            )
+            tickerTexts
         )
 
 
-tickerActive : Ticker.Text.Active -> Element Msg
+tickerActive : Text.Active -> Element Msg
 tickerActive ta =
     case ta of
-        Ticker.Text.ActiveAnnouncement txt ticks ->
+        Text.ActiveAnnouncement txt ticks ->
             text (String.left ticks txt)
 
-        Ticker.Text.ActiveInstruction txt ticks ->
+        Text.ActiveInstruction txt ticks ->
             text (String.left ticks txt)
 
-        Ticker.Text.ActiveAthleteInput txt _ ->
+        Text.ActiveAthleteInput txt _ ->
             text txt
 
 
-tickerText : Ticker.Text.Text -> Element Msg
+tickerText : Text.Text -> Element Msg
 tickerText tt =
     case tt of
-        Ticker.Text.Announcement ta ->
-            tickerAnnouncement ta
-
-        Ticker.Text.Instruction ti ->
-            tickerInstruction ti
-
-        Ticker.Text.AthleteInput tai ->
-            tickerTickerAthleteInput tai
-
-
-tickerAnnouncement : Ticker.Text.Announcement -> Element Msg
-tickerAnnouncement t =
-    case t of
-        Ticker.Text.TickingAnnouncement txt ticks ->
-            text <| String.left ticks txt
-
-        Ticker.Text.InterruptedAnnouncement txt ticks ->
+        Text.InterruptedAnnouncement txt ticks ->
             text <| String.left ticks txt ++ "--"
 
-        Ticker.Text.FinishedAnnouncement txt ->
+        Text.FinishedAnnouncement txt ->
             text txt
 
-
-tickerInstruction : Ticker.Text.Instruction -> Element Msg
-tickerInstruction t =
-    case t of
-        Ticker.Text.TickingInstruction txt ticks ->
-            text <| String.left ticks txt
-
-        Ticker.Text.FinishedInstruction txt ->
+        Text.Instruction txt ->
             text txt
 
-
-tickerTickerAthleteInput : AthleteInput -> Element Msg
-tickerTickerAthleteInput t =
-    case t of
-        AthleteInput.Inputting txt cnst ->
-            text txt
-
-        AthleteInput.Correct txt ->
+        Text.CorrectAthleteInput txt ->
             text (txt ++ "🙆")
 
-        AthleteInput.Wrong txt ->
+        Text.WrongAthleteInput txt ->
             text (txt ++ "🙅")
 
 

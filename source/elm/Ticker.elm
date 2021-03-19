@@ -11,9 +11,7 @@ module Ticker exposing
     , tick
     )
 
-import Ticker.Queued as Queued exposing (Queued)
-import Ticker.Text as Text exposing (Active, Text)
-import Ticker.Text.AthleteInput as AthleteInput exposing (AthleteInput)
+import Ticker.Text as Text exposing (Active, Queued, Text)
 import Ticker.Text.Constraints as Constraints exposing (Constraints)
 
 
@@ -69,7 +67,7 @@ inputted ticker =
 -- MODIFICATION
 
 
-queueUp : Queued.Queued -> Ticker -> Ticker
+queueUp : Queued -> Ticker -> Ticker
 queueUp q ticker =
     case ticker of
         ActiveTicker list cur queue ->
@@ -98,7 +96,7 @@ enter ticker =
     checkAdvanceQueue <|
         case current ticker of
             Just (Text.ActiveAnnouncement txt ticks) ->
-                advanceQueue (Text.Announcement (Text.InterruptedAnnouncement txt ticks)) ticker
+                advanceQueue (Text.InterruptedAnnouncement txt ticks) ticker
 
             _ ->
                 ticker
@@ -128,7 +126,7 @@ inputWrong : Ticker -> Ticker
 inputWrong ticker =
     case current ticker of
         Just (Text.ActiveAthleteInput text cnst) ->
-            advanceQueue (Text.AthleteInput (AthleteInput.Wrong text)) ticker
+            advanceQueue (Text.WrongAthleteInput text) ticker
 
         _ ->
             ticker
@@ -143,14 +141,14 @@ checkAdvanceQueue ticker =
     case current ticker of
         Just (Text.ActiveAnnouncement text ticks) ->
             if ticks >= String.length text then
-                advanceQueue (Text.Announcement (Text.FinishedAnnouncement text)) ticker
+                advanceQueue (Text.FinishedAnnouncement text) ticker
 
             else
                 ticker
 
         Just (Text.ActiveInstruction text ticks) ->
             if ticks >= String.length text then
-                advanceQueue (Text.Instruction (Text.FinishedInstruction text)) ticker
+                advanceQueue (Text.Instruction text) ticker
 
             else
                 ticker
@@ -177,13 +175,13 @@ advanceQueue curReplacement ticker =
 fromQueued : Queued -> Active
 fromQueued qt =
     case qt of
-        Queued.Announcement text ->
+        Text.QueuedAnnouncement text ->
             Text.ActiveAnnouncement text 0
 
-        Queued.Instruction text ->
+        Text.QueuedInstruction text ->
             Text.ActiveInstruction text 0
 
-        Queued.AthleteInput ->
+        Text.QueuedAthleteInput ->
             Text.ActiveAthleteInput "" (Constraints.Serve { initial = 's' })
 
 
