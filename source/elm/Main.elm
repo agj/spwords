@@ -139,17 +139,16 @@ update msg model =
                 modelCmd
 
         ( Inputted text, GamePlaying words ) ->
-            if isEnter text then
-                ( { model | ticker = Ticker.enter model.ticker }
-                , Cmd.none
-                )
-                    |> R.map (checkInput words)
+            R.map (checkInput words) <|
+                if isEnter text then
+                    ( { model | ticker = Ticker.enter model.ticker }
+                    , Cmd.none
+                    )
 
-            else
-                ( { model | ticker = Ticker.input text model.ticker }
-                , Cmd.none
-                )
-                    |> R.map (checkInput words)
+                else
+                    ( { model | ticker = Ticker.input text model.ticker }
+                    , Cmd.none
+                    )
 
         ( Inputted _, _ ) ->
             modelCmd
