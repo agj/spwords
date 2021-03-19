@@ -6,20 +6,19 @@ module Ticker exposing
     , input
     , inputWrong
     , inputted
+    , passed
     , queueUp
     , tick
-    , ticking
-    , toList
     )
 
 import Ticker.Queued as Queued exposing (Queued)
-import Ticker.Text as Text exposing (Text)
+import Ticker.Text as Text exposing (Active, Text)
 import Ticker.Text.AthleteInput as AthleteInput exposing (AthleteInput)
 import Ticker.Text.Constraints as Constraints exposing (Constraints)
 
 
 type Ticker
-    = ActiveTicker (List Text) Text (List Queued)
+    = ActiveTicker (List Text) Active (List Queued)
     | IdleTicker (List Text)
 
 
@@ -36,7 +35,7 @@ empty =
 -- GETTERS
 
 
-current : Ticker -> Maybe Text
+current : Ticker -> Maybe Active
 current ticker =
     case ticker of
         ActiveTicker _ cur _ ->
@@ -46,30 +45,20 @@ current ticker =
             Nothing
 
 
-toList : Ticker -> List Text
-toList ticker =
+passed : Ticker -> List Text
+passed ticker =
     case ticker of
-        ActiveTicker list cur _ ->
-            cur :: list
+        ActiveTicker list _ _ ->
+            list
 
         IdleTicker list ->
             list
 
 
-ticking : Ticker -> Bool
-ticking ticker =
-    case current ticker of
-        Just (Text.Announcement (Text.TickingAnnouncement _ _)) ->
-            True
-
-        _ ->
-            False
-
-
 inputted : Ticker -> Maybe String
 inputted ticker =
     case current ticker of
-        Just (Text.AthleteInput (AthleteInput.Inputting text cnst)) ->
+        Just (Text.ActiveAthleteInput text cnst) ->
             Just text
 
         _ ->
@@ -94,19 +83,11 @@ tick : Ticker -> Ticker
 tick ticker =
     checkAdvanceQueue <|
         case current ticker of
-            Just (Text.Announcement (Text.TickingAnnouncement text ticks)) ->
-                if ticks < String.length text then
-                    swapCurrent (Text.Announcement (Text.TickingAnnouncement text (ticks + 1))) ticker
+            Just (Text.ActiveAnnouncement text ticks) ->
+                swapCurrent (Text.ActiveAnnouncement text (ticks + 1)) ticker
 
-                else
-                    swapCurrent (Text.Announcement (Text.FinishedAnnouncement text)) ticker
-
-            Just (Text.Instruction (Text.TickingInstruction text ticks)) ->
-                if ticks < String.length text then
-                    swapCurrent (Text.Instruction (Text.TickingInstruction text (ticks + 1))) ticker
-
-                else
-                    swapCurrent (Text.Instruction (Text.FinishedInstruction text)) ticker
+            Just (Text.ActiveInstruction text ticks) ->
+                swapCurrent (Text.ActiveInstruction text (ticks + 1)) ticker
 
             _ ->
                 ticker
@@ -116,8 +97,8 @@ enter : Ticker -> Ticker
 enter ticker =
     checkAdvanceQueue <|
         case current ticker of
-            Just (Text.Announcement (Text.TickingAnnouncement txt ticks)) ->
-                swapCurrent (Text.Announcement (Text.InterruptedAnnouncement txt ticks)) ticker
+            Just (Text.ActiveAnnouncement txt ticks) ->
+                advanceQueue (Text.Announcement (Text.InterruptedAnnouncement txt ticks)) ticker
 
             _ ->
                 ticker
@@ -127,7 +108,7 @@ input : String -> Ticker -> Ticker
 input text ticker =
     checkAdvanceQueue <|
         case current ticker of
-            Just (Text.AthleteInput (AthleteInput.Inputting txt cnst)) ->
+            Just (Text.ActiveAthleteInput txt cnst) ->
                 let
                     fixedText =
                         text
@@ -137,7 +118,7 @@ input text ticker =
                                     String.any ((==) ch) "abcdefghijklmnopqrstuvwxyzñ-'"
                                 )
                 in
-                swapCurrent (Text.AthleteInput (AthleteInput.Inputting (txt ++ fixedText) cnst)) ticker
+                swapCurrent (Text.ActiveAthleteInput (txt ++ fixedText) cnst) ticker
 
             _ ->
                 ticker
@@ -146,8 +127,8 @@ input text ticker =
 inputWrong : Ticker -> Ticker
 inputWrong ticker =
     case current ticker of
-        Just (Text.AthleteInput (AthleteInput.Inputting text cnst)) ->
-            swapCurrent (Text.AthleteInput (AthleteInput.Wrong text)) ticker
+        Just (Text.ActiveAthleteInput text cnst) ->
+            advanceQueue (Text.AthleteInput (AthleteInput.Wrong text)) ticker
 
         _ ->
             ticker
@@ -160,73 +141,57 @@ inputWrong ticker =
 checkAdvanceQueue : Ticker -> Ticker
 checkAdvanceQueue ticker =
     case current ticker of
-        Nothing ->
-            advanceQueue ticker
+        Just (Text.ActiveAnnouncement text ticks) ->
+            if ticks >= String.length text then
+                advanceQueue (Text.Announcement (Text.FinishedAnnouncement text)) ticker
 
-        Just (Text.Announcement ta) ->
-            case ta of
-                Text.FinishedAnnouncement _ ->
-                    advanceQueue ticker
+            else
+                ticker
 
-                Text.InterruptedAnnouncement _ _ ->
-                    advanceQueue ticker
+        Just (Text.ActiveInstruction text ticks) ->
+            if ticks >= String.length text then
+                advanceQueue (Text.Instruction (Text.FinishedInstruction text)) ticker
 
-                Text.TickingAnnouncement _ _ ->
-                    ticker
+            else
+                ticker
 
-        Just (Text.Instruction ti) ->
-            case ti of
-                Text.FinishedInstruction _ ->
-                    advanceQueue ticker
-
-                Text.TickingInstruction _ _ ->
-                    ticker
-
-        Just (Text.AthleteInput tai) ->
-            case tai of
-                AthleteInput.Correct _ ->
-                    advanceQueue ticker
-
-                AthleteInput.Wrong _ ->
-                    advanceQueue ticker
-
-                AthleteInput.Inputting _ _ ->
-                    ticker
+        _ ->
+            ticker
 
 
-advanceQueue : Ticker -> Ticker
-advanceQueue ticker =
+advanceQueue : Text -> Ticker -> Ticker
+advanceQueue curReplacement ticker =
     case ticker of
-        ActiveTicker list cur queue ->
+        ActiveTicker list _ queue ->
             case List.head queue of
                 Just new ->
-                    ActiveTicker (cur :: list) (fromQueued new) (List.tail queue |> Maybe.withDefault [])
+                    ActiveTicker (curReplacement :: list) (fromQueued new) (List.tail queue |> Maybe.withDefault [])
 
                 Nothing ->
-                    IdleTicker (cur :: list)
+                    IdleTicker (curReplacement :: list)
 
         IdleTicker _ ->
             ticker
 
 
-fromQueued : Queued -> Text
+fromQueued : Queued -> Active
 fromQueued qt =
     case qt of
         Queued.Announcement text ->
-            Text.Announcement (Text.TickingAnnouncement text 0)
+            Text.ActiveAnnouncement text 0
 
         Queued.Instruction text ->
-            Text.Instruction (Text.TickingInstruction text 0)
+            Text.ActiveInstruction text 0
 
         Queued.AthleteInput ->
-            Text.AthleteInput (AthleteInput.Inputting "" (Constraints.Serve { initial = 's' }))
+            Text.ActiveAthleteInput "" (Constraints.Serve { initial = 's' })
 
 
-swapCurrent : Text -> Ticker -> Ticker
-swapCurrent tt ticker =
+swapCurrent : Active -> Ticker -> Ticker
+swapCurrent at ticker =
     case ticker of
-        ActiveTicker list cur queue ->
-            ActiveTicker list tt queue
+        ActiveTicker list _ queue ->
+            ActiveTicker list at queue
 
         IdleTicker _ ->
             ticker

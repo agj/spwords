@@ -236,12 +236,30 @@ ticker model =
         ]
         (row
             [ alignRight ]
-            (Ticker.toList model.ticker
-                |> List.map tickerText
+            ((Ticker.current model.ticker
+                |> Maybe.withDefault (Ticker.Text.ActiveAnnouncement "" 0)
+                |> tickerActive
+             )
+                :: (Ticker.passed model.ticker
+                        |> List.map tickerText
+                   )
                 |> List.reverse
                 |> List.intersperse (text " ")
             )
         )
+
+
+tickerActive : Ticker.Text.Active -> Element Msg
+tickerActive ta =
+    case ta of
+        Ticker.Text.ActiveAnnouncement txt ticks ->
+            text (String.left ticks txt)
+
+        Ticker.Text.ActiveInstruction txt ticks ->
+            text (String.left ticks txt)
+
+        Ticker.Text.ActiveAthleteInput txt _ ->
+            text txt
 
 
 tickerText : Ticker.Text.Text -> Element Msg
