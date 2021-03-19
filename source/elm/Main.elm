@@ -387,7 +387,7 @@ inputIsCandidate text cnts words =
                 && Words.candidate text words
 
         Nothing ->
-            False
+            True
 
 
 isEnter text =
