@@ -20,4 +20,4 @@ type Active
 type Queued
     = QueuedAnnouncement String
     | QueuedInstruction String
-    | QueuedAthleteInput
+    | QueuedAthleteInput Constraints

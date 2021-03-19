@@ -181,8 +181,8 @@ fromQueued qt =
         Text.QueuedInstruction text ->
             Text.ActiveInstruction text 0
 
-        Text.QueuedAthleteInput ->
-            Text.ActiveAthleteInput "" (Constraints.Serve { initial = 's' })
+        Text.QueuedAthleteInput cnts ->
+            Text.ActiveAthleteInput "" cnts
 
 
 swapCurrent : Active -> Ticker -> Ticker

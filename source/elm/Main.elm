@@ -46,7 +46,6 @@ main =
 type alias Model =
     { ticker : Ticker
     , words : GameStatus
-    , constraints : Constraints
     , viewport : Viewport
     }
 
@@ -68,7 +67,6 @@ init flags =
     ( { ticker =
             Ticker.empty |> Ticker.queueUp (Text.QueuedInstruction "(Loading…)")
       , words = GameLoading
-      , constraints = Constraints.Serve { initial = 's' }
       , viewport = flags.viewport
       }
     , Http.get
@@ -130,7 +128,7 @@ update msg model =
                     , ticker =
                         model.ticker
                             |> Ticker.queueUp (Text.QueuedInstruction "Try a word with \"S\"!")
-                            |> Ticker.queueUp Text.QueuedAthleteInput
+                            |> Ticker.queueUp (Text.QueuedAthleteInput (Constraints.Serve { initial = 's' }))
                             |> Ticker.queueUp (Text.QueuedAnnouncement "Too bad! That didn't go well.")
                             |> Ticker.enter
                   }
@@ -145,13 +143,13 @@ update msg model =
                 ( { model | ticker = Ticker.enter model.ticker }
                 , Cmd.none
                 )
-                    |> R.map (checkInput model.constraints words)
+                    |> R.map (checkInput words)
 
             else
                 ( { model | ticker = Ticker.input text model.ticker }
                 , Cmd.none
                 )
-                    |> R.map (checkInput model.constraints words)
+                    |> R.map (checkInput words)
 
         ( Inputted _, _ ) ->
             modelCmd
@@ -356,15 +354,18 @@ subscriptions model =
 -- OTHER
 
 
-checkInput : Constraints -> Words -> Model -> Model
-checkInput cnts words model =
-    case Ticker.inputted model.ticker of
-        Just text ->
-            if not (inputIsCandidate text cnts words) then
+checkInput : Words -> Model -> Model
+checkInput words model =
+    case Ticker.current model.ticker of
+        Just (Text.ActiveAthleteInput txt cnts) ->
+            if not (inputIsCandidate txt cnts words) then
                 { model | ticker = Ticker.inputWrong model.ticker }
 
             else
                 model
+
+        Just _ ->
+            model
 
         Nothing ->
             model
