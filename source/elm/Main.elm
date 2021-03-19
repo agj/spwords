@@ -20,6 +20,7 @@ import Ticker exposing (Ticker)
 import Ticker.Queued as Queued
 import Ticker.Text
 import Ticker.Text.AthleteInput as AthleteInput exposing (AthleteInput)
+import Ticker.Text.Constraints as Constraints exposing (Constraints)
 import Time
 import Utils exposing (..)
 import Viewport exposing (Viewport)
@@ -59,16 +60,6 @@ type GameStatus
     | WordsLoadError Http.Error
 
 
-type Constraints
-    = ServeConstraints
-        { initial : Char
-        }
-    | RallyConstraints
-        { initial : Char
-        , includes : Char
-        }
-
-
 type alias Flags =
     { viewport : Viewport
     }
@@ -79,7 +70,7 @@ init flags =
     ( { ticker =
             Ticker.empty |> Ticker.queueUp (Queued.Instruction "(Loading…)")
       , words = GameLoading
-      , constraints = ServeConstraints { initial = 's' }
+      , constraints = Constraints.Serve { initial = 's' }
       , viewport = flags.viewport
       }
     , Http.get
@@ -292,7 +283,7 @@ tickerInstruction t =
 tickerTickerAthleteInput : AthleteInput -> Element Msg
 tickerTickerAthleteInput t =
     case t of
-        AthleteInput.Inputting txt ->
+        AthleteInput.Inputting txt cnst ->
             text txt
 
         AthleteInput.Correct txt ->
@@ -392,10 +383,10 @@ inputIsCandidate text cnts words =
     let
         initial_ =
             case cnts of
-                ServeConstraints { initial } ->
+                Constraints.Serve { initial } ->
                     initial
 
-                RallyConstraints { initial } ->
+                Constraints.Rally { initial } ->
                     initial
     in
     case Utils.stringHead text of

@@ -16,6 +16,7 @@ module Ticker exposing
 import Ticker.Queued as Queued exposing (Queued)
 import Ticker.Text as Text exposing (Text)
 import Ticker.Text.AthleteInput as AthleteInput exposing (AthleteInput)
+import Ticker.Text.Constraints as Constraints exposing (Constraints)
 
 
 type Ticker
@@ -63,7 +64,7 @@ ticking ticker =
 inputted : Ticker -> Maybe String
 inputted ticker =
     case current ticker of
-        Just (Text.AthleteInput (AthleteInput.Inputting text)) ->
+        Just (Text.AthleteInput (AthleteInput.Inputting text cnst)) ->
             Just text
 
         _ ->
@@ -116,7 +117,7 @@ input : String -> Ticker -> Ticker
 input text ticker =
     checkAdvanceQueue <|
         case current ticker of
-            Just (Text.AthleteInput (AthleteInput.Inputting txt)) ->
+            Just (Text.AthleteInput (AthleteInput.Inputting txt cnst)) ->
                 let
                     fixedText =
                         text
@@ -126,7 +127,7 @@ input text ticker =
                                     String.any ((==) ch) "abcdefghijklmnopqrstuvwxyzñ-'"
                                 )
                 in
-                swapCurrent (Text.AthleteInput (AthleteInput.Inputting (txt ++ fixedText))) ticker
+                swapCurrent (Text.AthleteInput (AthleteInput.Inputting (txt ++ fixedText) cnst)) ticker
 
             _ ->
                 ticker
@@ -135,7 +136,7 @@ input text ticker =
 inputWrong : Ticker -> Ticker
 inputWrong ticker =
     case current ticker of
-        Just (Text.AthleteInput (AthleteInput.Inputting text)) ->
+        Just (Text.AthleteInput (AthleteInput.Inputting text cnst)) ->
             swapCurrent (Text.AthleteInput (AthleteInput.Wrong text)) ticker
 
         _ ->
@@ -179,7 +180,7 @@ checkAdvanceQueue ((Ticker list queue) as ticker) =
                 AthleteInput.Wrong _ ->
                     advanceQueue ticker
 
-                AthleteInput.Inputting _ ->
+                AthleteInput.Inputting _ _ ->
                     ticker
 
 
@@ -206,7 +207,7 @@ fromQueued qt =
             Text.Instruction (Text.TickingInstruction text 0)
 
         Queued.AthleteInput ->
-            Text.AthleteInput (AthleteInput.Inputting "")
+            Text.AthleteInput (AthleteInput.Inputting "" (Constraints.Serve { initial = 's' }))
 
 
 swapCurrent : Text -> Ticker -> Ticker
