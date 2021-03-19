@@ -53,8 +53,14 @@ type alias Model =
 type GameStatus
     = GameLoading
     | GameIntro Words
-    | GamePlaying Words
+    | GamePlaying Words GameState
     | WordsLoadError Http.Error
+
+
+type GameState
+    = JustStarted
+    | Serving { initial : Char }
+    | Rallying { initial : Char, includes : Char, alreadyPlayed : List String }
 
 
 type alias Flags =
@@ -124,7 +130,7 @@ update msg model =
         ( Inputted text, GameIntro words ) ->
             if isEnter text then
                 ( { model
-                    | game = GamePlaying words
+                    | game = GamePlaying words JustStarted
                     , ticker =
                         model.ticker
                             |> Ticker.queueUp (Text.QueuedInstruction "Try a word with \"S\"!")
@@ -136,7 +142,7 @@ update msg model =
             else
                 modelCmd
 
-        ( Inputted text, GamePlaying words ) ->
+        ( Inputted text, GamePlaying words _ ) ->
             if isEnter text then
                 case Ticker.current model.ticker of
                     Just (Text.ActiveAthleteInput txt cnts) ->
