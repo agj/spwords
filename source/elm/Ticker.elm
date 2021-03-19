@@ -15,6 +15,7 @@ module Ticker exposing
 
 import Ticker.Queued as Queued exposing (Queued)
 import Ticker.Text as Text exposing (Text)
+import Ticker.Text.AthleteInput as AthleteInput exposing (AthleteInput)
 
 
 type Ticker
@@ -62,7 +63,7 @@ ticking ticker =
 inputted : Ticker -> Maybe String
 inputted ticker =
     case current ticker of
-        Just (Text.AthleteInput (Text.InputtingAthleteInput text)) ->
+        Just (Text.AthleteInput (AthleteInput.Inputting text)) ->
             Just text
 
         _ ->
@@ -115,7 +116,7 @@ input : String -> Ticker -> Ticker
 input text ticker =
     checkAdvanceQueue <|
         case current ticker of
-            Just (Text.AthleteInput (Text.InputtingAthleteInput txt)) ->
+            Just (Text.AthleteInput (AthleteInput.Inputting txt)) ->
                 let
                     fixedText =
                         text
@@ -125,7 +126,7 @@ input text ticker =
                                     String.any ((==) ch) "abcdefghijklmnopqrstuvwxyzñ-'"
                                 )
                 in
-                swapCurrent (Text.AthleteInput (Text.InputtingAthleteInput (txt ++ fixedText))) ticker
+                swapCurrent (Text.AthleteInput (AthleteInput.Inputting (txt ++ fixedText))) ticker
 
             _ ->
                 ticker
@@ -134,8 +135,8 @@ input text ticker =
 inputWrong : Ticker -> Ticker
 inputWrong ticker =
     case current ticker of
-        Just (Text.AthleteInput (Text.InputtingAthleteInput text)) ->
-            swapCurrent (Text.AthleteInput (Text.WrongAthleteInput text)) ticker
+        Just (Text.AthleteInput (AthleteInput.Inputting text)) ->
+            swapCurrent (Text.AthleteInput (AthleteInput.Wrong text)) ticker
 
         _ ->
             ticker
@@ -172,13 +173,13 @@ checkAdvanceQueue ((Ticker list queue) as ticker) =
 
         Just (Text.AthleteInput tai) ->
             case tai of
-                Text.CorrectAthleteInput _ ->
+                AthleteInput.Correct _ ->
                     advanceQueue ticker
 
-                Text.WrongAthleteInput _ ->
+                AthleteInput.Wrong _ ->
                     advanceQueue ticker
 
-                Text.InputtingAthleteInput _ ->
+                AthleteInput.Inputting _ ->
                     ticker
 
 
@@ -205,7 +206,7 @@ fromQueued qt =
             Text.Instruction (Text.TickingInstruction text 0)
 
         Queued.AthleteInput ->
-            Text.AthleteInput (Text.InputtingAthleteInput "")
+            Text.AthleteInput (AthleteInput.Inputting "")
 
 
 swapCurrent : Text -> Ticker -> Ticker

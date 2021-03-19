@@ -1,5 +1,7 @@
 module Ticker.Text exposing (..)
 
+import Ticker.Text.AthleteInput as AthleteInput exposing (AthleteInput)
+
 
 type Text
     = Announcement Announcement
@@ -16,9 +18,3 @@ type Announcement
 type Instruction
     = TickingInstruction String Int
     | FinishedInstruction String
-
-
-type AthleteInput
-    = InputtingAthleteInput String
-    | CorrectAthleteInput String
-    | WrongAthleteInput String

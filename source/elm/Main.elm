@@ -19,6 +19,7 @@ import Texts
 import Ticker exposing (Ticker)
 import Ticker.Queued as Queued
 import Ticker.Text
+import Ticker.Text.AthleteInput as AthleteInput exposing (AthleteInput)
 import Time
 import Utils exposing (..)
 import Viewport exposing (Viewport)
@@ -288,16 +289,16 @@ tickerInstruction t =
             text txt
 
 
-tickerTickerAthleteInput : Ticker.Text.AthleteInput -> Element Msg
+tickerTickerAthleteInput : AthleteInput -> Element Msg
 tickerTickerAthleteInput t =
     case t of
-        Ticker.Text.InputtingAthleteInput txt ->
+        AthleteInput.Inputting txt ->
             text txt
 
-        Ticker.Text.CorrectAthleteInput txt ->
+        AthleteInput.Correct txt ->
             text (txt ++ "🙆")
 
-        Ticker.Text.WrongAthleteInput txt ->
+        AthleteInput.Wrong txt ->
             text (txt ++ "🙅")
 
 
