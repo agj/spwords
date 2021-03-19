@@ -140,14 +140,11 @@ update msg model =
             if isEnter text then
                 case Ticker.current model.ticker of
                     Just (Text.ActiveAthleteInput txt cnts) ->
-                        ( { model
-                            | ticker =
-                                if inputIsCorrect txt cnts words then
-                                    inputCorrect model.ticker
+                        ( if inputIsCorrect txt cnts words then
+                            inputCorrect model
 
-                                else
-                                    inputWrong model.ticker
-                          }
+                          else
+                            inputWrong model
                         , Cmd.none
                         )
 
@@ -373,7 +370,7 @@ checkPartialInput words model =
     case Ticker.current model.ticker of
         Just (Text.ActiveAthleteInput txt cnts) ->
             if not (inputIsCandidate txt cnts words) then
-                { model | ticker = inputWrong model.ticker }
+                inputWrong model
 
             else
                 model
@@ -425,16 +422,22 @@ inputIsCorrect text cnts words =
             True
 
 
-inputCorrect : Ticker -> Ticker
-inputCorrect ticker_ =
-    Ticker.inputCorrect ticker_
-        |> Ticker.queueUp (Text.QueuedAnnouncement "Good move!")
+inputCorrect : Model -> Model
+inputCorrect model =
+    { model
+        | ticker =
+            Ticker.inputCorrect model.ticker
+                |> Ticker.queueUp (Text.QueuedAnnouncement "Good move!")
+    }
 
 
-inputWrong : Ticker -> Ticker
-inputWrong ticker_ =
-    Ticker.inputWrong ticker_
-        |> Ticker.queueUp (Text.QueuedAnnouncement "Too bad! That didn't go well.")
+inputWrong : Model -> Model
+inputWrong model =
+    { model
+        | ticker =
+            Ticker.inputWrong model.ticker
+                |> Ticker.queueUp (Text.QueuedAnnouncement "Too bad! That didn't go well.")
+    }
 
 
 isEnter text =
