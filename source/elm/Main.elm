@@ -129,8 +129,6 @@ update msg model =
                         model.ticker
                             |> Ticker.queueUp (Text.QueuedInstruction "Try a word with \"S\"!")
                             |> Ticker.queueUp (Text.QueuedAthleteInput (Constraints.Serve { initial = 's' }))
-                            |> Ticker.queueUp (Text.QueuedAnnouncement "Too bad! That didn't go well.")
-                            |> Ticker.enter
                   }
                 , Cmd.none
                 )
@@ -139,16 +137,35 @@ update msg model =
                 modelCmd
 
         ( Inputted text, GamePlaying words ) ->
-            R.map (checkInput words) <|
-                if isEnter text then
-                    ( { model | ticker = Ticker.enter model.ticker }
-                    , Cmd.none
-                    )
+            if isEnter text then
+                case Ticker.current model.ticker of
+                    Just (Text.ActiveAthleteInput txt cnts) ->
+                        ( { model
+                            | ticker =
+                                if inputIsCorrect txt cnts words then
+                                    Ticker.inputCorrect model.ticker
+                                        |> Ticker.queueUp (Text.QueuedAnnouncement "Good move!")
 
-                else
-                    ( { model | ticker = Ticker.input text model.ticker }
-                    , Cmd.none
-                    )
+                                else
+                                    Ticker.inputWrong model.ticker
+                                        |> Ticker.queueUp (Text.QueuedAnnouncement "Too bad! That didn't go well.")
+                          }
+                        , Cmd.none
+                        )
+
+                    Just _ ->
+                        ( { model | ticker = Ticker.enter model.ticker }
+                        , Cmd.none
+                        )
+
+                    Nothing ->
+                        modelCmd
+
+            else
+                ( { model | ticker = Ticker.input text model.ticker }
+                , Cmd.none
+                )
+                    |> R.map (checkPartialInput words)
 
         ( Inputted _, _ ) ->
             modelCmd
@@ -353,8 +370,8 @@ subscriptions model =
 -- OTHER
 
 
-checkInput : Words -> Model -> Model
-checkInput words model =
+checkPartialInput : Words -> Model -> Model
+checkPartialInput words model =
     case Ticker.current model.ticker of
         Just (Text.ActiveAthleteInput txt cnts) ->
             if not (inputIsCandidate txt cnts words) then
@@ -385,6 +402,26 @@ inputIsCandidate text cnts words =
         Just head ->
             (head == initial_)
                 && Words.candidate text words
+
+        Nothing ->
+            True
+
+
+inputIsCorrect : String -> Constraints -> Words -> Bool
+inputIsCorrect text cnts words =
+    let
+        initial_ =
+            case cnts of
+                Constraints.Serve { initial } ->
+                    initial
+
+                Constraints.Rally { initial } ->
+                    initial
+    in
+    case Utils.stringHead text of
+        Just head ->
+            (head == initial_)
+                && Words.exists text words
 
         Nothing ->
             True

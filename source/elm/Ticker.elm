@@ -4,6 +4,7 @@ module Ticker exposing
     , empty
     , enter
     , input
+    , inputCorrect
     , inputWrong
     , inputted
     , passed
@@ -120,6 +121,16 @@ input text ticker =
 
             _ ->
                 ticker
+
+
+inputCorrect : Ticker -> Ticker
+inputCorrect ticker =
+    case current ticker of
+        Just (Text.ActiveAthleteInput text cnst) ->
+            advanceQueue (Text.CorrectAthleteInput text) ticker
+
+        _ ->
+            ticker
 
 
 inputWrong : Ticker -> Ticker
