@@ -45,7 +45,7 @@ main =
 
 type alias Model =
     { ticker : Ticker
-    , words : GameStatus
+    , game : GameStatus
     , viewport : Viewport
     }
 
@@ -66,7 +66,7 @@ init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { ticker =
             Ticker.empty |> Ticker.queueUp (Text.QueuedInstruction "(Loading…)")
-      , words = GameLoading
+      , game = GameLoading
       , viewport = flags.viewport
       }
     , Http.get
@@ -95,12 +95,12 @@ update msg model =
         modelCmd =
             ( model, Cmd.none )
     in
-    case ( msg, model.words ) of
+    case ( msg, model.game ) of
         ( GotWords result, GameLoading ) ->
             case result of
                 Ok words ->
                     ( { model
-                        | words = GameIntro (Words.parse words)
+                        | game = GameIntro (Words.parse words)
                         , ticker =
                             model.ticker
                                 |> Ticker.queueUp (Text.QueuedAnnouncement "(Done. Press Enter.)")
@@ -109,7 +109,7 @@ update msg model =
                     )
 
                 Err err ->
-                    ( { model | words = WordsLoadError err }
+                    ( { model | game = WordsLoadError err }
                     , Cmd.none
                     )
 
@@ -124,7 +124,7 @@ update msg model =
         ( Inputted text, GameIntro words ) ->
             if isEnter text then
                 ( { model
-                    | words = GamePlaying words
+                    | game = GamePlaying words
                     , ticker =
                         model.ticker
                             |> Ticker.queueUp (Text.QueuedInstruction "Try a word with \"S\"!")
