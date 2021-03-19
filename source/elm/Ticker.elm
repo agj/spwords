@@ -3,7 +3,6 @@ module Ticker exposing
     , current
     , empty
     , enter
-    , fromList
     , input
     , inputWrong
     , inputted
@@ -20,7 +19,8 @@ import Ticker.Text.Constraints as Constraints exposing (Constraints)
 
 
 type Ticker
-    = Ticker (List Text) (List Queued)
+    = ActiveTicker (List Text) Text (List Queued)
+    | IdleTicker (List Text)
 
 
 
@@ -29,12 +29,7 @@ type Ticker
 
 empty : Ticker
 empty =
-    Ticker [] []
-
-
-fromList : List Text -> Ticker
-fromList list =
-    Ticker list []
+    IdleTicker []
 
 
 
@@ -42,13 +37,23 @@ fromList list =
 
 
 current : Ticker -> Maybe Text
-current (Ticker list _) =
-    List.head list
+current ticker =
+    case ticker of
+        ActiveTicker _ cur _ ->
+            Just cur
+
+        IdleTicker _ ->
+            Nothing
 
 
 toList : Ticker -> List Text
-toList (Ticker list _) =
-    list
+toList ticker =
+    case ticker of
+        ActiveTicker list cur _ ->
+            cur :: list
+
+        IdleTicker list ->
+            list
 
 
 ticking : Ticker -> Bool
@@ -76,8 +81,13 @@ inputted ticker =
 
 
 queueUp : Queued.Queued -> Ticker -> Ticker
-queueUp q ((Ticker list queue) as ticker) =
-    Ticker list (List.append queue [ q ])
+queueUp q ticker =
+    case ticker of
+        ActiveTicker list cur queue ->
+            ActiveTicker list cur (List.append queue [ q ])
+
+        IdleTicker list ->
+            ActiveTicker list (fromQueued q) []
 
 
 tick : Ticker -> Ticker
@@ -148,7 +158,7 @@ inputWrong ticker =
 
 
 checkAdvanceQueue : Ticker -> Ticker
-checkAdvanceQueue ((Ticker list queue) as ticker) =
+checkAdvanceQueue ticker =
     case current ticker of
         Nothing ->
             advanceQueue ticker
@@ -185,16 +195,18 @@ checkAdvanceQueue ((Ticker list queue) as ticker) =
 
 
 advanceQueue : Ticker -> Ticker
-advanceQueue ((Ticker list queue) as ticker) =
-    Ticker
-        (case List.head queue of
-            Just cur ->
-                fromQueued cur :: list
+advanceQueue ticker =
+    case ticker of
+        ActiveTicker list cur queue ->
+            case List.head queue of
+                Just new ->
+                    ActiveTicker (cur :: list) (fromQueued new) (List.tail queue |> Maybe.withDefault [])
 
-            Nothing ->
-                list
-        )
-        (List.tail queue |> Maybe.withDefault [])
+                Nothing ->
+                    IdleTicker (cur :: list)
+
+        IdleTicker _ ->
+            ticker
 
 
 fromQueued : Queued -> Text
@@ -211,10 +223,10 @@ fromQueued qt =
 
 
 swapCurrent : Text -> Ticker -> Ticker
-swapCurrent tt ((Ticker list queue) as ticker) =
-    case list of
-        head :: rest ->
-            Ticker (tt :: rest) queue
+swapCurrent tt ticker =
+    case ticker of
+        ActiveTicker list cur queue ->
+            ActiveTicker list tt queue
 
-        _ ->
+        IdleTicker _ ->
             ticker
