@@ -425,7 +425,7 @@ inputIsCorrect text cnts words =
                 && Words.exists text words
 
         Nothing ->
-            True
+            False
 
 
 inputCorrect : Model -> Model
