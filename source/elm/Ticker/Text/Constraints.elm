@@ -7,5 +7,5 @@ type Constraints
         }
     | Rally
         { initial : Char
-        , includes : Char
+        , incorporates : Char
         }

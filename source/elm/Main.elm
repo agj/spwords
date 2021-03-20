@@ -13,6 +13,7 @@ import Http
 import Json.Decode as Decode
 import Palette
 import Process
+import Random
 import Return as R exposing (Return)
 import Task
 import Texts
@@ -60,7 +61,7 @@ type GameStatus
 type GameState
     = JustStarted
     | Serving { initial : Char }
-    | Rallying { initial : Char, includes : Char, alreadyPlayed : List String }
+    | Rallying { initial : Char, incorporates : Char, alreadyPlayed : List String }
 
 
 type alias Flags =
@@ -90,6 +91,7 @@ type Msg
     = Ticked Time.Posix
     | Inputted String
     | GotWords (Result Http.Error String)
+    | RandomLetter Char
     | Resized
     | GotViewport Viewport
     | NoOp
@@ -127,20 +129,29 @@ update msg model =
             , Cmd.none
             )
 
-        ( Inputted text, GameIntro words ) ->
+        ( Inputted text, GameIntro _ ) ->
             if isEnter text then
-                ( { model
-                    | game = GamePlaying words JustStarted
-                    , ticker =
-                        model.ticker
-                            |> Ticker.queueUp (Text.QueuedInstruction "Try a word with \"S\"!")
-                            |> Ticker.queueUp (Text.QueuedAthleteInput (Constraints.Serve { initial = 's' }))
-                  }
-                , Cmd.none
+                let
+                    indexToLetter n =
+                        Utils.stringCharAt (Debug.log "letter index" n) alphabet
+                            |> Maybe.withDefault '?'
+                in
+                ( model
+                , Random.generate
+                    (indexToLetter >> RandomLetter)
+                    (Random.int 0 (String.length alphabet - 1))
                 )
 
             else
                 modelCmd
+
+        ( RandomLetter letter, GameIntro _ ) ->
+            ( startGame letter model
+            , Cmd.none
+            )
+
+        ( RandomLetter letter, _ ) ->
+            modelCmd
 
         ( Inputted text, GamePlaying words _ ) ->
             if isEnter text then
@@ -371,6 +382,26 @@ subscriptions model =
 -- OTHER
 
 
+alphabet =
+    "abcdefghijklmnopqrstuvwxyz"
+
+
+startGame : Char -> Model -> Model
+startGame initial model =
+    case model.game of
+        GameIntro words ->
+            { model
+                | game = GamePlaying words JustStarted
+                , ticker =
+                    model.ticker
+                        |> Ticker.queueUp (Text.QueuedInstruction ("Try “" ++ String.fromChar initial ++ "”!"))
+                        |> Ticker.queueUp (Text.QueuedAthleteInput (Constraints.Serve { initial = initial }))
+            }
+
+        _ ->
+            model
+
+
 checkPartialInput : Words -> Model -> Model
 checkPartialInput words model =
     case Ticker.current model.ticker of
@@ -390,38 +421,30 @@ checkPartialInput words model =
 
 inputIsCandidate : String -> Constraints -> Words -> Bool
 inputIsCandidate text cnts words =
-    let
-        initial_ =
-            case cnts of
-                Constraints.Serve { initial } ->
-                    initial
-
-                Constraints.Rally { initial } ->
-                    initial
-    in
     case Utils.stringHead text of
         Just head ->
-            (head == initial_)
+            (head == getInitial cnts)
                 && Words.candidate text words
 
         Nothing ->
             True
 
 
+getInitial : Constraints -> Char
+getInitial cnts =
+    case cnts of
+        Constraints.Serve { initial } ->
+            initial
+
+        Constraints.Rally { initial } ->
+            initial
+
+
 inputIsCorrect : String -> Constraints -> Words -> Bool
 inputIsCorrect text cnts words =
-    let
-        initial_ =
-            case cnts of
-                Constraints.Serve { initial } ->
-                    initial
-
-                Constraints.Rally { initial } ->
-                    initial
-    in
     case Utils.stringHead text of
         Just head ->
-            (head == initial_)
+            (head == getInitial cnts)
                 && Words.exists text words
 
         Nothing ->
@@ -430,20 +453,48 @@ inputIsCorrect text cnts words =
 
 inputCorrect : Model -> Model
 inputCorrect model =
-    { model
-        | ticker =
-            Ticker.inputCorrect model.ticker
-                |> Ticker.queueUp (Text.QueuedAnnouncement "Good move!")
-    }
+    case Ticker.current model.ticker of
+        Just (Text.ActiveAthleteInput previousWord cnts) ->
+            let
+                newCnts =
+                    Constraints.Rally
+                        { initial = getInitial cnts
+                        , incorporates = Utils.stringLast previousWord |> Maybe.withDefault '?'
+                        }
+            in
+            { model
+                | ticker =
+                    Ticker.inputCorrect model.ticker
+                        |> Ticker.queueUp (Text.QueuedAnnouncement "Good move! Try another!")
+                        |> Ticker.queueUp (Text.QueuedAthleteInput newCnts)
+            }
+
+        _ ->
+            model
 
 
 inputWrong : Model -> Model
 inputWrong model =
-    { model
-        | ticker =
-            Ticker.inputWrong model.ticker
-                |> Ticker.queueUp (Text.QueuedAnnouncement "Too bad! That didn't go well.")
-    }
+    case Ticker.current model.ticker of
+        Just (Text.ActiveAthleteInput previousWord cnts) ->
+            let
+                newCnts =
+                    case cnts of
+                        Constraints.Serve { initial } ->
+                            Constraints.Serve { initial = initial }
+
+                        Constraints.Rally { initial, incorporates } ->
+                            Constraints.Rally { initial = initial, incorporates = incorporates }
+            in
+            { model
+                | ticker =
+                    Ticker.inputWrong model.ticker
+                        |> Ticker.queueUp (Text.QueuedAnnouncement "Too bad! Try again!")
+                        |> Ticker.queueUp (Text.QueuedAthleteInput newCnts)
+            }
+
+        _ ->
+            model
 
 
 isEnter text =

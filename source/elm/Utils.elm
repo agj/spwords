@@ -52,3 +52,15 @@ stringHead : String -> Maybe Char
 stringHead str =
     String.uncons str
         |> Maybe.map Tuple.first
+
+
+stringLast : String -> Maybe Char
+stringLast str =
+    stringCharAt (String.length str - 1) str
+
+
+stringCharAt : Int -> String -> Maybe Char
+stringCharAt index str =
+    str
+        |> String.dropLeft index
+        |> stringHead
