@@ -16,6 +16,7 @@ import Element.Input as Input
 import Html exposing (Html)
 import Http
 import Json.Decode as Decode
+import List.Extra
 import Palette
 import Process
 import Random
@@ -297,7 +298,7 @@ tickerText : Text.Text -> Element Msg
 tickerText tt =
     case tt of
         Text.InterruptedAnnouncement txt ticks ->
-            text <| String.left ticks (String.toUpper (Paragraph.toString txt)) ++ "—"
+            fromDocParagraph (docParagraphAppend "—" (docParagraphLeft ticks txt))
 
         Text.FinishedAnnouncement txt ->
             fromDocParagraph txt
@@ -573,3 +574,25 @@ docTextLeft amount txt =
     Doc.Text.create
         (Doc.Text.format txt)
         (String.left amount content)
+
+
+docParagraphAppend : String -> Paragraph.Paragraph -> Paragraph.Paragraph
+docParagraphAppend str par =
+    let
+        texts =
+            Paragraph.content par
+
+        init_ =
+            List.Extra.init texts |> Maybe.withDefault []
+
+        last =
+            List.Extra.last texts |> Maybe.withDefault (Doc.Text.create Doc.Format.empty "")
+    in
+    List.append init_ [ last |> docTextAppend str ]
+        |> Paragraph.create
+
+
+docTextAppend : String -> Doc.Text.Text -> Doc.Text.Text
+docTextAppend str txt =
+    txt
+        |> Doc.Text.setContent (Doc.Text.content txt ++ str)
