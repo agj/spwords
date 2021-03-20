@@ -279,32 +279,32 @@ tickerActive : Text.Active -> Element Msg
 tickerActive ta =
     case ta of
         Text.ActiveAnnouncement txt ticks ->
-            text (String.left ticks txt)
+            text (String.left ticks (String.toUpper txt))
 
         Text.ActiveInstruction txt ticks ->
-            text (String.left ticks txt)
+            text (String.left ticks (String.toUpper txt))
 
         Text.ActiveAthleteInput txt _ ->
-            text txt
+            text (String.toUpper txt)
 
 
 tickerText : Text.Text -> Element Msg
 tickerText tt =
     case tt of
         Text.InterruptedAnnouncement txt ticks ->
-            text <| String.left ticks txt ++ "--"
+            text <| String.left ticks (String.toUpper txt) ++ "—"
 
         Text.FinishedAnnouncement txt ->
-            text txt
+            text (String.toUpper txt)
 
         Text.Instruction txt ->
-            text txt
+            text (String.toUpper txt)
 
         Text.CorrectAthleteInput txt ->
-            text (txt ++ "🙆")
+            text (String.toUpper txt ++ "🙆")
 
         Text.WrongAthleteInput txt ->
-            text (txt ++ "🙅")
+            text (String.toUpper txt ++ "🙅")
 
 
 type Athlete
