@@ -406,7 +406,7 @@ startGame initial model =
                 , ticker =
                     model.ticker
                         |> Ticker.queueUp (Text.QueuedInstruction ("Try “" ++ String.fromChar initial ++ "”!"))
-                        |> Ticker.queueUp (Text.QueuedAthleteInput (Constraints.Serve { initial = initial }))
+                        |> Ticker.queueUp (Text.QueuedAthleteInput (Constraints.serve initial))
             }
 
         _ ->
@@ -434,24 +434,14 @@ checkPartialInput words model =
             model
 
 
-getInitial : Constraints -> Char
-getInitial cnts =
-    case cnts of
-        Constraints.Serve { initial } ->
-            initial
-
-        Constraints.Rally { initial } ->
-            initial
-
-
 inputCorrect : Model -> Model
 inputCorrect model =
     case Ticker.current model.ticker of
         Just (Text.ActiveAthleteInput previousWord cnts) ->
             let
                 newCnts =
-                    Constraints.Rally
-                        { initial = getInitial cnts
+                    Constraints.rally
+                        { initial = Constraints.getInitial cnts
                         , incorporates = Utils.stringLast previousWord |> Maybe.withDefault '?'
                         }
             in
@@ -472,12 +462,15 @@ inputWrong model =
         Just (Text.ActiveAthleteInput previousWord cnts) ->
             let
                 newCnts =
-                    case cnts of
-                        Constraints.Serve { initial } ->
-                            Constraints.Serve { initial = initial }
+                    case Constraints.getIncorporates cnts of
+                        Just incorporates ->
+                            Constraints.rally
+                                { initial = Constraints.getInitial cnts
+                                , incorporates = incorporates
+                                }
 
-                        Constraints.Rally { initial, incorporates } ->
-                            Constraints.Rally { initial = initial, incorporates = incorporates }
+                        Nothing ->
+                            Constraints.serve (Constraints.getInitial cnts)
             in
             { model
                 | ticker =

@@ -1,4 +1,14 @@
-module Ticker.Text.Constraints exposing (..)
+module Ticker.Text.Constraints exposing
+    ( CandidateCheck(..)
+    , Constraints
+    , InputCheck(..)
+    , check
+    , checkCandidate
+    , getIncorporates
+    , getInitial
+    , rally
+    , serve
+    )
 
 import Utils
 import Words exposing (Words)
@@ -27,6 +37,24 @@ type InputCheck
     | InputNotAWord
 
 
+
+-- CONSTRUCTORS
+
+
+serve : Char -> Constraints
+serve initial =
+    Serve { initial = initial }
+
+
+rally : { initial : Char, incorporates : Char } -> Constraints
+rally cnts =
+    Rally cnts
+
+
+
+-- ACCESSORS
+
+
 getInitial : Constraints -> Char
 getInitial cnts =
     case cnts of
@@ -35,6 +63,20 @@ getInitial cnts =
 
         Rally { initial } ->
             initial
+
+
+getIncorporates : Constraints -> Maybe Char
+getIncorporates cnts =
+    case cnts of
+        Rally { incorporates } ->
+            Just incorporates
+
+        _ ->
+            Nothing
+
+
+
+-- CHECKS
 
 
 checkCandidate : String -> Constraints -> Words -> CandidateCheck
