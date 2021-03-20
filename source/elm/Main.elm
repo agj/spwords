@@ -156,23 +156,8 @@ update msg model =
         ( Inputted text, GamePlaying words _ ) ->
             if isEnter text then
                 case Ticker.current model.ticker of
-                    Just (Text.ActiveAthleteInput txt cnts) ->
-                        let
-                            newModel =
-                                case Constraints.check txt cnts words of
-                                    Constraints.InputCorrect ->
-                                        inputCorrect model
-
-                                    Constraints.InputInitialWrong ->
-                                        inputWrong model
-
-                                    Constraints.InputIncorporatesWrong ->
-                                        inputWrong model
-
-                                    Constraints.InputNotAWord ->
-                                        inputWrong model
-                        in
-                        ( newModel
+                    Just (Text.ActiveAthleteInput _ _) ->
+                        ( model |> checkInput words
                         , Cmd.none
                         )
 
@@ -186,9 +171,9 @@ update msg model =
 
             else
                 ( { model | ticker = Ticker.input text model.ticker }
+                    |> checkPartialInput words
                 , Cmd.none
                 )
-                    |> R.map (checkPartialInput words)
 
         ( Inputted _, _ ) ->
             modelCmd
@@ -431,6 +416,27 @@ checkPartialInput words model =
             model
 
         Nothing ->
+            model
+
+
+checkInput : Words -> Model -> Model
+checkInput words model =
+    case Ticker.current model.ticker of
+        Just (Text.ActiveAthleteInput txt cnts) ->
+            case Constraints.check txt cnts words of
+                Constraints.InputCorrect ->
+                    inputCorrect model
+
+                Constraints.InputInitialWrong ->
+                    inputWrong model
+
+                Constraints.InputIncorporatesWrong ->
+                    inputWrong model
+
+                Constraints.InputNotAWord ->
+                    inputWrong model
+
+        _ ->
             model
 
 
