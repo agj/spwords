@@ -11,5 +11,6 @@
   "scripts": {
     "build": "gulp build"
   },
-  "private": true
+  "private": true,
+  "type": "module"
 }

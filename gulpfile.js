@@ -1,8 +1,9 @@
-const gulp = require("gulp");
-const { promisify } = require("util");
-const exec = promisify(require("child_process").exec);
+import gulp from "gulp";
+import { promisify } from "util";
+import childProcess from "child_process";
+const exec = promisify(childProcess.exec);
 
-const cfg = require("./source/js/config.js");
+import cfg from "./source/js/config.js";
 
 // Elm compilation
 
@@ -75,11 +76,4 @@ const develop = gulp.series(
   gulp.parallel(watchCopy, watchFormat, developElm)
 );
 
-module.exports = {
-  default: build,
-  develop,
-  build,
-  debug,
-  watch,
-  format,
-};
+export { build as default, develop, build, debug, watch, format };
