@@ -26,4 +26,4 @@ toString : Paragraph -> String
 toString (Paragraph texts) =
     texts
         |> List.map Doc.Text.content
-        |> List.foldl (++) ""
+        |> List.foldr (++) ""

@@ -2,8 +2,10 @@ module Main exposing (..)
 
 import Browser
 import Browser.Events
+import Doc
+import Doc.EmuDecode
 import Doc.Format
-import Doc.Paragraph as Paragraph
+import Doc.Paragraph as Paragraph exposing (Paragraph)
 import Doc.Text
 import Element exposing (..)
 import Element.Background as Background
@@ -75,7 +77,7 @@ type alias Flags =
 init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { ticker =
-            Ticker.empty |> Ticker.queueUp (Text.QueuedInstruction (paragraphFromString "(Loading…)"))
+            Ticker.empty |> Ticker.queueUp (Text.QueuedInstruction (emu "(/Loading…/)"))
       , game = GameLoading
       , viewport = flags.viewport
       }
@@ -114,7 +116,7 @@ update msg model =
                         | game = GameIntro (Words.parse words)
                         , ticker =
                             model.ticker
-                                |> Ticker.queueUp (Text.QueuedAnnouncement (paragraphFromString "(Done. Press Enter.)"))
+                                |> Ticker.queueUp (Text.QueuedAnnouncement (emu "(Done. Press *Enter*.)"))
                       }
                     , Cmd.none
                     )
@@ -282,10 +284,10 @@ tickerActive : Text.Active -> Element Msg
 tickerActive ta =
     case ta of
         Text.ActiveAnnouncement txt ticks ->
-            text (String.left ticks (String.toUpper (Paragraph.toString txt)))
+            fromDocParagraph (docParagraphLeft ticks txt)
 
         Text.ActiveInstruction txt ticks ->
-            text (String.left ticks (String.toUpper (Paragraph.toString txt)))
+            fromDocParagraph (docParagraphLeft ticks txt)
 
         Text.ActiveAthleteInput txt _ ->
             text (String.toUpper txt)
@@ -298,10 +300,10 @@ tickerText tt =
             text <| String.left ticks (String.toUpper (Paragraph.toString txt)) ++ "—"
 
         Text.FinishedAnnouncement txt ->
-            text (String.toUpper (Paragraph.toString txt))
+            fromDocParagraph txt
 
         Text.Instruction txt ->
-            text (String.toUpper (Paragraph.toString txt))
+            fromDocParagraph txt
 
         Text.CorrectAthleteInput txt ->
             text (String.toUpper txt ++ "🙆")
@@ -363,6 +365,31 @@ bar athlete (TimeLeft timeLeft) =
         ]
 
 
+fromDocParagraph : Paragraph.Paragraph -> Element msg
+fromDocParagraph par =
+    row [] <|
+        List.map fromDocText (Paragraph.content par)
+
+
+fromDocText : Doc.Text.Text -> Element msg
+fromDocText txt =
+    let
+        textContent =
+            Doc.Text.content txt
+
+        style =
+            Doc.Text.format txt
+                |> getStyle
+    in
+    el style (text textContent)
+
+
+getStyle : Doc.Format.Format -> List (Element.Attribute msg)
+getStyle format =
+    ifElse (Doc.Format.isBold format) [ Font.bold ] []
+        ++ ifElse (Doc.Format.isItalic format) [ Font.italic ] []
+
+
 
 -- SUBSCRIPTIONS
 
@@ -393,7 +420,7 @@ startGame initial model =
                 | game = GamePlaying words JustStarted
                 , ticker =
                     model.ticker
-                        |> Ticker.queueUp (Text.QueuedInstruction (paragraphFromString ("Try “" ++ String.fromChar initial ++ "”!")))
+                        |> Ticker.queueUp (Text.QueuedInstruction (emu ("Try “" ++ String.fromChar initial ++ "”!")))
                         |> Ticker.queueUp (Text.QueuedAthleteInput (Constraints.serve initial))
             }
 
@@ -457,7 +484,7 @@ inputCorrect model =
             { model
                 | ticker =
                     Ticker.inputCorrect model.ticker
-                        |> Ticker.queueUp (Text.QueuedAnnouncement (paragraphFromString "Good move! Try another!"))
+                        |> Ticker.queueUp (Text.QueuedAnnouncement (emu "Good move! Try another!"))
                         |> Ticker.queueUp (Text.QueuedAthleteInput newCnts)
             }
 
@@ -484,7 +511,7 @@ inputWrong model =
             { model
                 | ticker =
                     Ticker.inputWrong model.ticker
-                        |> Ticker.queueUp (Text.QueuedAnnouncement (paragraphFromString "Too bad! Try again!"))
+                        |> Ticker.queueUp (Text.QueuedAnnouncement (emu "Too bad! Try again!"))
                         |> Ticker.queueUp (Text.QueuedAthleteInput newCnts)
             }
 
@@ -496,6 +523,53 @@ isEnter text =
     text == "\n"
 
 
-paragraphFromString : String -> Paragraph.Paragraph
-paragraphFromString str =
-    Paragraph.create [ Doc.Text.create Doc.Format.empty str ]
+emu : String -> Paragraph.Paragraph
+emu str =
+    Doc.EmuDecode.fromEmu str
+        |> Doc.content
+        |> List.head
+        |> Maybe.withDefault (Paragraph.create [ Doc.Text.create Doc.Format.empty "" ])
+
+
+docParagraphLeft : Int -> Paragraph.Paragraph -> Paragraph.Paragraph
+docParagraphLeft amount par =
+    Paragraph.content par
+        |> docTextListLeft amount
+        |> Paragraph.create
+
+
+docTextListLeft : Int -> List Doc.Text.Text -> List Doc.Text.Text
+docTextListLeft amount texts =
+    case texts of
+        txt :: rest ->
+            let
+                txtLength =
+                    docTextLength txt
+            in
+            if amount > txtLength then
+                txt
+                    :: docTextListLeft
+                        (amount - txtLength)
+                        rest
+
+            else
+                [ docTextLeft amount txt ]
+
+        [] ->
+            texts
+
+
+docTextLength : Doc.Text.Text -> Int
+docTextLength txt =
+    Doc.Text.content txt |> String.length
+
+
+docTextLeft : Int -> Doc.Text.Text -> Doc.Text.Text
+docTextLeft amount txt =
+    let
+        content =
+            Doc.Text.content txt
+    in
+    Doc.Text.create
+        (Doc.Text.format txt)
+        (String.left amount content)
