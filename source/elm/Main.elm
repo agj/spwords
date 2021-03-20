@@ -417,28 +417,21 @@ checkPartialInput : Words -> Model -> Model
 checkPartialInput words model =
     case Ticker.current model.ticker of
         Just (Text.ActiveAthleteInput txt cnts) ->
-            if not (inputIsCandidate txt cnts words) then
-                inputWrong model
+            case Constraints.checkCandidate txt cnts words of
+                Constraints.CandidateCorrect ->
+                    model
 
-            else
-                model
+                Constraints.CandidateInitialWrong ->
+                    inputWrong model
+
+                Constraints.CandidateNotAWord ->
+                    inputWrong model
 
         Just _ ->
             model
 
         Nothing ->
             model
-
-
-inputIsCandidate : String -> Constraints -> Words -> Bool
-inputIsCandidate text cnts words =
-    case Utils.stringHead text of
-        Just head ->
-            (head == getInitial cnts)
-                && Words.candidate text words
-
-        Nothing ->
-            True
 
 
 getInitial : Constraints -> Char

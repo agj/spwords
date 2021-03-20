@@ -14,11 +14,44 @@ type Constraints
         }
 
 
+type CandidateCheck
+    = CandidateCorrect
+    | CandidateInitialWrong
+    | CandidateNotAWord
+
+
 type InputCheck
     = InputCorrect
     | InputInitialWrong
     | InputIncorporatesWrong
     | InputNotAWord
+
+
+getInitial : Constraints -> Char
+getInitial cnts =
+    case cnts of
+        Serve { initial } ->
+            initial
+
+        Rally { initial } ->
+            initial
+
+
+checkCandidate : String -> Constraints -> Words -> CandidateCheck
+checkCandidate text cnts words =
+    case Utils.stringHead text of
+        Just head ->
+            if head /= getInitial cnts then
+                CandidateInitialWrong
+
+            else if not (Words.candidate text words) then
+                CandidateNotAWord
+
+            else
+                CandidateCorrect
+
+        Nothing ->
+            CandidateCorrect
 
 
 check : String -> Constraints -> Words -> InputCheck
