@@ -2,6 +2,9 @@ module Main exposing (..)
 
 import Browser
 import Browser.Events
+import Doc.Format
+import Doc.Paragraph as Paragraph
+import Doc.Text
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -72,7 +75,7 @@ type alias Flags =
 init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { ticker =
-            Ticker.empty |> Ticker.queueUp (Text.QueuedInstruction "(Loading…)")
+            Ticker.empty |> Ticker.queueUp (Text.QueuedInstruction (paragraphFromString "(Loading…)"))
       , game = GameLoading
       , viewport = flags.viewport
       }
@@ -111,7 +114,7 @@ update msg model =
                         | game = GameIntro (Words.parse words)
                         , ticker =
                             model.ticker
-                                |> Ticker.queueUp (Text.QueuedAnnouncement "(Done. Press Enter.)")
+                                |> Ticker.queueUp (Text.QueuedAnnouncement (paragraphFromString "(Done. Press Enter.)"))
                       }
                     , Cmd.none
                     )
@@ -279,10 +282,10 @@ tickerActive : Text.Active -> Element Msg
 tickerActive ta =
     case ta of
         Text.ActiveAnnouncement txt ticks ->
-            text (String.left ticks (String.toUpper txt))
+            text (String.left ticks (String.toUpper (Paragraph.toString txt)))
 
         Text.ActiveInstruction txt ticks ->
-            text (String.left ticks (String.toUpper txt))
+            text (String.left ticks (String.toUpper (Paragraph.toString txt)))
 
         Text.ActiveAthleteInput txt _ ->
             text (String.toUpper txt)
@@ -292,13 +295,13 @@ tickerText : Text.Text -> Element Msg
 tickerText tt =
     case tt of
         Text.InterruptedAnnouncement txt ticks ->
-            text <| String.left ticks (String.toUpper txt) ++ "—"
+            text <| String.left ticks (String.toUpper (Paragraph.toString txt)) ++ "—"
 
         Text.FinishedAnnouncement txt ->
-            text (String.toUpper txt)
+            text (String.toUpper (Paragraph.toString txt))
 
         Text.Instruction txt ->
-            text (String.toUpper txt)
+            text (String.toUpper (Paragraph.toString txt))
 
         Text.CorrectAthleteInput txt ->
             text (String.toUpper txt ++ "🙆")
@@ -390,7 +393,7 @@ startGame initial model =
                 | game = GamePlaying words JustStarted
                 , ticker =
                     model.ticker
-                        |> Ticker.queueUp (Text.QueuedInstruction ("Try “" ++ String.fromChar initial ++ "”!"))
+                        |> Ticker.queueUp (Text.QueuedInstruction (paragraphFromString ("Try “" ++ String.fromChar initial ++ "”!")))
                         |> Ticker.queueUp (Text.QueuedAthleteInput (Constraints.serve initial))
             }
 
@@ -454,7 +457,7 @@ inputCorrect model =
             { model
                 | ticker =
                     Ticker.inputCorrect model.ticker
-                        |> Ticker.queueUp (Text.QueuedAnnouncement "Good move! Try another!")
+                        |> Ticker.queueUp (Text.QueuedAnnouncement (paragraphFromString "Good move! Try another!"))
                         |> Ticker.queueUp (Text.QueuedAthleteInput newCnts)
             }
 
@@ -481,7 +484,7 @@ inputWrong model =
             { model
                 | ticker =
                     Ticker.inputWrong model.ticker
-                        |> Ticker.queueUp (Text.QueuedAnnouncement "Too bad! Try again!")
+                        |> Ticker.queueUp (Text.QueuedAnnouncement (paragraphFromString "Too bad! Try again!"))
                         |> Ticker.queueUp (Text.QueuedAthleteInput newCnts)
             }
 
@@ -491,3 +494,8 @@ inputWrong model =
 
 isEnter text =
     text == "\n"
+
+
+paragraphFromString : String -> Paragraph.Paragraph
+paragraphFromString str =
+    Paragraph.create [ Doc.Text.create Doc.Format.empty str ]

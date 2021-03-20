@@ -12,6 +12,7 @@ module Ticker exposing
     , tick
     )
 
+import Doc.Paragraph as Paragraph
 import Ticker.Text as Text exposing (Active, Queued, Text)
 import Ticker.Text.Constraints as Constraints exposing (Constraints)
 
@@ -151,14 +152,14 @@ checkAdvanceQueue : Ticker -> Ticker
 checkAdvanceQueue ticker =
     case current ticker of
         Just (Text.ActiveAnnouncement text ticks) ->
-            if ticks >= String.length text then
+            if ticks >= String.length (Paragraph.toString text) then
                 advanceQueue (Text.FinishedAnnouncement text) ticker
 
             else
                 ticker
 
         Just (Text.ActiveInstruction text ticks) ->
-            if ticks >= String.length text then
+            if ticks >= String.length (Paragraph.toString text) then
                 advanceQueue (Text.Instruction text) ticker
 
             else
