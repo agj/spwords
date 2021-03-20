@@ -159,17 +159,17 @@ update msg model =
                     Just (Text.ActiveAthleteInput txt cnts) ->
                         let
                             newModel =
-                                case checkInput txt cnts words of
-                                    InputCorrect ->
+                                case Constraints.check txt cnts words of
+                                    Constraints.InputCorrect ->
                                         inputCorrect model
 
-                                    InputInitialWrong ->
+                                    Constraints.InputInitialWrong ->
                                         inputWrong model
 
-                                    InputIncorporatesWrong ->
+                                    Constraints.InputIncorporatesWrong ->
                                         inputWrong model
 
-                                    InputNotAWord ->
+                                    Constraints.InputNotAWord ->
                                         inputWrong model
                         in
                         ( newModel
@@ -449,45 +449,6 @@ getInitial cnts =
 
         Constraints.Rally { initial } ->
             initial
-
-
-type InputCheck
-    = InputCorrect
-    | InputInitialWrong
-    | InputIncorporatesWrong
-    | InputNotAWord
-
-
-checkInput : String -> Constraints -> Words -> InputCheck
-checkInput text cnts words =
-    case Utils.stringHead text of
-        Just head ->
-            case cnts of
-                Constraints.Serve { initial } ->
-                    if head /= initial then
-                        InputInitialWrong
-
-                    else if not (Words.exists text words) then
-                        InputNotAWord
-
-                    else
-                        InputCorrect
-
-                Constraints.Rally { initial, incorporates } ->
-                    if head /= initial then
-                        InputInitialWrong
-
-                    else if not (Words.exists text words) then
-                        InputNotAWord
-
-                    else if not (Utils.stringMember incorporates text) then
-                        InputIncorporatesWrong
-
-                    else
-                        InputCorrect
-
-        Nothing ->
-            InputNotAWord
 
 
 inputCorrect : Model -> Model
