@@ -15,13 +15,7 @@ import Words exposing (Words)
 
 
 type Constraints
-    = Serve
-        { initial : Char
-        }
-    | Rally
-        { initial : Char
-        , incorporates : Char
-        }
+    = Constraints Char (Maybe Char)
 
 
 type CandidateCheck
@@ -43,12 +37,12 @@ type InputCheck
 
 serve : Char -> Constraints
 serve initial =
-    Serve { initial = initial }
+    Constraints initial Nothing
 
 
 rally : { initial : Char, incorporates : Char } -> Constraints
-rally cnts =
-    Rally cnts
+rally { initial, incorporates } =
+    Constraints initial (Just incorporates)
 
 
 
@@ -56,23 +50,13 @@ rally cnts =
 
 
 getInitial : Constraints -> Char
-getInitial cnts =
-    case cnts of
-        Serve { initial } ->
-            initial
-
-        Rally { initial } ->
-            initial
+getInitial (Constraints initial _) =
+    initial
 
 
 getIncorporates : Constraints -> Maybe Char
-getIncorporates cnts =
-    case cnts of
-        Rally { incorporates } ->
-            Just incorporates
-
-        _ ->
-            Nothing
+getIncorporates (Constraints _ incorporatesM) =
+    incorporatesM
 
 
 
@@ -97,31 +81,25 @@ checkCandidate text cnts words =
 
 
 check : String -> Constraints -> Words -> InputCheck
-check text cnts words =
+check text (Constraints initial incorporatesM) words =
     case Utils.stringHead text of
         Just head ->
-            case cnts of
-                Serve { initial } ->
-                    if head /= initial then
-                        InputInitialWrong
+            if head /= initial then
+                InputInitialWrong
 
-                    else if not (Words.exists text words) then
-                        InputNotAWord
+            else if not (Words.exists text words) then
+                InputNotAWord
 
-                    else
-                        InputCorrect
+            else
+                case incorporatesM of
+                    Just incorporates ->
+                        if not (Utils.stringMember incorporates text) then
+                            InputIncorporatesWrong
 
-                Rally { initial, incorporates } ->
-                    if head /= initial then
-                        InputInitialWrong
+                        else
+                            InputCorrect
 
-                    else if not (Words.exists text words) then
-                        InputNotAWord
-
-                    else if not (Utils.stringMember incorporates text) then
-                        InputIncorporatesWrong
-
-                    else
+                    Nothing ->
                         InputCorrect
 
         Nothing ->
