@@ -17,7 +17,7 @@ import Random
 import Return as R exposing (Return)
 import Task
 import Texts
-import Ticker exposing (Ticker)
+import Ticker exposing (Ticker, inputCorrect)
 import Ticker.Text as Text
 import Ticker.Text.Constraints as Constraints exposing (Constraints)
 import Time
@@ -157,11 +157,22 @@ update msg model =
             if isEnter text then
                 case Ticker.current model.ticker of
                     Just (Text.ActiveAthleteInput txt cnts) ->
-                        ( if inputIsCorrect txt cnts words then
-                            inputCorrect model
+                        let
+                            newModel =
+                                case checkInput txt cnts words of
+                                    InputCorrect ->
+                                        inputCorrect model
 
-                          else
-                            inputWrong model
+                                    InputInitialWrong ->
+                                        inputWrong model
+
+                                    InputIncorporatesWrong ->
+                                        inputWrong model
+
+                                    InputNotAWord ->
+                                        inputWrong model
+                        in
+                        ( newModel
                         , Cmd.none
                         )
 
@@ -440,15 +451,43 @@ getInitial cnts =
             initial
 
 
-inputIsCorrect : String -> Constraints -> Words -> Bool
-inputIsCorrect text cnts words =
+type InputCheck
+    = InputCorrect
+    | InputInitialWrong
+    | InputIncorporatesWrong
+    | InputNotAWord
+
+
+checkInput : String -> Constraints -> Words -> InputCheck
+checkInput text cnts words =
     case Utils.stringHead text of
         Just head ->
-            (head == getInitial cnts)
-                && Words.exists text words
+            case cnts of
+                Constraints.Serve { initial } ->
+                    if head /= initial then
+                        InputInitialWrong
+
+                    else if not (Words.exists text words) then
+                        InputNotAWord
+
+                    else
+                        InputCorrect
+
+                Constraints.Rally { initial, incorporates } ->
+                    if head /= initial then
+                        InputInitialWrong
+
+                    else if not (Words.exists text words) then
+                        InputNotAWord
+
+                    else if not (Utils.stringMember incorporates text) then
+                        InputIncorporatesWrong
+
+                    else
+                        InputCorrect
 
         Nothing ->
-            False
+            InputNotAWord
 
 
 inputCorrect : Model -> Model

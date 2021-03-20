@@ -64,3 +64,8 @@ stringCharAt index str =
     str
         |> String.dropLeft index
         |> stringHead
+
+
+stringMember : Char -> String -> Bool
+stringMember char str =
+    String.any (\ch -> char == ch) str
