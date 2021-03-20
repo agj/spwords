@@ -7,6 +7,7 @@ import Doc.EmuDecode
 import Doc.Format
 import Doc.Paragraph as Paragraph exposing (Paragraph)
 import Doc.Text
+import Doc.Util
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -285,10 +286,10 @@ tickerActive : Text.Active -> Element Msg
 tickerActive ta =
     case ta of
         Text.ActiveAnnouncement txt ticks ->
-            fromDocParagraph (docParagraphLeft ticks txt)
+            fromDocParagraph (Doc.Util.paragraphLeft ticks txt)
 
         Text.ActiveInstruction txt ticks ->
-            fromDocParagraph (docParagraphLeft ticks txt)
+            fromDocParagraph (Doc.Util.paragraphLeft ticks txt)
 
         Text.ActiveAthleteInput txt _ ->
             text (String.toUpper txt)
@@ -298,7 +299,7 @@ tickerText : Text.Text -> Element Msg
 tickerText tt =
     case tt of
         Text.InterruptedAnnouncement txt ticks ->
-            fromDocParagraph (docParagraphAppend "—" (docParagraphLeft ticks txt))
+            fromDocParagraph (Doc.Util.paragraphAppend "—" (Doc.Util.paragraphLeft ticks txt))
 
         Text.FinishedAnnouncement txt ->
             fromDocParagraph txt
@@ -530,69 +531,3 @@ emu str =
         |> Doc.content
         |> List.head
         |> Maybe.withDefault (Paragraph.create [ Doc.Text.create Doc.Format.empty "" ])
-
-
-docParagraphLeft : Int -> Paragraph.Paragraph -> Paragraph.Paragraph
-docParagraphLeft amount par =
-    Paragraph.content par
-        |> docTextListLeft amount
-        |> Paragraph.create
-
-
-docTextListLeft : Int -> List Doc.Text.Text -> List Doc.Text.Text
-docTextListLeft amount texts =
-    case texts of
-        txt :: rest ->
-            let
-                txtLength =
-                    docTextLength txt
-            in
-            if amount > txtLength then
-                txt
-                    :: docTextListLeft
-                        (amount - txtLength)
-                        rest
-
-            else
-                [ docTextLeft amount txt ]
-
-        [] ->
-            texts
-
-
-docTextLength : Doc.Text.Text -> Int
-docTextLength txt =
-    Doc.Text.content txt |> String.length
-
-
-docTextLeft : Int -> Doc.Text.Text -> Doc.Text.Text
-docTextLeft amount txt =
-    let
-        content =
-            Doc.Text.content txt
-    in
-    Doc.Text.create
-        (Doc.Text.format txt)
-        (String.left amount content)
-
-
-docParagraphAppend : String -> Paragraph.Paragraph -> Paragraph.Paragraph
-docParagraphAppend str par =
-    let
-        texts =
-            Paragraph.content par
-
-        init_ =
-            List.Extra.init texts |> Maybe.withDefault []
-
-        last =
-            List.Extra.last texts |> Maybe.withDefault (Doc.Text.create Doc.Format.empty "")
-    in
-    List.append init_ [ last |> docTextAppend str ]
-        |> Paragraph.create
-
-
-docTextAppend : String -> Doc.Text.Text -> Doc.Text.Text
-docTextAppend str txt =
-    txt
-        |> Doc.Text.setContent (Doc.Text.content txt ++ str)
