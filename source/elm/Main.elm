@@ -378,6 +378,7 @@ fromDocText txt =
     let
         textContent =
             Doc.Text.content txt
+                |> String.toUpper
 
         style =
             Doc.Text.format txt
