@@ -143,7 +143,7 @@ update msg model =
                         Utils.stringCharAt (Debug.log "letter index" n) alphabet
                             |> Maybe.withDefault '?'
                 in
-                ( model
+                ( { model | ticker = Ticker.enter model.ticker }
                 , Random.generate
                     (indexToLetter >> RandomLetter)
                     (Random.int 0 (String.length alphabet - 1))
@@ -292,7 +292,12 @@ tickerActive ta =
             fromDocParagraph (Doc.Util.paragraphLeft ticks txt)
 
         Text.ActiveAthleteInput txt _ ->
-            text (String.toUpper txt)
+            el
+                [ Font.color Palette.athleteA
+                , Font.underline
+                , Font.bold
+                ]
+                (text (String.toUpper txt))
 
 
 tickerText : Text.Text -> Element Msg
@@ -308,10 +313,19 @@ tickerText tt =
             fromDocParagraph txt
 
         Text.CorrectAthleteInput txt ->
-            text (String.toUpper txt ++ "🙆")
+            el
+                [ Font.color Palette.athleteA
+                , Font.bold
+                ]
+                (text (String.toUpper txt ++ "✔"))
 
         Text.WrongAthleteInput txt ->
-            text (String.toUpper txt ++ "🙅")
+            el
+                [ Font.color Palette.athleteA
+                , Font.strike
+                , Font.bold
+                ]
+                (text (String.toUpper txt))
 
 
 type Athlete
