@@ -135,15 +135,8 @@ update msg model =
 
         ( Inputted text, GameIntro _ ) ->
             if isEnter text then
-                let
-                    indexToLetter n =
-                        Utils.stringCharAt (Debug.log "letter index" n) alphabet
-                            |> Maybe.withDefault '?'
-                in
                 ( { model | ticker = Ticker.enter model.ticker }
-                , Random.generate
-                    (indexToLetter >> RandomLetter)
-                    (Random.int 0 (String.length alphabet - 1))
+                , randomLetter alphabet
                 )
 
             else
@@ -543,3 +536,16 @@ emu str =
         |> Doc.content
         |> List.head
         |> Maybe.withDefault (Paragraph.create [ Doc.Text.create Doc.Format.empty "" ])
+
+
+randomLetter : String -> Cmd Msg
+randomLetter alpha =
+    Random.generate
+        (indexToLetter alpha >> RandomLetter)
+        (Random.int 0 (String.length alpha - 1))
+
+
+indexToLetter : String -> Int -> Char
+indexToLetter alpha n =
+    Utils.stringCharAt n alpha
+        |> Maybe.withDefault '?'
