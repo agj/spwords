@@ -16,13 +16,10 @@ import Element.Font as Font
 import Element.Input as Input
 import Html exposing (Html)
 import Http
-import Json.Decode as Decode
-import List.Extra
+import Levers
 import Palette
-import Process
 import Random
 import Return as R exposing (Return)
-import Task
 import Texts
 import Ticker exposing (Ticker, inputCorrect)
 import Ticker.Text as Text
@@ -417,7 +414,7 @@ subscriptions model =
         [ Browser.Events.onResize <|
             \w h -> Resized
         , Viewport.got GotViewport NoOp
-        , Time.every 200 Ticked
+        , Time.every Levers.tickInterval Ticked
         ]
 
 
