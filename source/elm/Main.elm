@@ -53,6 +53,7 @@ type alias Model =
     { ticker : Ticker
     , game : GameStatus
     , viewport : Viewport
+    , randomSeed : Random.Seed
     }
 
 
@@ -82,6 +83,7 @@ init flags =
                     (Text.QueuedInstruction (Texts.comments.loading |> emu Dict.empty))
       , game = GameLoading
       , viewport = flags.viewport
+      , randomSeed = Random.initialSeed 64
       }
     , Http.get
         { url = "data/words-en.txt"
@@ -98,7 +100,6 @@ type Msg
     = Ticked Time.Posix
     | Inputted String
     | GotWords (Result Http.Error String)
-    | RandomLetter Char
     | Resized
     | GotViewport Viewport
     | NoOp
@@ -139,20 +140,21 @@ update msg model =
 
         ( Inputted text, GameIntro _ ) ->
             if isEnter text then
-                ( { model | ticker = Ticker.enter model.ticker }
-                , randomLetter Texts.alphabet
+                let
+                    ( letter, newSeed ) =
+                        randomLetter model.randomSeed Texts.alphabet
+                in
+                ( { model
+                    | ticker =
+                        Ticker.enter model.ticker
+                    , randomSeed = newSeed
+                  }
+                    |> startGame letter
+                , Cmd.none
                 )
 
             else
                 modelCmd
-
-        ( RandomLetter letter, GameIntro _ ) ->
-            ( startGame letter model
-            , Cmd.none
-            )
-
-        ( RandomLetter letter, _ ) ->
-            modelCmd
 
         ( Inputted text, GamePlaying words _ ) ->
             if isEnter text then
@@ -608,11 +610,15 @@ replaceVars vars par =
         |> Paragraph.create
 
 
-randomLetter : String -> Cmd Msg
-randomLetter alpha =
-    Random.generate
-        (indexToLetter alpha >> RandomLetter)
-        (Random.int 0 (String.length alpha - 1))
+randomLetter : Random.Seed -> String -> ( Char, Random.Seed )
+randomLetter seed alphabet =
+    Random.step (letterGenerator alphabet) seed
+
+
+letterGenerator : String -> Random.Generator Char
+letterGenerator alphabet =
+    Random.int 0 (String.length alphabet - 1)
+        |> Random.map (indexToLetter alphabet)
 
 
 indexToLetter : String -> Int -> Char
