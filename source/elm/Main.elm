@@ -477,10 +477,10 @@ checkPartialInput words model =
                     model
 
                 Constraints.CandidateInitialWrong ->
-                    inputWrong model
+                    inputWrong Texts.comments.mistake.initial model
 
                 Constraints.CandidateNotAWord ->
-                    inputWrong model
+                    inputWrong Texts.comments.mistake.notAWord model
 
         Just _ ->
             model
@@ -498,13 +498,13 @@ checkInput words model =
                     inputCorrect model
 
                 Constraints.InputInitialWrong ->
-                    inputWrong model
+                    inputWrong Texts.comments.mistake.initial model
 
                 Constraints.InputIncorporatesWrong ->
-                    inputWrong model
+                    inputWrong Texts.comments.mistake.incorporates model
 
                 Constraints.InputNotAWord ->
-                    inputWrong model
+                    inputWrong Texts.comments.mistake.notAWord model
 
         _ ->
             model
@@ -537,8 +537,8 @@ inputCorrect model =
             model
 
 
-inputWrong : Model -> Model
-inputWrong model =
+inputWrong : List String -> Model -> Model
+inputWrong messages model =
     case Ticker.current model.ticker of
         Just (Text.ActiveAthleteInput previousWord cnts) ->
             let
@@ -554,18 +554,25 @@ inputWrong model =
                             Constraints.serve (Constraints.getInitial cnts)
 
                 vars =
-                    Dict.fromList
-                        [ ( "letter", Constraints.getInitial newCnts |> String.fromChar )
-                        ]
+                    List.append
+                        [ ( "initial", Constraints.getInitial newCnts |> String.fromChar ) ]
+                        (case Constraints.getIncorporates newCnts of
+                            Just char ->
+                                [ ( "incorporates", char |> String.fromChar ) ]
+
+                            Nothing ->
+                                []
+                        )
+                        |> Dict.fromList
 
                 ( message, newSeed ) =
-                    Texts.comments.mistake.doesntExist
+                    messages
                         |> emuRandomString model.randomSeed vars
             in
             { model
                 | ticker =
                     Ticker.inputWrong model.ticker
-                        |> Ticker.queueUp (Text.QueuedAnnouncement message)
+                        |> Ticker.queueUp (Text.QueuedInstruction message)
                         |> Ticker.queueUp (Text.QueuedAthleteInput newCnts)
                 , randomSeed = newSeed
             }

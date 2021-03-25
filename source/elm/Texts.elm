@@ -56,17 +56,17 @@ comments =
         , "fair!"
         ]
     , mistake =
-        { startLetter =
-            [ "did not start with “`letter`{var}”!"
+        { initial =
+            [ "did not start with “`initial`{var}”!"
             ]
-        , includeLetter =
-            [ "does not contain previous word's “`letter`{var}”!"
+        , incorporates =
+            [ "does not contain previous word's “`incorporates`{var}”!"
             ]
         , alreadyPlayed =
             [ "we've seen that word before!"
             , "that one's a repeat!"
             ]
-        , doesntExist =
+        , notAWord =
             [ "is that english?"
             , "no such word in my dictionary!"
             , "what does that even mean?"
