@@ -444,24 +444,25 @@ startGame : Char -> Model -> Model
 startGame initial model =
     case model.game of
         GameIntro words ->
+            let
+                vars =
+                    Dict.fromList
+                        [ ( "turn", "player" )
+                        , ( "letter", initial |> String.fromChar )
+                        ]
+
+                ( message, newSeed ) =
+                    Texts.comments.turnAndLetter
+                        |> randomString model.randomSeed
+                        |> Tuple.mapFirst (emu vars)
+            in
             { model
                 | game = GamePlaying words JustStarted
                 , ticker =
                     model.ticker
-                        |> Ticker.queueUp
-                            (Text.QueuedInstruction
-                                (Texts.comments.turnAndLetter
-                                    |> List.head
-                                    |> Maybe.withDefault ""
-                                    |> emu
-                                        (Dict.fromList
-                                            [ ( "turn", "player" )
-                                            , ( "letter", initial |> String.fromChar )
-                                            ]
-                                        )
-                                )
-                            )
+                        |> Ticker.queueUp (Text.QueuedInstruction message)
                         |> Ticker.queueUp (Text.QueuedAthleteInput (Constraints.serve initial))
+                , randomSeed = newSeed
             }
 
         _ ->
@@ -520,19 +521,18 @@ inputCorrect model =
                         { initial = Constraints.getInitial cnts
                         , incorporates = Utils.stringLast previousWord |> Maybe.withDefault '?'
                         }
+
+                ( message, newSeed ) =
+                    Texts.comments.interjection
+                        |> randomString model.randomSeed
+                        |> Tuple.mapFirst (emu Dict.empty)
             in
             { model
                 | ticker =
                     Ticker.inputCorrect model.ticker
-                        |> Ticker.queueUp
-                            (Text.QueuedAnnouncement
-                                (Texts.comments.interjection
-                                    |> List.head
-                                    |> Maybe.withDefault ""
-                                    |> emu Dict.empty
-                                )
-                            )
+                        |> Ticker.queueUp (Text.QueuedInstruction message)
                         |> Ticker.queueUp (Text.QueuedAthleteInput newCnts)
+                , randomSeed = newSeed
             }
 
         _ ->
@@ -554,19 +554,23 @@ inputWrong model =
 
                         Nothing ->
                             Constraints.serve (Constraints.getInitial cnts)
+
+                vars =
+                    Dict.fromList
+                        [ ( "letter", Constraints.getInitial newCnts |> String.fromChar )
+                        ]
+
+                ( message, newSeed ) =
+                    Texts.comments.mistake.doesntExist
+                        |> randomString model.randomSeed
+                        |> Tuple.mapFirst (emu vars)
             in
             { model
                 | ticker =
                     Ticker.inputWrong model.ticker
-                        |> Ticker.queueUp
-                            (Text.QueuedAnnouncement
-                                (Texts.comments.mistake.doesntExist
-                                    |> List.head
-                                    |> Maybe.withDefault ""
-                                    |> emu Dict.empty
-                                )
-                            )
+                        |> Ticker.queueUp (Text.QueuedAnnouncement message)
                         |> Ticker.queueUp (Text.QueuedAthleteInput newCnts)
+                , randomSeed = newSeed
             }
 
         _ ->
@@ -625,3 +629,27 @@ indexToLetter : String -> Int -> Char
 indexToLetter alpha n =
     Utils.stringCharAt n alpha
         |> Maybe.withDefault '?'
+
+
+randomString : Random.Seed -> List String -> ( String, Random.Seed )
+randomString seed strings =
+    randomItem seed strings
+        |> Tuple.mapFirst (Maybe.withDefault "")
+
+
+randomItem : Random.Seed -> List a -> ( Maybe a, Random.Seed )
+randomItem seed list =
+    Random.step (itemGenerator list) seed
+
+
+itemGenerator : List a -> Random.Generator (Maybe a)
+itemGenerator list =
+    Random.int 0 (List.length list - 1)
+        |> Random.map (indexToItem list)
+
+
+indexToItem : List a -> Int -> Maybe a
+indexToItem list index =
+    list
+        |> List.drop index
+        |> List.head
