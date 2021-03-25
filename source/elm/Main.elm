@@ -453,8 +453,7 @@ startGame initial model =
 
                 ( message, newSeed ) =
                     Texts.comments.turnAndLetter
-                        |> randomString model.randomSeed
-                        |> Tuple.mapFirst (emu vars)
+                        |> emuRandomString model.randomSeed vars
             in
             { model
                 | game = GamePlaying words JustStarted
@@ -524,8 +523,7 @@ inputCorrect model =
 
                 ( message, newSeed ) =
                     Texts.comments.interjection
-                        |> randomString model.randomSeed
-                        |> Tuple.mapFirst (emu Dict.empty)
+                        |> emuRandomString model.randomSeed Dict.empty
             in
             { model
                 | ticker =
@@ -562,8 +560,7 @@ inputWrong model =
 
                 ( message, newSeed ) =
                     Texts.comments.mistake.doesntExist
-                        |> randomString model.randomSeed
-                        |> Tuple.mapFirst (emu vars)
+                        |> emuRandomString model.randomSeed vars
             in
             { model
                 | ticker =
@@ -629,6 +626,12 @@ indexToLetter : String -> Int -> Char
 indexToLetter alpha n =
     Utils.stringCharAt n alpha
         |> Maybe.withDefault '?'
+
+
+emuRandomString : Random.Seed -> Dict String String -> List String -> ( Paragraph, Random.Seed )
+emuRandomString seed vars strings =
+    randomString seed strings
+        |> Tuple.mapFirst (emu vars)
 
 
 randomString : Random.Seed -> List String -> ( String, Random.Seed )
