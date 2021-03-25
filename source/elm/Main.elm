@@ -76,7 +76,9 @@ type alias Flags =
 init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { ticker =
-            Ticker.empty |> Ticker.queueUp (Text.QueuedInstruction (emu "(/Loading…/)"))
+            Ticker.empty
+                |> Ticker.queueUp
+                    (Text.QueuedInstruction (Texts.comments.loading |> emu))
       , game = GameLoading
       , viewport = flags.viewport
       }
@@ -115,7 +117,8 @@ update msg model =
                         | game = GameIntro (Words.parse words)
                         , ticker =
                             model.ticker
-                                |> Ticker.queueUp (Text.QueuedAnnouncement (emu "(Done. Press *Enter*.)"))
+                                |> Ticker.queueUp
+                                    (Text.QueuedAnnouncement (Texts.comments.toStart |> emu))
                       }
                     , Cmd.none
                     )
@@ -136,7 +139,7 @@ update msg model =
         ( Inputted text, GameIntro _ ) ->
             if isEnter text then
                 ( { model | ticker = Ticker.enter model.ticker }
-                , randomLetter alphabet
+                , randomLetter Texts.alphabet
                 )
 
             else
@@ -434,10 +437,6 @@ subscriptions model =
 -- OTHER
 
 
-alphabet =
-    "abcdefghijklmnopqrstuvwxyz"
-
-
 startGame : Char -> Model -> Model
 startGame initial model =
     case model.game of
@@ -446,7 +445,15 @@ startGame initial model =
                 | game = GamePlaying words JustStarted
                 , ticker =
                     model.ticker
-                        |> Ticker.queueUp (Text.QueuedInstruction (emu ("Try “" ++ String.fromChar initial ++ "”!")))
+                        |> Ticker.queueUp
+                            (Text.QueuedInstruction
+                                (Texts.comments.turnAndLetter
+                                    |> List.head
+                                    |> Maybe.withDefault ""
+                                    |> stripBraces
+                                    |> emu
+                                )
+                            )
                         |> Ticker.queueUp (Text.QueuedAthleteInput (Constraints.serve initial))
             }
 
@@ -510,7 +517,14 @@ inputCorrect model =
             { model
                 | ticker =
                     Ticker.inputCorrect model.ticker
-                        |> Ticker.queueUp (Text.QueuedAnnouncement (emu "Good move! Try another!"))
+                        |> Ticker.queueUp
+                            (Text.QueuedAnnouncement
+                                (Texts.comments.interjection
+                                    |> List.head
+                                    |> Maybe.withDefault ""
+                                    |> emu
+                                )
+                            )
                         |> Ticker.queueUp (Text.QueuedAthleteInput newCnts)
             }
 
@@ -537,7 +551,14 @@ inputWrong model =
             { model
                 | ticker =
                     Ticker.inputWrong model.ticker
-                        |> Ticker.queueUp (Text.QueuedAnnouncement (emu "Too bad! Try again!"))
+                        |> Ticker.queueUp
+                            (Text.QueuedAnnouncement
+                                (Texts.comments.mistake.doesntExist
+                                    |> List.head
+                                    |> Maybe.withDefault ""
+                                    |> emu
+                                )
+                            )
                         |> Ticker.queueUp (Text.QueuedAthleteInput newCnts)
             }
 
@@ -568,3 +589,7 @@ indexToLetter : String -> Int -> Char
 indexToLetter alpha n =
     Utils.stringCharAt n alpha
         |> Maybe.withDefault '?'
+
+
+stripBraces =
+    String.filter (\ch -> ch /= '{' && ch /= '}')
