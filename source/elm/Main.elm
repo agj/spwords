@@ -231,7 +231,7 @@ ticker model =
             Input.multiline
                 [ width fill
                 , height (px Palette.textSizeLarger)
-                , Font.size Palette.textSizeLarger
+                , Font.size Palette.textSizeSmall
                 , Background.color Palette.transparent
                 , Border.color Palette.transparent
                 , focused [ Border.glow Palette.transparent 0 ]
@@ -243,33 +243,52 @@ ticker model =
                 , spellcheck = False
                 }
 
-        passed =
+        passedTexts =
             Ticker.passed model.ticker
                 |> List.map tickerText
 
         tickerTexts =
             (case Ticker.current model.ticker of
                 Just cur ->
-                    tickerActive cur :: passed
+                    tickerActive cur :: passedTexts
 
                 Nothing ->
-                    passed
+                    passedTexts
             )
                 |> List.reverse
                 |> List.intersperse (text " ")
+
+        cursor =
+            el
+                [ width (px 5)
+                , height (px (Palette.textSizeLarger * 2))
+                , Background.color <|
+                    case Ticker.current model.ticker of
+                        Just (Text.ActiveAthleteInput _ _) ->
+                            Palette.athleteA
+
+                        _ ->
+                            Palette.transparent
+                ]
+                none
     in
-    el
-        [ clip
+    row
+        [ centerY
         , width fill
-        , height (px Palette.textSizeLarger)
-        , centerY
-        , Font.size Palette.textSizeLarger
-        , inFront input
         ]
-        (row
-            [ alignRight ]
-            tickerTexts
-        )
+        [ el
+            [ clip
+            , width fill
+            , height (px Palette.textSizeLarger)
+            , Font.size Palette.textSizeLarger
+            , inFront input
+            ]
+            (row
+                [ alignRight ]
+                tickerTexts
+            )
+        , cursor
+        ]
 
 
 tickerActive : Text.Active -> Element Msg
