@@ -22,13 +22,14 @@ comments =
     , toStart = "(done. press *enter*.)"
     , start =
         "welcome to tonight's exciting match! "
-            ++ "it's menacing `one`{var} against favorite `two`{var}! "
+            ++ "it's menacing `one`{var} against crowd favorite `two`{var}!"
     , rules =
         "remember the rules: "
-            ++ "in turns, contestants type words that start with the assigned letter, "
-            ++ "and which contain the last letter of the previous word. then, press enter. "
-            ++ "no repeats, and watch the time limit! "
-            ++ "first to seize three rounds is the victor. "
+            ++ "the contestants take turns to type words that *start* with the *round's letter*. "
+            ++ "they also must *contain* the *last letter of the previous word*. "
+            ++ "then, press enter. "
+            ++ "*no repeats*, and watch the time limit! "
+            ++ "first to seize *three rounds* is the victor. "
             ++ "now, let the match begin!"
     , roundStart =
         [ "let's see who comes out victorious in the next round!"
@@ -58,13 +59,20 @@ comments =
     , mistake =
         { initial =
             [ "did not start with “`initial`{var}”!"
+            , "must start with “`initial`{var}”!"
+            , "forgot to start with “`initial`{var}”!"
+            , "but it should start with “`initial`{var}”!"
             ]
         , incorporates =
             [ "does not contain previous word's “`incorporates`{var}”!"
+            , "it doesn't include the mandatory “`incorporates`{var}”!"
+            , "forgot to include “`incorporates`{var}” from the previous word!"
             ]
         , alreadyPlayed =
             [ "we've seen that word before!"
             , "that one's a repeat!"
+            , "that's been played already!"
+            , "word's not fresh!"
             ]
         , notAWord =
             [ "is that english?"
@@ -74,7 +82,7 @@ comments =
         , timeOut =
             [ "time is up!"
             , "time ran out!"
-            , "no more time!"
+            , "no time left!"
             ]
         }
     , roundEnd =

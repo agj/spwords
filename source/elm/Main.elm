@@ -449,9 +449,19 @@ startGame initial model =
                     Dict.fromList
                         [ ( "turn", "player" )
                         , ( "letter", initial |> String.fromChar )
+                        , ( "one", "player" )
+                        , ( "two", "computer" )
                         ]
 
-                ( message, newSeed ) =
+                start =
+                    Texts.comments.start
+                        |> emu vars
+
+                rules =
+                    Texts.comments.rules
+                        |> emu vars
+
+                ( turnAndLetter, newSeed ) =
                     Texts.comments.turnAndLetter
                         |> emuRandomString model.randomSeed vars
             in
@@ -459,7 +469,9 @@ startGame initial model =
                 | game = GamePlaying words JustStarted
                 , ticker =
                     model.ticker
-                        |> Ticker.queueUp (Text.QueuedInstruction message)
+                        |> Ticker.queueUp (Text.QueuedAnnouncement start)
+                        |> Ticker.queueUp (Text.QueuedAnnouncement rules)
+                        |> Ticker.queueUp (Text.QueuedInstruction turnAndLetter)
                         |> Ticker.queueUp (Text.QueuedAthleteInput (Constraints.serve initial))
                 , randomSeed = newSeed
             }
