@@ -1,4 +1,4 @@
-module Doc.Format exposing (Format, empty, isBold, isCode, isItalic, link, setBold, setCode, setItalic, setLink)
+module Doc.Format exposing (Format, empty, isBold, isItalic, isVar, link, setBold, setItalic, setLink, setVar)
 
 import Doc.Link exposing (Link)
 
@@ -7,7 +7,7 @@ type Format
     = Format
         { bold : Bool
         , italic : Bool
-        , code : Bool
+        , var : Bool
         , link : Maybe Link
         }
 
@@ -17,7 +17,7 @@ empty =
     Format
         { bold = False
         , italic = False
-        , code = False
+        , var = False
         , link = Nothing
         }
 
@@ -32,9 +32,9 @@ isItalic (Format format) =
     format.italic
 
 
-isCode : Format -> Bool
-isCode (Format format) =
-    format.code
+isVar : Format -> Bool
+isVar (Format format) =
+    format.var
 
 
 link : Format -> Maybe Link
@@ -56,9 +56,9 @@ setItalic status (Format format) =
     Format { format | italic = status }
 
 
-setCode : Bool -> Format -> Format
-setCode status (Format format) =
-    Format { format | code = status }
+setVar : Bool -> Format -> Format
+setVar status (Format format) =
+    Format { format | var = status }
 
 
 setLink : Maybe Link -> Format -> Format

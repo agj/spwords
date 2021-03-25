@@ -43,7 +43,7 @@ errorToParagraph : Mark.Error.Error -> Paragraph
 errorToParagraph error =
     let
         doit string =
-            Text.create (Format.empty |> Format.setCode True) string
+            Text.create Format.empty string
                 |> List.singleton
                 |> Paragraph.create
     in
@@ -71,19 +71,19 @@ inlineParser =
         , inlines =
             [ Mark.annotation "link" toLinkedText
                 |> Mark.field "url" Mark.string
-            , Mark.verbatim "code" toCodeText
+            , Mark.verbatim "var" toVarText
             ]
         }
-
-
-toCodeText : String -> List Text
-toCodeText str =
-    [ Text.create (Format.empty |> Format.setCode True) str ]
 
 
 toFormattedText : Mark.Styles -> String -> Text
 toFormattedText styles str =
     Text.create (toFormat styles) str
+
+
+toVarText : String -> List Text
+toVarText str =
+    [ Text.create (Format.empty |> Format.setVar True) str ]
 
 
 toLinkedText : List ( Mark.Styles, String ) -> String -> List Text

@@ -22,7 +22,7 @@ comments =
     , toStart = "(done. press *enter*.)"
     , start =
         "welcome to tonight's exciting match! "
-            ++ "it's menacing {one} against favorite {two}! "
+            ++ "it's menacing `one`{var} against favorite `two`{var}! "
     , rules =
         "remember the rules: "
             ++ "in turns, contestants type words that start with the assigned letter, "
@@ -36,15 +36,15 @@ comments =
         , "who will make the best of this round?"
         ]
     , turnAndLetter =
-        [ "starting, it's {turn} with “{letter}”!"
-        , "it's {turn} with “{letter}”!"
-        , "serving is {turn}, with “{letter}”!"
-        , "here we go, turn for {turn}, with “{letter}”!"
-        , "watch for that “{letter}”, {turn}!"
-        , "time for “{letter}”, {turn}!"
-        , "featuring “{letter}”, speaks {turn}!"
-        , "we want letter “{letter}”, {turn}!"
-        , "show us that “{letter}”, {turn}!"
+        [ "starting, it's `turn`{var} with “`letter`{var}”!"
+        , "it's `turn`{var} with “`letter`{var}”!"
+        , "serving is `turn`{var}, with “`letter`{var}”!"
+        , "here we go, turn for `turn`{var}, with “`letter`{var}”!"
+        , "watch for that “`letter`{var}”, `turn`{var}!"
+        , "time for “`letter`{var}”, `turn`{var}!"
+        , "featuring “`letter`{var}”, speaks `turn`{var}!"
+        , "we want letter “`letter`{var}”, `turn`{var}!"
+        , "show us that “`letter`{var}”, `turn`{var}!"
         ]
     , interjection =
         [ "ooh!"
@@ -57,10 +57,10 @@ comments =
         ]
     , mistake =
         { startLetter =
-            [ "did not start with “{letter}”!"
+            [ "did not start with “`letter`{var}”!"
             ]
         , includeLetter =
-            [ "does not contain previous word's “{letter}”!"
+            [ "does not contain previous word's “`letter`{var}”!"
             ]
         , alreadyPlayed =
             [ "we've seen that word before!"
@@ -79,37 +79,37 @@ comments =
         }
     , roundEnd =
         { point =
-            [ "brilliant point for {winner}!"
-            , "{loser} wastes a chance!"
+            [ "brilliant point for `winner`{var}!"
+            , "`loser`{var} wastes a chance!"
             , "tough luck!"
             , "what a shock!"
-            , "{winner} scores!"
-            , "too bad for {loser}!"
+            , "`winner`{var} scores!"
+            , "too bad for `loser`{var}!"
             , "close, but no dice!"
-            , "it's {loser}'s miss!"
-            , "{winner} takes this point!"
+            , "it's `loser`{var}'s miss!"
+            , "`winner`{var} takes this point!"
             ]
         , winning =
-            [ "{winner} has the lead!"
-            , "{winner} is ahead!"
-            , "{loser} needs to step up!"
-            , "{loser} is not looking good!"
+            [ "`winner`{var} has the lead!"
+            , "`winner`{var} is ahead!"
+            , "`loser`{var} needs to step up!"
+            , "`loser`{var} is not looking good!"
             ]
         , tie =
             [ "it's tied!"
-            , "{points} all!"
+            , "`points`{var} all!"
             , "it's a battle of noses!"
             , "both sides equal!"
-            , "both with {points}!"
+            , "both with `points`{var}!"
             ]
         }
     , scoreTally =
-        [ "we have our game at {one} {pointsOne}, {two} {pointsTwo}!"
-        , "the panel reads {one} {pointsOne} versus {two} {pointsTwo}."
-        , "{one} at {pointsOne}, {two} at {pointsTwo}!"
+        [ "we have our game at `one`{var} `pointsOne`{var}, `two`{var} `pointsTwo`{var}!"
+        , "the panel reads `one`{var} `pointsOne`{var} versus `two`{var} `pointsTwo`{var}."
+        , "`one`{var} at `pointsOne`{var}, `two`{var} at `pointsTwo`{var}!"
         ]
     , gameEnd =
-        "and it's settled! {winner} defeats {loser} {winnerPoints} to {loserPoints} in a match to remember! "
+        "and it's settled! `winner`{var} defeats `loser`{var} `winnerPoints`{var} to `loserPoints`{var} in a match to remember! "
             ++ "we look forward to when these two titans have another face-off. "
             ++ "see you next time!"
     }

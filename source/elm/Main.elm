@@ -2,6 +2,7 @@ module Main exposing (..)
 
 import Browser
 import Browser.Events
+import Dict exposing (Dict)
 import Doc
 import Doc.EmuDecode
 import Doc.Format
@@ -78,7 +79,7 @@ init flags =
     ( { ticker =
             Ticker.empty
                 |> Ticker.queueUp
-                    (Text.QueuedInstruction (Texts.comments.loading |> emu))
+                    (Text.QueuedInstruction (Texts.comments.loading |> emu Dict.empty))
       , game = GameLoading
       , viewport = flags.viewport
       }
@@ -118,7 +119,7 @@ update msg model =
                         , ticker =
                             model.ticker
                                 |> Ticker.queueUp
-                                    (Text.QueuedAnnouncement (Texts.comments.toStart |> emu))
+                                    (Text.QueuedAnnouncement (Texts.comments.toStart |> emu Dict.empty))
                       }
                     , Cmd.none
                     )
@@ -450,8 +451,12 @@ startGame initial model =
                                 (Texts.comments.turnAndLetter
                                     |> List.head
                                     |> Maybe.withDefault ""
-                                    |> stripBraces
                                     |> emu
+                                        (Dict.fromList
+                                            [ ( "turn", "player" )
+                                            , ( "letter", initial |> String.fromChar )
+                                            ]
+                                        )
                                 )
                             )
                         |> Ticker.queueUp (Text.QueuedAthleteInput (Constraints.serve initial))
@@ -522,7 +527,7 @@ inputCorrect model =
                                 (Texts.comments.interjection
                                     |> List.head
                                     |> Maybe.withDefault ""
-                                    |> emu
+                                    |> emu Dict.empty
                                 )
                             )
                         |> Ticker.queueUp (Text.QueuedAthleteInput newCnts)
@@ -556,7 +561,7 @@ inputWrong model =
                                 (Texts.comments.mistake.doesntExist
                                     |> List.head
                                     |> Maybe.withDefault ""
-                                    |> emu
+                                    |> emu Dict.empty
                                 )
                             )
                         |> Ticker.queueUp (Text.QueuedAthleteInput newCnts)
@@ -570,12 +575,37 @@ isEnter text =
     text == "\n"
 
 
-emu : String -> Paragraph.Paragraph
-emu str =
+emu : Dict String String -> String -> Paragraph.Paragraph
+emu vars str =
     Doc.EmuDecode.fromEmu str
         |> Doc.content
         |> List.head
         |> Maybe.withDefault (Paragraph.create [ Doc.Text.create Doc.Format.empty "" ])
+        |> replaceVars vars
+
+
+replaceVars : Dict String String -> Paragraph.Paragraph -> Paragraph.Paragraph
+replaceVars vars par =
+    let
+        replaceVar txt =
+            let
+                content =
+                    Doc.Text.content txt
+
+                format =
+                    Doc.Text.format txt
+            in
+            if Doc.Format.isVar format then
+                Doc.Text.create
+                    (format |> Doc.Format.setVar False)
+                    (Dict.get content vars |> Maybe.withDefault content)
+
+            else
+                txt
+    in
+    Paragraph.content par
+        |> List.map replaceVar
+        |> Paragraph.create
 
 
 randomLetter : String -> Cmd Msg
@@ -589,7 +619,3 @@ indexToLetter : String -> Int -> Char
 indexToLetter alpha n =
     Utils.stringCharAt n alpha
         |> Maybe.withDefault '?'
-
-
-stripBraces =
-    String.filter (\ch -> ch /= '{' && ch /= '}')
