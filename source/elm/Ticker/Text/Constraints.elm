@@ -15,7 +15,12 @@ import Words exposing (Words)
 
 
 type Constraints
-    = Constraints Char (Maybe Char)
+    = ServeConstraints Char
+    | RallyConstraints
+        { initial : Char
+        , incorporates : Char
+        , played : List String
+        }
 
 
 type CandidateCheck
@@ -37,12 +42,12 @@ type InputCheck
 
 serve : Char -> Constraints
 serve initial =
-    Constraints initial Nothing
+    ServeConstraints initial
 
 
 rally : { initial : Char, incorporates : Char } -> Constraints
 rally { initial, incorporates } =
-    Constraints initial (Just incorporates)
+    RallyConstraints { initial = initial, incorporates = incorporates, played = [] }
 
 
 
@@ -50,13 +55,23 @@ rally { initial, incorporates } =
 
 
 getInitial : Constraints -> Char
-getInitial (Constraints initial _) =
-    initial
+getInitial constraints =
+    case constraints of
+        ServeConstraints initial ->
+            initial
+
+        RallyConstraints { initial } ->
+            initial
 
 
 getIncorporates : Constraints -> Maybe Char
-getIncorporates (Constraints _ incorporatesM) =
-    incorporatesM
+getIncorporates constraints =
+    case constraints of
+        ServeConstraints _ ->
+            Nothing
+
+        RallyConstraints { incorporates } ->
+            Just incorporates
 
 
 
@@ -81,10 +96,19 @@ checkCandidate text cnts words =
 
 
 check : String -> Constraints -> Words -> InputCheck
-check text (Constraints initial incorporatesM) words =
+check text constraints words =
+    let
+        ( initial_, incorporatesM ) =
+            case constraints of
+                ServeConstraints initial ->
+                    ( initial, Nothing )
+
+                RallyConstraints { initial, incorporates } ->
+                    ( initial, Just incorporates )
+    in
     case Utils.stringHead text of
         Just head ->
-            if head /= initial then
+            if head /= initial_ then
                 InputInitialWrong
 
             else if not (Words.exists text words) then
