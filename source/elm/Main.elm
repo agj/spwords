@@ -503,6 +503,9 @@ checkInput words model =
                 Constraints.InputIncorporatesWrong ->
                     inputWrong Texts.comments.mistake.incorporates model
 
+                Constraints.InputAlreadyPlayed ->
+                    inputWrong Texts.comments.mistake.alreadyPlayed model
+
                 Constraints.InputNotAWord ->
                     inputWrong Texts.comments.mistake.notAWord model
 
@@ -519,6 +522,9 @@ inputCorrect model =
                     Constraints.rally
                         { initial = Constraints.getInitial cnts
                         , incorporates = Utils.stringLast previousWord |> Maybe.withDefault '?'
+                        , played =
+                            Constraints.getPlayed cnts
+                                |> (::) previousWord
                         }
 
                 ( message, newSeed ) =
@@ -548,6 +554,7 @@ inputWrong messages model =
                             Constraints.rally
                                 { initial = Constraints.getInitial cnts
                                 , incorporates = incorporates
+                                , played = Constraints.getPlayed cnts
                                 }
 
                         Nothing ->

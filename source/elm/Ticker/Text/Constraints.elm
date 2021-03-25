@@ -6,6 +6,7 @@ module Ticker.Text.Constraints exposing
     , checkCandidate
     , getIncorporates
     , getInitial
+    , getPlayed
     , rally
     , serve
     )
@@ -33,6 +34,7 @@ type InputCheck
     = InputCorrect
     | InputInitialWrong
     | InputIncorporatesWrong
+    | InputAlreadyPlayed
     | InputNotAWord
 
 
@@ -45,9 +47,9 @@ serve initial =
     ServeConstraints initial
 
 
-rally : { initial : Char, incorporates : Char } -> Constraints
-rally { initial, incorporates } =
-    RallyConstraints { initial = initial, incorporates = incorporates, played = [] }
+rally : { initial : Char, incorporates : Char, played : List String } -> Constraints
+rally { initial, incorporates, played } =
+    RallyConstraints { initial = initial, incorporates = incorporates, played = played }
 
 
 
@@ -74,6 +76,16 @@ getIncorporates constraints =
             Just incorporates
 
 
+getPlayed : Constraints -> List String
+getPlayed constraints =
+    case constraints of
+        ServeConstraints _ ->
+            []
+
+        RallyConstraints { played } ->
+            played
+
+
 
 -- CHECKS
 
@@ -98,18 +110,21 @@ checkCandidate text cnts words =
 check : String -> Constraints -> Words -> InputCheck
 check text constraints words =
     let
-        ( initial_, incorporatesM ) =
+        ( initial_, incorporatesM, played_ ) =
             case constraints of
                 ServeConstraints initial ->
-                    ( initial, Nothing )
+                    ( initial, Nothing, [] )
 
-                RallyConstraints { initial, incorporates } ->
-                    ( initial, Just incorporates )
+                RallyConstraints { initial, incorporates, played } ->
+                    ( initial, Just incorporates, played )
     in
     case Utils.stringHead text of
         Just head ->
             if head /= initial_ then
                 InputInitialWrong
+
+            else if List.member text played_ then
+                InputAlreadyPlayed
 
             else if not (Words.exists text words) then
                 InputNotAWord
