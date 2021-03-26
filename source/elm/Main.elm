@@ -622,7 +622,7 @@ emu vars str =
     Doc.EmuDecode.fromEmu str
         |> Doc.content
         |> List.head
-        |> Maybe.withDefault (Paragraph.create [ Doc.Text.create Doc.Format.empty "" ])
+        |> Maybe.withDefault Paragraph.empty
         |> replaceVars vars
 
 

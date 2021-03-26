@@ -2,6 +2,7 @@ module Doc.Paragraph exposing
     ( Paragraph
     , content
     , create
+    , empty
     , mapContent
     , toString
     )
@@ -11,6 +12,11 @@ import Doc.Text exposing (Text)
 
 type Paragraph
     = Paragraph (List Text)
+
+
+empty : Paragraph
+empty =
+    Paragraph []
 
 
 create : List Text -> Paragraph
