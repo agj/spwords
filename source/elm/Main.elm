@@ -115,96 +115,109 @@ update msg model =
         modelCmd =
             ( model, Cmd.none )
     in
-    case ( msg, model.game ) of
-        ( Ticked _, _ ) ->
+    case msg of
+        Ticked _ ->
             ( { model | ticker = Ticker.tick model.ticker }
             , Cmd.none
             )
 
-        ( Inputted text, GameIntro _ ) ->
-            if isEnter text then
-                let
-                    ( letter, newSeed ) =
-                        randomLetter model.randomSeed Texts.alphabet
-                in
-                ( { model
-                    | ticker =
-                        Ticker.enter model.ticker
-                    , randomSeed = newSeed
-                  }
-                    |> startGame letter
-                , Cmd.none
-                )
-
-            else
-                modelCmd
-
-        ( Inputted text, GamePlaying words _ ) ->
-            if isEnter text then
-                case Ticker.current model.ticker of
-                    Just (Text.ActiveAthleteInput _ _) ->
-                        ( model |> checkInput words
+        Inputted text ->
+            case model.game of
+                GameIntro _ ->
+                    if isEnter text then
+                        let
+                            ( letter, newSeed ) =
+                                randomLetter model.randomSeed Texts.alphabet
+                        in
+                        ( { model
+                            | ticker =
+                                Ticker.enter model.ticker
+                            , randomSeed = newSeed
+                          }
+                            |> startGame letter
                         , Cmd.none
                         )
 
-                    Just _ ->
-                        ( { model | ticker = Ticker.enter model.ticker }
-                        , Cmd.none
-                        )
-
-                    Nothing ->
+                    else
                         modelCmd
 
-            else
-                ( { model | ticker = Ticker.input text model.ticker }
-                    |> checkPartialInput words
-                , Cmd.none
-                )
+                GamePlaying words _ ->
+                    if isEnter text then
+                        case Ticker.current model.ticker of
+                            Just (Text.ActiveAthleteInput _ _) ->
+                                ( model |> checkInput words
+                                , Cmd.none
+                                )
 
-        ( Inputted _, _ ) ->
-            modelCmd
+                            Just _ ->
+                                ( { model | ticker = Ticker.enter model.ticker }
+                                , Cmd.none
+                                )
+
+                            Nothing ->
+                                modelCmd
+
+                    else
+                        ( { model | ticker = Ticker.input text model.ticker }
+                            |> checkPartialInput words
+                        , Cmd.none
+                        )
+
+                GameLoading ->
+                    modelCmd
+
+                WordsLoadError _ ->
+                    modelCmd
 
         -- INITIALIZATION STAGE
         --
-        ( GotSeed seed, _ ) ->
+        GotSeed seed ->
             ( { model | randomSeed = seed }
             , Cmd.none
             )
 
-        ( GotWords result, GameLoading ) ->
-            case result of
-                Ok words ->
-                    ( { model
-                        | game = GameIntro (Words.parse words)
-                        , ticker =
-                            model.ticker
-                                |> Ticker.queueUp
-                                    (Text.QueuedAnnouncement (Texts.comments.toStart |> emu Dict.empty))
-                      }
-                    , Cmd.none
-                    )
+        GotWords result ->
+            case model.game of
+                GameLoading ->
+                    case result of
+                        Ok words ->
+                            ( { model
+                                | game = GameIntro (Words.parse words)
+                                , ticker =
+                                    model.ticker
+                                        |> Ticker.queueUp
+                                            (Text.QueuedAnnouncement (Texts.comments.toStart |> emu Dict.empty))
+                              }
+                            , Cmd.none
+                            )
 
-                Err err ->
-                    ( { model | game = WordsLoadError err }
-                    , Cmd.none
-                    )
+                        Err err ->
+                            ( { model | game = WordsLoadError err }
+                            , Cmd.none
+                            )
 
-        ( GotWords _, _ ) ->
-            modelCmd
+                GameIntro _ ->
+                    modelCmd
+
+                GamePlaying _ _ ->
+                    modelCmd
+
+                WordsLoadError _ ->
+                    modelCmd
 
         -- OTHERS
         --
-        ( Resized, _ ) ->
+        Resized ->
             ( model
             , Viewport.get
             )
 
-        ( GotViewport viewport, _ ) ->
+        GotViewport viewport ->
             ( { model | viewport = viewport }
             , Cmd.none
             )
 
-        ( NoOp, _ ) ->
+        NoOp ->
             modelCmd
 
 
