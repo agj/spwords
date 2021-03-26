@@ -2,13 +2,14 @@ module Doc.Text exposing
     ( Text
     , content
     , create
+    , empty
     , format
     , mapContent
     , mapFormat
     , setContent
     )
 
-import Doc.Format exposing (Format)
+import Doc.Format as Format exposing (Format)
 
 
 type Text
@@ -16,6 +17,11 @@ type Text
         { content : String
         , format : Format
         }
+
+
+empty : Text
+empty =
+    Text { content = "", format = Format.empty }
 
 
 create : Format -> String -> Text

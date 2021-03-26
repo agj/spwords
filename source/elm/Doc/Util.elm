@@ -33,7 +33,7 @@ paragraphAppend str par =
             List.Extra.init texts |> Maybe.withDefault []
 
         last =
-            List.Extra.last texts |> Maybe.withDefault (Text.create Format.empty "")
+            List.Extra.last texts |> Maybe.withDefault Text.empty
     in
     List.append init_ [ last |> textAppend str ]
         |> Paragraph.create
@@ -62,7 +62,7 @@ textLeft amount txt =
 textAppend : String -> Text -> Text
 textAppend str txt =
     txt
-        |> Text.setContent (Text.content txt ++ str)
+        |> Text.mapContent (\old -> old ++ str)
 
 
 
