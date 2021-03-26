@@ -2,6 +2,7 @@ module Doc.Paragraph exposing
     ( Paragraph
     , content
     , create
+    , mapContent
     , toString
     )
 
@@ -20,6 +21,11 @@ create texts =
 content : Paragraph -> List Text
 content (Paragraph texts) =
     texts
+
+
+mapContent : (List Text -> List Text) -> Paragraph -> Paragraph
+mapContent mapper (Paragraph texts) =
+    mapper texts |> Paragraph
 
 
 toString : Paragraph -> String

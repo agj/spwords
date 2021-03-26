@@ -462,8 +462,8 @@ startGame initial model =
                     Dict.fromList
                         [ ( "turn", "player" )
                         , ( "letter", initial |> String.fromChar )
-                        , ( "one", "player" )
-                        , ( "two", "computer" )
+                        , ( "one", "computer" )
+                        , ( "two", "player" )
                         ]
 
                 start =
@@ -638,9 +638,10 @@ replaceVars vars par =
                     Doc.Text.format txt
             in
             if Doc.Format.isVar format then
-                Doc.Text.create
-                    (format |> Doc.Format.setVar False)
-                    (Dict.get content vars |> Maybe.withDefault content)
+                txt
+                    |> Doc.Text.mapFormat (Doc.Format.setVar False)
+                    |> Doc.Text.setContent
+                        (Dict.get content vars |> Maybe.withDefault content)
 
             else
                 txt

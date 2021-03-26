@@ -1,4 +1,12 @@
-module Doc.Text exposing (Text, content, create, format, setContent)
+module Doc.Text exposing
+    ( Text
+    , content
+    , create
+    , format
+    , mapContent
+    , mapFormat
+    , setContent
+    )
 
 import Doc.Format exposing (Format)
 
@@ -33,6 +41,21 @@ format (Text text) =
 -- MODIFIERS
 
 
+mapContent : (String -> String) -> Text -> Text
+mapContent mapper (Text text) =
+    Text { text | content = mapper text.content }
+
+
+mapFormat : (Format -> Format) -> Text -> Text
+mapFormat mapper (Text text) =
+    Text { text | format = mapper text.format }
+
+
 setContent : String -> Text -> Text
 setContent str (Text text) =
     Text { text | content = str }
+
+
+setFormat : Format -> Text -> Text
+setFormat format_ (Text text) =
+    Text { text | format = format_ }
