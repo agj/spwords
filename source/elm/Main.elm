@@ -85,10 +85,13 @@ init flags =
       , viewport = flags.viewport
       , randomSeed = Random.initialSeed 64
       }
-    , Http.get
-        { url = "data/words-en.txt"
-        , expect = Http.expectString GotWords
-        }
+    , Cmd.batch
+        [ Http.get
+            { url = "data/words-en.txt"
+            , expect = Http.expectString GotWords
+            }
+        , Random.generate GotSeed Random.independentSeed
+        ]
     )
 
 
@@ -102,6 +105,7 @@ type Msg
     | GotWords (Result Http.Error String)
     | Resized
     | GotViewport Viewport
+    | GotSeed Random.Seed
     | NoOp
 
 
@@ -112,27 +116,6 @@ update msg model =
             ( model, Cmd.none )
     in
     case ( msg, model.game ) of
-        ( GotWords result, GameLoading ) ->
-            case result of
-                Ok words ->
-                    ( { model
-                        | game = GameIntro (Words.parse words)
-                        , ticker =
-                            model.ticker
-                                |> Ticker.queueUp
-                                    (Text.QueuedAnnouncement (Texts.comments.toStart |> emu Dict.empty))
-                      }
-                    , Cmd.none
-                    )
-
-                Err err ->
-                    ( { model | game = WordsLoadError err }
-                    , Cmd.none
-                    )
-
-        ( GotWords _, _ ) ->
-            modelCmd
-
         ( Ticked _, _ ) ->
             ( { model | ticker = Ticker.tick model.ticker }
             , Cmd.none
@@ -181,6 +164,36 @@ update msg model =
         ( Inputted _, _ ) ->
             modelCmd
 
+        -- INITIALIZATION STAGE
+        --
+        ( GotSeed seed, _ ) ->
+            ( { model | randomSeed = seed }
+            , Cmd.none
+            )
+
+        ( GotWords result, GameLoading ) ->
+            case result of
+                Ok words ->
+                    ( { model
+                        | game = GameIntro (Words.parse words)
+                        , ticker =
+                            model.ticker
+                                |> Ticker.queueUp
+                                    (Text.QueuedAnnouncement (Texts.comments.toStart |> emu Dict.empty))
+                      }
+                    , Cmd.none
+                    )
+
+                Err err ->
+                    ( { model | game = WordsLoadError err }
+                    , Cmd.none
+                    )
+
+        ( GotWords _, _ ) ->
+            modelCmd
+
+        -- OTHERS
+        --
         ( Resized, _ ) ->
             ( model
             , Viewport.get
