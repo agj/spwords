@@ -71,7 +71,7 @@ textSizeLarge =
 
 textSizeLarger : Int
 textSizeLarger =
-    75
+    100
 
 
 textLineSpacing : Int -> Int
