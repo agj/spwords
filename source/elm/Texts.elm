@@ -22,7 +22,7 @@ comments =
     , toStart = "(done. press *enter*.)"
     , start =
         "welcome to tonight's exciting match! "
-            ++ "it's menacing `one`{var} against crowd favorite `two`{var}!"
+            ++ "it's menacing `athleteA`{var} against crowd favorite `athleteB`{var}!"
     , rules =
         "remember the rules: "
             ++ "the contestants take turns to type words that *start* with the *round's letter*. "
@@ -112,9 +112,9 @@ comments =
             ]
         }
     , scoreTally =
-        [ "we have our game at `one`{var} `pointsOne`{var}, `two`{var} `pointsTwo`{var}!"
-        , "the panel reads `one`{var} `pointsOne`{var} versus `two`{var} `pointsTwo`{var}."
-        , "`one`{var} at `pointsOne`{var}, `two`{var} at `pointsTwo`{var}!"
+        [ "we have our game at `athleteA`{var} `pointsA`{var}, `athleteB`{var} `pointsB`{var}!"
+        , "the panel reads `athleteA`{var} `pointsA`{var} versus `athleteB`{var} `pointsB`{var}."
+        , "`athleteA`{var} at `pointsA`{var}, `athleteB`{var} at `pointsB`{var}!"
         ]
     , gameEnd =
         "and it's settled! `winner`{var} defeats `loser`{var} `winnerPoints`{var} to `loserPoints`{var} in a match to remember! "

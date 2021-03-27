@@ -1,5 +1,6 @@
 module Main exposing (..)
 
+import Athlete exposing (..)
 import Browser
 import Browser.Events
 import Dict exposing (Dict)
@@ -355,11 +356,6 @@ tickerText tt =
                 (text (String.toUpper txt))
 
 
-type Athlete
-    = AthleteA
-    | AthleteB
-
-
 type TimeLeft
     = TimeLeft Float
 
@@ -430,8 +426,27 @@ fromDocText txt =
 
 getStyle : Doc.Format.Format -> List (Element.Attribute msg)
 getStyle format =
-    ifElse (Doc.Format.isBold format) [ Font.bold ] []
-        ++ ifElse (Doc.Format.isItalic format) [ Font.italic ] []
+    List.concat
+        [ if Doc.Format.isBold format then
+            [ Font.bold ]
+
+          else
+            []
+        , if Doc.Format.isItalic format then
+            [ Font.italic ]
+
+          else
+            []
+        , case Doc.Format.athlete format of
+            Just AthleteA ->
+                [ Font.color Palette.athleteA ]
+
+            Just AthleteB ->
+                [ Font.color Palette.athleteB ]
+
+            Nothing ->
+                []
+        ]
 
 
 
@@ -461,8 +476,8 @@ startGame model =
                     Dict.fromList
                         [ ( "turn", "player" )
                         , ( "letter", initial |> String.fromChar )
-                        , ( "one", "computer" )
-                        , ( "two", "player" )
+                        , ( "athleteA", "computer" )
+                        , ( "athleteB", "player" )
                         ]
 
                 ( initial, seed1 ) =
@@ -631,6 +646,17 @@ emu vars str =
 replaceVars : Dict String String -> Paragraph.Paragraph -> Paragraph.Paragraph
 replaceVars vars par =
     let
+        setAthleteStyle txt =
+            case Doc.Text.content txt of
+                "athleteA" ->
+                    txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just AthleteA))
+
+                "athleteB" ->
+                    txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just AthleteB))
+
+                _ ->
+                    txt
+
         replaceVar txt =
             let
                 content =
@@ -642,6 +668,7 @@ replaceVars vars par =
             if Doc.Format.isVar format then
                 txt
                     |> Doc.Text.mapFormat (Doc.Format.setVar False)
+                    |> setAthleteStyle
                     |> Doc.Text.setContent
                         (Dict.get content vars |> Maybe.withDefault content)
 

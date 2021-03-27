@@ -1,5 +1,6 @@
 module Doc.EmuDecode exposing (emuDecoder, fromEmu)
 
+import Athlete exposing (..)
 import Doc exposing (Doc)
 import Doc.Format as Format exposing (Format)
 import Doc.Link
@@ -23,10 +24,14 @@ fromEmu raw =
             result
 
         Mark.Almost { result, errors } ->
-            withErrors errors
+            errors
+                |> Debug.log "Markup Errors:"
+                |> withErrors
 
         Mark.Failure errors ->
-            withErrors errors
+            errors
+                |> Debug.log "Markup Errors:"
+                |> withErrors
 
 
 emuDecoder : Decoder Doc
@@ -71,9 +76,22 @@ inlineParser =
         , inlines =
             [ Mark.annotation "link" toLinkedText
                 |> Mark.field "url" Mark.string
+            , Mark.annotation "athleteA" (toAthleteText AthleteA)
+            , Mark.annotation "athleteB" (toAthleteText AthleteB)
             , Mark.verbatim "var" toVarText
             ]
         }
+
+
+toAthleteText : Athlete -> List ( Mark.Styles, String ) -> List Text
+toAthleteText athlete strings =
+    let
+        process ( styles, str ) =
+            Text.create
+                (toFormat styles |> Format.setAthlete (Just athlete))
+                str
+    in
+    List.map process strings
 
 
 toFormattedText : Mark.Styles -> String -> Text

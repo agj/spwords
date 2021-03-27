@@ -1,5 +1,19 @@
-module Doc.Format exposing (Format, empty, isBold, isItalic, isVar, link, setBold, setItalic, setLink, setVar)
+module Doc.Format exposing
+    ( Format
+    , athlete
+    , empty
+    , isBold
+    , isItalic
+    , isVar
+    , link
+    , setAthlete
+    , setBold
+    , setItalic
+    , setLink
+    , setVar
+    )
 
+import Athlete exposing (..)
 import Doc.Link exposing (Link)
 
 
@@ -8,6 +22,7 @@ type Format
         { bold : Bool
         , italic : Bool
         , var : Bool
+        , athlete : Maybe Athlete
         , link : Maybe Link
         }
 
@@ -18,6 +33,7 @@ empty =
         { bold = False
         , italic = False
         , var = False
+        , athlete = Nothing
         , link = Nothing
         }
 
@@ -35,6 +51,11 @@ isItalic (Format format) =
 isVar : Format -> Bool
 isVar (Format format) =
     format.var
+
+
+athlete : Format -> Maybe Athlete
+athlete (Format format) =
+    format.athlete
 
 
 link : Format -> Maybe Link
@@ -59,6 +80,11 @@ setItalic status (Format format) =
 setVar : Bool -> Format -> Format
 setVar status (Format format) =
     Format { format | var = status }
+
+
+setAthlete : Maybe Athlete -> Format -> Format
+setAthlete athlete_ (Format format) =
+    Format { format | athlete = athlete_ }
 
 
 setLink : Maybe Link -> Format -> Format
