@@ -236,10 +236,27 @@ view model =
 
 mainScreen : Model -> Element Msg
 mainScreen model =
+    let
+        activeAthlete =
+            case Ticker.current model.ticker of
+                Just (Text.ActiveAthleteInput athlete _ _) ->
+                    Just athlete
+
+                _ ->
+                    Nothing
+
+        isAthlete athlete =
+            case activeAthlete of
+                Just ath ->
+                    athlete == ath
+
+                _ ->
+                    False
+    in
     column [ height fill, width fill ]
-        [ bar AthleteA (TimeLeft 0.5)
+        [ bar AthleteA (TimeLeft 0.5) (isAthlete AthleteA)
         , ticker model
-        , bar AthleteB (TimeLeft 0.5)
+        , bar AthleteB (TimeLeft 0.5) (isAthlete AthleteB)
         ]
 
 
@@ -360,8 +377,8 @@ type TimeLeft
     = TimeLeft Float
 
 
-bar : Athlete -> TimeLeft -> Element Msg
-bar athlete (TimeLeft timeLeft) =
+bar : Athlete -> TimeLeft -> Bool -> Element Msg
+bar athlete (TimeLeft timeLeft) active =
     let
         filledPortion =
             round (timeLeft * 10000)
@@ -371,18 +388,24 @@ bar athlete (TimeLeft timeLeft) =
     in
     row
         [ width fill
-        , height (px Palette.spaceSmall)
+        , height
+            (if active then
+                px (Palette.spaceSmall * 3)
+
+             else
+                px Palette.spaceSmall
+            )
         ]
         [ el
-            [ width (fillPortion filledPortion)
-            , height fill
-            , Background.color (athleteColor athlete)
-            ]
-            none
-        , el
             [ width (fillPortion emptyPortion)
             , height fill
             , Background.color (athleteColorDark athlete)
+            ]
+            none
+        , el
+            [ width (fillPortion filledPortion)
+            , height fill
+            , Background.color (athleteColor athlete)
             ]
             none
         ]
