@@ -125,16 +125,8 @@ update msg model =
             case model.game of
                 GameIntro _ ->
                     if isEnter text then
-                        let
-                            ( letter, newSeed ) =
-                                randomLetter model.randomSeed Texts.alphabet
-                        in
-                        ( { model
-                            | ticker =
-                                Ticker.enter model.ticker
-                            , randomSeed = newSeed
-                          }
-                            |> startGame letter
+                        ( { model | ticker = Ticker.enter model.ticker }
+                            |> startGame
                         , Cmd.none
                         )
 
@@ -466,8 +458,8 @@ subscriptions model =
 -- OTHER
 
 
-startGame : Char -> Model -> Model
-startGame initial model =
+startGame : Model -> Model
+startGame model =
     case model.game of
         GameIntro words ->
             let
@@ -479,6 +471,9 @@ startGame initial model =
                         , ( "two", "player" )
                         ]
 
+                ( initial, seed1 ) =
+                    randomLetter model.randomSeed Texts.alphabet
+
                 start =
                     Texts.comments.start
                         |> emu vars
@@ -489,7 +484,7 @@ startGame initial model =
 
                 ( turnAndLetter, newSeed ) =
                     Texts.comments.turnAndLetter
-                        |> emuRandomString model.randomSeed vars
+                        |> emuRandomString seed1 vars
             in
             { model
                 | game = GamePlaying words JustStarted
