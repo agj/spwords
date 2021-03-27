@@ -476,8 +476,8 @@ startGame model =
                     Dict.fromList
                         [ ( "turn", "player" )
                         , ( "letter", initial |> String.fromChar )
-                        , ( "athleteA", "computer" )
-                        , ( "athleteB", "player" )
+                        , ( "athleteA", "player" )
+                        , ( "athleteB", "computer" )
                         ]
 
                 ( initial, seed1 ) =

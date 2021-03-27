@@ -22,7 +22,7 @@ comments =
     , toStart = "(done. press *enter*.)"
     , start =
         "welcome to tonight's exciting match! "
-            ++ "it's menacing `athleteA`{var} against crowd favorite `athleteB`{var}!"
+            ++ "it's menacing `athleteB`{var} against crowd favorite `athleteA`{var}!"
     , rules =
         "remember the rules: "
             ++ "the contestants take turns to type words that *start* with the *round's letter*. "
