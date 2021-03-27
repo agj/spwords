@@ -37,15 +37,15 @@ comments =
         , "who will make the best of this round?"
         ]
     , turnAndLetter =
-        [ "starting, it's `turn`{var} with “`letter`{var}”!"
-        , "it's `turn`{var} with “`letter`{var}”!"
-        , "serving is `turn`{var}, with “`letter`{var}”!"
-        , "here we go, turn for `turn`{var}, with “`letter`{var}”!"
-        , "watch for that “`letter`{var}”, `turn`{var}!"
-        , "time for “`letter`{var}”, `turn`{var}!"
-        , "featuring “`letter`{var}”, speaks `turn`{var}!"
-        , "we want letter “`letter`{var}”, `turn`{var}!"
-        , "show us that “`letter`{var}”, `turn`{var}!"
+        [ "starting, it's `turn`{var} with “*`letter`{var}*”!"
+        , "it's `turn`{var} with “*`letter`{var}*”!"
+        , "serving is `turn`{var}, with “*`letter`{var}*”!"
+        , "here we go, turn for `turn`{var}, with “*`letter`{var}*”!"
+        , "watch for that “*`letter`{var}*”, `turn`{var}!"
+        , "time for “*`letter`{var}*”, `turn`{var}!"
+        , "featuring “*`letter`{var}*”, speaks `turn`{var}!"
+        , "we want letter “*`letter`{var}*”, `turn`{var}!"
+        , "show us that “*`letter`{var}*”, `turn`{var}!"
         ]
     , interjection =
         [ "ooh!"

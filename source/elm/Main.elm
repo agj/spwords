@@ -75,7 +75,7 @@ init flags =
     ( { ticker =
             Ticker.empty
                 |> Ticker.queueUp
-                    (Text.QueuedInstruction (Texts.comments.loading |> emu Dict.empty))
+                    (Text.QueuedInstruction (Texts.comments.loading |> emu identity Dict.empty))
       , game = GameLoading
       , viewport = flags.viewport
       , randomSeed = Random.initialSeed 64
@@ -173,7 +173,7 @@ update msg model =
                                 , ticker =
                                     model.ticker
                                         |> Ticker.queueUp
-                                            (Text.QueuedAnnouncement (Texts.comments.toStart |> emu Dict.empty))
+                                            (Text.QueuedAnnouncement (Texts.comments.toStart |> emu identity Dict.empty))
                               }
                             , Cmd.none
                             )
@@ -518,20 +518,34 @@ startGame model =
                         , ( "athleteB", "computer" )
                         ]
 
+                setStyles txt =
+                    case Doc.Text.content txt of
+                        "athleteA" ->
+                            txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just AthleteA))
+
+                        "athleteB" ->
+                            txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just AthleteB))
+
+                        "turn" ->
+                            txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just AthleteA))
+
+                        _ ->
+                            txt
+
                 ( initial, seed1 ) =
                     randomLetter model.randomSeed Texts.alphabet
 
                 start =
                     Texts.comments.start
-                        |> emu vars
+                        |> emu setStyles vars
 
                 rules =
                     Texts.comments.rules
-                        |> emu vars
+                        |> emu setStyles vars
 
                 ( turnAndLetter, newSeed ) =
                     Texts.comments.turnAndLetter
-                        |> emuRandomString seed1 vars
+                        |> emuRandomString seed1 setStyles vars
             in
             { model
                 | game = GamePlaying words
@@ -609,7 +623,7 @@ inputCorrect model =
 
                 ( message, newSeed ) =
                     Texts.comments.interjection
-                        |> emuRandomString model.randomSeed Dict.empty
+                        |> emuRandomString model.randomSeed identity Dict.empty
             in
             { model
                 | ticker =
@@ -654,7 +668,7 @@ inputWrong messages model =
 
                 ( message, newSeed ) =
                     messages
-                        |> emuRandomString model.randomSeed vars
+                        |> emuRandomString model.randomSeed identity vars
             in
             { model
                 | ticker =
@@ -672,50 +686,35 @@ isEnter text =
     text == "\n"
 
 
-emu : Dict String String -> String -> Paragraph.Paragraph
-emu vars str =
+emu : (Doc.Text.Text -> Doc.Text.Text) -> Dict String String -> String -> Paragraph.Paragraph
+emu formatter vars str =
     Doc.EmuDecode.fromEmu str
         |> Doc.content
         |> List.head
         |> Maybe.withDefault Paragraph.empty
-        |> replaceVars vars
+        |> replaceVars formatter vars
 
 
-replaceVars : Dict String String -> Paragraph.Paragraph -> Paragraph.Paragraph
-replaceVars vars par =
+replaceVars : (Doc.Text.Text -> Doc.Text.Text) -> Dict String String -> Paragraph.Paragraph -> Paragraph.Paragraph
+replaceVars formatter vars par =
     let
-        setAthleteStyle txt =
-            case Doc.Text.content txt of
-                "athleteA" ->
-                    txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just AthleteA))
-
-                "athleteB" ->
-                    txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just AthleteB))
-
-                _ ->
-                    txt
-
         replaceVar txt =
             let
                 content =
                     Doc.Text.content txt
-
-                format =
-                    Doc.Text.format txt
             in
-            if Doc.Format.isVar format then
+            if txt |> Doc.Text.format |> Doc.Format.isVar then
                 txt
                     |> Doc.Text.mapFormat (Doc.Format.setVar False)
-                    |> setAthleteStyle
+                    |> formatter
                     |> Doc.Text.setContent
                         (Dict.get content vars |> Maybe.withDefault content)
 
             else
                 txt
     in
-    Paragraph.content par
-        |> List.map replaceVar
-        |> Paragraph.create
+    par
+        |> Paragraph.mapContent (List.map replaceVar)
 
 
 randomLetter : Random.Seed -> String -> ( Char, Random.Seed )
@@ -735,10 +734,10 @@ indexToLetter alpha n =
         |> Maybe.withDefault '?'
 
 
-emuRandomString : Random.Seed -> Dict String String -> List String -> ( Paragraph, Random.Seed )
-emuRandomString seed vars strings =
+emuRandomString : Random.Seed -> (Doc.Text.Text -> Doc.Text.Text) -> Dict String String -> List String -> ( Paragraph, Random.Seed )
+emuRandomString seed formatter vars strings =
     randomString seed strings
-        |> Tuple.mapFirst (emu vars)
+        |> Tuple.mapFirst (emu formatter vars)
 
 
 randomString : Random.Seed -> List String -> ( String, Random.Seed )
