@@ -284,7 +284,7 @@ ticker model =
                 , Background.color <|
                     case Ticker.current model.ticker of
                         Just (Text.ActiveAthleteInput athlete _ _) ->
-                            Palette.athleteA
+                            athleteColor athlete
 
                         _ ->
                             Palette.transparent
@@ -321,7 +321,7 @@ tickerActive ta =
 
         Text.ActiveAthleteInput athlete txt _ ->
             el
-                [ Font.color Palette.athleteA
+                [ Font.color (athleteColor athlete)
                 , Font.underline
                 , Font.bold
                 ]
@@ -342,14 +342,14 @@ tickerText tt =
 
         Text.CorrectAthleteInput athlete txt ->
             el
-                [ Font.color Palette.athleteA
+                [ Font.color (athleteColor athlete)
                 , Font.bold
                 ]
                 (text (String.toUpper txt ++ "✔"))
 
         Text.WrongAthleteInput athlete txt ->
             el
-                [ Font.color Palette.athleteA
+                [ Font.color (athleteColor athlete)
                 , Font.strike
                 , Font.bold
                 ]
@@ -368,22 +368,6 @@ bar athlete (TimeLeft timeLeft) =
 
         emptyPortion =
             10000 - filledPortion
-
-        filledColor =
-            case athlete of
-                AthleteA ->
-                    Palette.athleteA
-
-                AthleteB ->
-                    Palette.athleteB
-
-        emptyColor =
-            case athlete of
-                AthleteA ->
-                    Palette.athleteADark
-
-                AthleteB ->
-                    Palette.athleteBDark
     in
     row
         [ width fill
@@ -392,13 +376,13 @@ bar athlete (TimeLeft timeLeft) =
         [ el
             [ width (fillPortion filledPortion)
             , height fill
-            , Background.color filledColor
+            , Background.color (athleteColor athlete)
             ]
             none
         , el
             [ width (fillPortion emptyPortion)
             , height fill
-            , Background.color emptyColor
+            , Background.color (athleteColorDark athlete)
             ]
             none
         ]
@@ -438,15 +422,32 @@ getStyle format =
           else
             []
         , case Doc.Format.athlete format of
-            Just AthleteA ->
-                [ Font.color Palette.athleteA ]
-
-            Just AthleteB ->
-                [ Font.color Palette.athleteB ]
+            Just athlete ->
+                [ Font.color (athleteColor athlete) ]
 
             Nothing ->
                 []
         ]
+
+
+athleteColor : Athlete -> Color
+athleteColor athlete =
+    case athlete of
+        AthleteA ->
+            Palette.athleteA
+
+        AthleteB ->
+            Palette.athleteB
+
+
+athleteColorDark : Athlete -> Color
+athleteColorDark athlete =
+    case athlete of
+        AthleteA ->
+            Palette.athleteADark
+
+        AthleteB ->
+            Palette.athleteBDark
 
 
 
