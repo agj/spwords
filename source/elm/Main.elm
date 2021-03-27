@@ -60,14 +60,8 @@ type alias Model =
 type GameStatus
     = GameLoading
     | GameIntro Words
-    | GamePlaying Words GameState
+    | GamePlaying Words
     | WordsLoadError Http.Error
-
-
-type GameState
-    = JustStarted
-    | Serving { initial : Char }
-    | Rallying { initial : Char, incorporates : Char, alreadyPlayed : List String }
 
 
 type alias Flags =
@@ -133,7 +127,7 @@ update msg model =
                     else
                         modelCmd
 
-                GamePlaying words _ ->
+                GamePlaying words ->
                     if isEnter text then
                         case Ticker.current model.ticker of
                             Just (Text.ActiveAthleteInput _ _) ->
@@ -191,7 +185,7 @@ update msg model =
                 GameIntro _ ->
                     modelCmd
 
-                GamePlaying _ _ ->
+                GamePlaying _ ->
                     modelCmd
 
                 WordsLoadError _ ->
@@ -487,7 +481,7 @@ startGame model =
                         |> emuRandomString seed1 vars
             in
             { model
-                | game = GamePlaying words JustStarted
+                | game = GamePlaying words
                 , ticker =
                     model.ticker
                         |> Ticker.queueUp (Text.QueuedAnnouncement start)
