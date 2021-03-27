@@ -385,30 +385,44 @@ bar athlete (TimeLeft timeLeft) active =
 
         emptyPortion =
             10000 - filledPortion
-    in
-    row
-        [ width fill
-        , height
-            (if active then
-                px (Palette.spaceSmall * 3)
 
-             else
-                px Palette.spaceSmall
-            )
+        fullHeight =
+            Palette.spaceSmall * 3
+    in
+    el
+        [ width fill
+        , height (px fullHeight)
         ]
-        [ el
-            [ width (fillPortion emptyPortion)
-            , height fill
-            , Background.color (athleteColorDark athlete)
+        (row
+            [ case athlete of
+                AthleteA ->
+                    alignTop
+
+                AthleteB ->
+                    alignBottom
+            , width fill
+            , height
+                (if active then
+                    px fullHeight
+
+                 else
+                    px Palette.spaceSmall
+                )
             ]
-            none
-        , el
-            [ width (fillPortion filledPortion)
-            , height fill
-            , Background.color (athleteColor athlete)
+            [ el
+                [ width (fillPortion emptyPortion)
+                , height fill
+                , Background.color (athleteColorDark athlete)
+                ]
+                none
+            , el
+                [ width (fillPortion filledPortion)
+                , height fill
+                , Background.color (athleteColor athlete)
+                ]
+                none
             ]
-            none
-        ]
+        )
 
 
 fromDocParagraph : Paragraph.Paragraph -> Element msg

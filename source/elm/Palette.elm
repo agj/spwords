@@ -49,7 +49,8 @@ transparent =
 
 font : List Font
 font =
-    [ Font.monospace
+    [ Font.typeface "Source Code Pro"
+    , Font.monospace
     ]
 
 
