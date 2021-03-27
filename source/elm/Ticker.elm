@@ -58,7 +58,7 @@ passed ticker =
 inputted : Ticker -> Maybe String
 inputted ticker =
     case current ticker of
-        Just (Text.ActiveAthleteInput text cnst) ->
+        Just (Text.ActiveAthleteInput athlete text cnst) ->
             Just text
 
         _ ->
@@ -108,7 +108,7 @@ input : String -> Ticker -> Ticker
 input text ticker =
     checkAdvanceQueue <|
         case current ticker of
-            Just (Text.ActiveAthleteInput txt cnst) ->
+            Just (Text.ActiveAthleteInput athlete txt cnst) ->
                 let
                     fixedText =
                         text
@@ -118,7 +118,7 @@ input text ticker =
                                     String.any ((==) ch) "abcdefghijklmnopqrstuvwxyzñ-'"
                                 )
                 in
-                swapCurrent (Text.ActiveAthleteInput (txt ++ fixedText) cnst) ticker
+                swapCurrent (Text.ActiveAthleteInput athlete (txt ++ fixedText) cnst) ticker
 
             _ ->
                 ticker
@@ -127,8 +127,8 @@ input text ticker =
 inputCorrect : Ticker -> Ticker
 inputCorrect ticker =
     case current ticker of
-        Just (Text.ActiveAthleteInput text cnst) ->
-            advanceQueue (Text.CorrectAthleteInput text) ticker
+        Just (Text.ActiveAthleteInput athlete text cnst) ->
+            advanceQueue (Text.CorrectAthleteInput athlete text) ticker
 
         _ ->
             ticker
@@ -137,8 +137,8 @@ inputCorrect ticker =
 inputWrong : Ticker -> Ticker
 inputWrong ticker =
     case current ticker of
-        Just (Text.ActiveAthleteInput text cnst) ->
-            advanceQueue (Text.WrongAthleteInput text) ticker
+        Just (Text.ActiveAthleteInput athlete text cnst) ->
+            advanceQueue (Text.WrongAthleteInput athlete text) ticker
 
         _ ->
             ticker
@@ -193,8 +193,8 @@ fromQueued qt =
         Text.QueuedInstruction text ->
             Text.ActiveInstruction text 0
 
-        Text.QueuedAthleteInput cnts ->
-            Text.ActiveAthleteInput "" cnts
+        Text.QueuedAthleteInput athlete cnts ->
+            Text.ActiveAthleteInput athlete "" cnts
 
 
 swapCurrent : Active -> Ticker -> Ticker

@@ -131,7 +131,7 @@ update msg model =
                 GamePlaying words ->
                     if isEnter text then
                         case Ticker.current model.ticker of
-                            Just (Text.ActiveAthleteInput _ _) ->
+                            Just (Text.ActiveAthleteInput athlete _ _) ->
                                 ( model |> checkInput words
                                 , Cmd.none
                                 )
@@ -283,7 +283,7 @@ ticker model =
                 , height (px (Palette.textSizeLarger * 2))
                 , Background.color <|
                     case Ticker.current model.ticker of
-                        Just (Text.ActiveAthleteInput _ _) ->
+                        Just (Text.ActiveAthleteInput athlete _ _) ->
                             Palette.athleteA
 
                         _ ->
@@ -319,7 +319,7 @@ tickerActive ta =
         Text.ActiveInstruction txt ticks ->
             fromDocParagraph (Doc.Util.paragraphLeft ticks txt)
 
-        Text.ActiveAthleteInput txt _ ->
+        Text.ActiveAthleteInput athlete txt _ ->
             el
                 [ Font.color Palette.athleteA
                 , Font.underline
@@ -340,14 +340,14 @@ tickerText tt =
         Text.Instruction txt ->
             fromDocParagraph txt
 
-        Text.CorrectAthleteInput txt ->
+        Text.CorrectAthleteInput athlete txt ->
             el
                 [ Font.color Palette.athleteA
                 , Font.bold
                 ]
                 (text (String.toUpper txt ++ "✔"))
 
-        Text.WrongAthleteInput txt ->
+        Text.WrongAthleteInput athlete txt ->
             el
                 [ Font.color Palette.athleteA
                 , Font.strike
@@ -502,7 +502,7 @@ startGame model =
                         |> Ticker.queueUp (Text.QueuedAnnouncement start)
                         |> Ticker.queueUp (Text.QueuedAnnouncement rules)
                         |> Ticker.queueUp (Text.QueuedInstruction turnAndLetter)
-                        |> Ticker.queueUp (Text.QueuedAthleteInput (Constraints.serve initial))
+                        |> Ticker.queueUp (Text.QueuedAthleteInput AthleteA (Constraints.serve initial))
                 , randomSeed = newSeed
             }
 
@@ -513,7 +513,7 @@ startGame model =
 checkPartialInput : Words -> Model -> Model
 checkPartialInput words model =
     case Ticker.current model.ticker of
-        Just (Text.ActiveAthleteInput txt cnts) ->
+        Just (Text.ActiveAthleteInput athlete txt cnts) ->
             case Constraints.checkCandidate txt cnts words of
                 Constraints.CandidateCorrect ->
                     model
@@ -534,7 +534,7 @@ checkPartialInput words model =
 checkInput : Words -> Model -> Model
 checkInput words model =
     case Ticker.current model.ticker of
-        Just (Text.ActiveAthleteInput txt cnts) ->
+        Just (Text.ActiveAthleteInput athlete txt cnts) ->
             case Constraints.check txt cnts words of
                 Constraints.InputCorrect ->
                     inputCorrect model
@@ -558,7 +558,7 @@ checkInput words model =
 inputCorrect : Model -> Model
 inputCorrect model =
     case Ticker.current model.ticker of
-        Just (Text.ActiveAthleteInput previousWord cnts) ->
+        Just (Text.ActiveAthleteInput athlete previousWord cnts) ->
             let
                 newCnts =
                     Constraints.rally
@@ -577,7 +577,7 @@ inputCorrect model =
                 | ticker =
                     Ticker.inputCorrect model.ticker
                         |> Ticker.queueUp (Text.QueuedInstruction message)
-                        |> Ticker.queueUp (Text.QueuedAthleteInput newCnts)
+                        |> Ticker.queueUp (Text.QueuedAthleteInput AthleteA newCnts)
                 , randomSeed = newSeed
             }
 
@@ -588,7 +588,7 @@ inputCorrect model =
 inputWrong : List String -> Model -> Model
 inputWrong messages model =
     case Ticker.current model.ticker of
-        Just (Text.ActiveAthleteInput previousWord cnts) ->
+        Just (Text.ActiveAthleteInput athlete previousWord cnts) ->
             let
                 newCnts =
                     case Constraints.getIncorporates cnts of
@@ -622,7 +622,7 @@ inputWrong messages model =
                 | ticker =
                     Ticker.inputWrong model.ticker
                         |> Ticker.queueUp (Text.QueuedInstruction message)
-                        |> Ticker.queueUp (Text.QueuedAthleteInput newCnts)
+                        |> Ticker.queueUp (Text.QueuedAthleteInput AthleteA newCnts)
                 , randomSeed = newSeed
             }
 
