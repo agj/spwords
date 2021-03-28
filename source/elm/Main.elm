@@ -146,10 +146,18 @@ update msg model =
                                 modelCmd
 
                     else
-                        ( { model | ticker = Ticker.input text model.ticker }
-                            |> checkPartialInput words
-                        , Cmd.none
-                        )
+                        case Ticker.current model.ticker of
+                            Just (Text.ActiveAthleteInput AthleteA _ _) ->
+                                ( { model | ticker = Ticker.input text model.ticker }
+                                    |> checkPartialInput words
+                                , Cmd.none
+                                )
+
+                            Just (Text.ActiveAthleteInput AthleteB _ _) ->
+                                modelCmd
+
+                            _ ->
+                                modelCmd
 
                 GameLoading ->
                     modelCmd
@@ -514,7 +522,7 @@ startGame model =
             let
                 vars =
                     Dict.fromList
-                        [ ( "turn", "player" )
+                        [ ( "turn", "computer" )
                         , ( "letter", initial |> String.fromChar )
                         , ( "athleteA", "player" )
                         , ( "athleteB", "computer" )
