@@ -3,6 +3,7 @@ module Main exposing (..)
 import Athlete exposing (..)
 import Browser
 import Browser.Events
+import CustomEl
 import Dict exposing (Dict)
 import Doc
 import Doc.EmuDecode
@@ -369,6 +370,7 @@ tickerText tt =
                 [ Font.color (athleteColor athlete)
                 , Font.strike
                 , Font.bold
+                , CustomEl.style "text-decoration-color" (Utils.toCssColor Palette.light)
                 ]
                 (text (String.toUpper txt))
 
