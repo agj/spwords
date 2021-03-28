@@ -138,7 +138,15 @@ inputWrong : Ticker -> Ticker
 inputWrong ticker =
     case current ticker of
         Just (Text.ActiveAthleteInput athlete text cnst) ->
-            advanceQueue (Text.WrongAthleteInput athlete text) ticker
+            let
+                fixedText =
+                    if String.length text == 0 then
+                        " "
+
+                    else
+                        text
+            in
+            advanceQueue (Text.WrongAthleteInput athlete fixedText) ticker
 
         _ ->
             ticker
