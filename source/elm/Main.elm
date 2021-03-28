@@ -675,6 +675,14 @@ inputWrong messages model =
                         Nothing ->
                             Constraints.serve (Constraints.getInitial cnts)
 
+                newAthlete =
+                    case athlete of
+                        AthleteA ->
+                            AthleteB
+
+                        AthleteB ->
+                            AthleteA
+
                 vars =
                     Dict.singleton "initial" (Constraints.getInitial newCnts |> String.fromChar)
                         |> (case Constraints.getIncorporates newCnts of
@@ -708,7 +716,7 @@ inputWrong messages model =
                 | ticker =
                     Ticker.inputWrong model.ticker
                         |> Ticker.queueUp (Text.QueuedInstruction message)
-                        |> Ticker.queueUp (Text.QueuedAthleteInput AthleteA newCnts)
+                        |> Ticker.queueUp (Text.QueuedAthleteInput newAthlete newCnts)
                 , randomSeed = newSeed
             }
 
