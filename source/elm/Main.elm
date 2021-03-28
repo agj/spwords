@@ -529,6 +529,9 @@ startGame model =
                         "turn" ->
                             txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just AthleteA))
 
+                        "letter" ->
+                            txt |> Doc.Text.mapFormat (Doc.Format.setBold True)
+
                         _ ->
                             txt
 
@@ -655,20 +658,33 @@ inputWrong messages model =
                             Constraints.serve (Constraints.getInitial cnts)
 
                 vars =
-                    List.append
-                        [ ( "initial", Constraints.getInitial newCnts |> String.fromChar ) ]
-                        (case Constraints.getIncorporates newCnts of
-                            Just char ->
-                                [ ( "incorporates", char |> String.fromChar ) ]
+                    Dict.singleton "initial" (Constraints.getInitial newCnts |> String.fromChar)
+                        |> (case Constraints.getIncorporates newCnts of
+                                Just char ->
+                                    Dict.insert "incorporates" (char |> String.fromChar)
 
-                            Nothing ->
-                                []
-                        )
-                        |> Dict.fromList
+                                Nothing ->
+                                    identity
+                           )
+
+                setStyles txt =
+                    let
+                        boldify =
+                            Doc.Text.mapFormat (Doc.Format.setBold True)
+                    in
+                    case Doc.Text.content txt of
+                        "initial" ->
+                            boldify txt
+
+                        "incorporates" ->
+                            boldify txt
+
+                        _ ->
+                            txt
 
                 ( message, newSeed ) =
                     messages
-                        |> emuRandomString model.randomSeed identity vars
+                        |> emuRandomString model.randomSeed setStyles vars
             in
             { model
                 | ticker =
