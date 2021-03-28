@@ -1,17 +1,28 @@
 module Game exposing
     ( Game
     , active
+    , empty
+    , enter
+    , input
+    , inputCorrect
+    , inputWrong
     , inputted
     , queueUp
     , tick
     )
 
-import Ticker.Text exposing (Active(..), Queued(..))
+import Doc.Paragraph as Paragraph
+import Ticker.Text exposing (Active(..), Queued(..), Text(..))
 
 
 type Game
-    = Hotseat active (List Queued)
+    = Hotseat Active (List Queued)
     | Idle
+
+
+empty : Game
+empty =
+    Idle
 
 
 active : Game -> Maybe Active
@@ -20,7 +31,7 @@ active game =
         Hotseat act _ ->
             Just act
 
-        Idle _ ->
+        Idle ->
             Nothing
 
 
@@ -68,7 +79,7 @@ tick game =
 
 enter : Game -> ( Game, Maybe Text )
 enter game =
-    case current game of
+    case active game of
         Just (ActiveAnnouncement txt ticks) ->
             ( advanceQueue game
             , Just (InterruptedAnnouncement txt ticks)
@@ -112,7 +123,7 @@ inputCorrect game =
             ( game, Nothing )
 
 
-inputWrong : Game -> Game
+inputWrong : Game -> ( Game, Maybe Text )
 inputWrong game =
     case active game of
         Just (ActiveAthleteInput athlete text cnst) ->
@@ -172,9 +183,9 @@ advanceQueue game =
                         (List.tail queue |> Maybe.withDefault [])
 
                 Nothing ->
-                    Idle []
+                    Idle
 
-        Idle _ ->
+        Idle ->
             game
 
 
@@ -197,5 +208,5 @@ swapActive newActive game =
         Hotseat _ queue ->
             Hotseat newActive queue
 
-        Idle _ ->
+        Idle ->
             game

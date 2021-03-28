@@ -154,7 +154,11 @@ update msg model =
                                 )
 
                             Just (Text.ActiveAthleteInput AthleteB _ _) ->
-                                modelCmd
+                                -- For now, user inputs for computer too.
+                                ( { model | ticker = Ticker.input text model.ticker }
+                                    |> checkPartialInput words
+                                , Cmd.none
+                                )
 
                             _ ->
                                 modelCmd
