@@ -529,7 +529,7 @@ startGame model =
                             txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just AthleteB))
 
                         "turn" ->
-                            txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just AthleteA))
+                            txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just AthleteB))
 
                         "letter" ->
                             txt |> Doc.Text.mapFormat (Doc.Format.setBold True)
@@ -559,7 +559,7 @@ startGame model =
                         |> Ticker.queueUp (Text.QueuedAnnouncement start)
                         |> Ticker.queueUp (Text.QueuedAnnouncement rules)
                         |> Ticker.queueUp (Text.QueuedInstruction turnAndLetter)
-                        |> Ticker.queueUp (Text.QueuedAthleteInput AthleteA (Constraints.serve initial))
+                        |> Ticker.queueUp (Text.QueuedAthleteInput AthleteB (Constraints.serve initial))
                 , randomSeed = newSeed
             }
 
@@ -629,12 +629,20 @@ inputCorrect model =
                 ( message, newSeed ) =
                     Texts.comments.interjection
                         |> emuRandomString model.randomSeed identity Dict.empty
+
+                newAthlete =
+                    case athlete of
+                        AthleteA ->
+                            AthleteB
+
+                        AthleteB ->
+                            AthleteA
             in
             { model
                 | ticker =
                     Ticker.inputCorrect model.ticker
                         |> Ticker.queueUp (Text.QueuedInstruction message)
-                        |> Ticker.queueUp (Text.QueuedAthleteInput AthleteA newCnts)
+                        |> Ticker.queueUp (Text.QueuedAthleteInput newAthlete newCnts)
                 , randomSeed = newSeed
             }
 
