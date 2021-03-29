@@ -1,11 +1,11 @@
-module Ticker.Text exposing (..)
+module Message exposing (..)
 
 import Athlete exposing (..)
+import Constraints exposing (Constraints)
 import Doc.Paragraph exposing (Paragraph)
-import Ticker.Text.Constraints as Constraints exposing (Constraints)
 
 
-type Text
+type Message
     = InterruptedAnnouncement Paragraph Int
     | FinishedAnnouncement Paragraph
     | Instruction Paragraph

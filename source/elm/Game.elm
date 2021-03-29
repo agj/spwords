@@ -12,7 +12,7 @@ module Game exposing
     )
 
 import Doc.Paragraph as Paragraph
-import Ticker.Text exposing (Active(..), Queued(..), Text(..))
+import Message exposing (Active(..), Message(..), Queued(..))
 
 
 type Game
@@ -59,7 +59,7 @@ queueUp q game =
             Hotseat (fromQueued q) []
 
 
-tick : Game -> ( Game, Maybe Text )
+tick : Game -> ( Game, Maybe Message )
 tick game =
     checkAdvanceQueue <|
         case active game of
@@ -77,7 +77,7 @@ tick game =
                 game
 
 
-enter : Game -> ( Game, Maybe Text )
+enter : Game -> ( Game, Maybe Message )
 enter game =
     case active game of
         Just (ActiveAnnouncement txt ticks) ->
@@ -89,7 +89,7 @@ enter game =
             ( game, Nothing )
 
 
-input : String -> Game -> ( Game, Maybe Text )
+input : String -> Game -> ( Game, Maybe Message )
 input text game =
     checkAdvanceQueue <|
         case active game of
@@ -111,7 +111,7 @@ input text game =
                 game
 
 
-inputCorrect : Game -> ( Game, Maybe Text )
+inputCorrect : Game -> ( Game, Maybe Message )
 inputCorrect game =
     case active game of
         Just (ActiveAthleteInput athlete text cnst) ->
@@ -123,7 +123,7 @@ inputCorrect game =
             ( game, Nothing )
 
 
-inputWrong : Game -> ( Game, Maybe Text )
+inputWrong : Game -> ( Game, Maybe Message )
 inputWrong game =
     case active game of
         Just (ActiveAthleteInput athlete text cnst) ->
@@ -147,7 +147,7 @@ inputWrong game =
 -- INTERNAL
 
 
-checkAdvanceQueue : Game -> ( Game, Maybe Text )
+checkAdvanceQueue : Game -> ( Game, Maybe Message )
 checkAdvanceQueue game =
     case active game of
         Just (ActiveAnnouncement text ticks) ->

@@ -12,13 +12,13 @@ module Ticker exposing
     , tick
     )
 
+import Constraints exposing (Constraints)
 import Game exposing (Game)
-import Ticker.Text as Text exposing (Active, Queued, Text)
-import Ticker.Text.Constraints as Constraints exposing (Constraints)
+import Message exposing (Active, Message, Queued)
 
 
 type Ticker
-    = Ticker (List Text) Game
+    = Ticker (List Message) Game
 
 
 
@@ -39,7 +39,7 @@ current (Ticker _ game) =
     Game.active game
 
 
-passed : Ticker -> List Text
+passed : Ticker -> List Message
 passed (Ticker p _) =
     p
 
@@ -92,7 +92,7 @@ inputWrong ((Ticker _ game) as ticker) =
 -- INTERNAL
 
 
-handleNewText : Ticker -> ( Game, Maybe Text ) -> Ticker
+handleNewText : Ticker -> ( Game, Maybe Message ) -> Ticker
 handleNewText (Ticker p _) ( newGame, textM ) =
     case textM of
         Just text ->

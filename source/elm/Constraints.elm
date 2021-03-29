@@ -1,4 +1,4 @@
-module Ticker.Text.Constraints exposing
+module Constraints exposing
     ( CandidateCheck(..)
     , Constraints
     , InputCheck(..)
