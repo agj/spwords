@@ -62,6 +62,7 @@ type alias Model =
 
 type GameStatus
     = GameLoading
+    | GameIntro Words
     | GamePlaying Words Game
     | WordsLoadError Http.Error
 
