@@ -18,6 +18,7 @@ import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
+import Game exposing (Game)
 import Html exposing (Html)
 import Http
 import Levers
@@ -61,8 +62,7 @@ type alias Model =
 
 type GameStatus
     = GameLoading
-    | GameIntro Words
-    | GamePlaying Words
+    | GamePlaying Words Game
     | WordsLoadError Http.Error
 
 
@@ -129,7 +129,7 @@ update msg model =
                     else
                         modelCmd
 
-                GamePlaying words ->
+                GamePlaying words game ->
                     if isEnter text then
                         case Ticker.current model.ticker of
                             Just (Message.ActiveAthleteInput athlete _ _) ->
@@ -199,7 +199,7 @@ update msg model =
                 GameIntro _ ->
                     modelCmd
 
-                GamePlaying _ ->
+                GamePlaying _ _ ->
                     modelCmd
 
                 WordsLoadError _ ->
@@ -565,7 +565,7 @@ startGame model =
                         |> emuRandomString seed1 setStyles vars
             in
             { model
-                | game = GamePlaying words
+                | game = GamePlaying words Game.empty
                 , ticker =
                     model.ticker
                         |> Ticker.queueUp (Message.QueuedAnnouncement start)
