@@ -62,7 +62,7 @@ type alias Model =
 
 type GameStatus
     = GameLoading
-    | GameIntro Words
+    | GameLoaded Words
     | GamePlaying Words Game
     | WordsLoadError Http.Error
 
@@ -120,7 +120,7 @@ update msg model =
 
         Inputted text ->
             case model.game of
-                GameIntro _ ->
+                GameLoaded _ ->
                     if isEnter text then
                         ( { model | ticker = Ticker.enter model.ticker }
                             |> startGame
@@ -183,7 +183,7 @@ update msg model =
                     case result of
                         Ok words ->
                             ( { model
-                                | game = GameIntro (Words.parse words)
+                                | game = GameLoaded (Words.parse words)
                                 , ticker =
                                     model.ticker
                                         |> Ticker.queueUp
@@ -197,7 +197,7 @@ update msg model =
                             , Cmd.none
                             )
 
-                GameIntro _ ->
+                GameLoaded _ ->
                     modelCmd
 
                 GamePlaying _ _ ->
@@ -523,7 +523,7 @@ subscriptions model =
 startGame : Model -> Model
 startGame model =
     case model.game of
-        GameIntro words ->
+        GameLoaded words ->
             let
                 vars =
                     Dict.fromList
