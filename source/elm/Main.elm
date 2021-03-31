@@ -140,36 +140,6 @@ update msg model =
     let
         modelCmd =
             ( model, Cmd.none )
-
-        tickStatus status =
-            case status of
-                Loading ann ->
-                    Loading (Announcement.tick ann)
-
-                Ready words passed ann ->
-                    Ready words passed (Announcement.tick ann)
-
-                Playing words passed game ->
-                    case game of
-                        Hotseat turn ->
-                            case turn of
-                                GameStart ann ->
-                                    Playing words passed (Hotseat (GameStart (ann |> Announcement.tick)))
-
-                                Rules ann ->
-                                    Playing words passed (Hotseat (Rules (ann |> Announcement.tick)))
-
-                                TurnStart score athlete cnts ann ->
-                                    Playing words passed (Hotseat (TurnStart score athlete cnts (ann |> Announcement.tick)))
-
-                                _ ->
-                                    status
-
-                        _ ->
-                            status
-
-                _ ->
-                    status
     in
     case msg of
         Ticked _ ->
@@ -203,6 +173,11 @@ update msg model =
 
                                     Rules _ ->
                                         ( startTurn model
+                                        , Cmd.none
+                                        )
+
+                                    TurnStart _ _ _ _ ->
+                                        ( startPlay model
                                         , Cmd.none
                                         )
 
@@ -290,6 +265,38 @@ update msg model =
 
         NoOp ->
             modelCmd
+
+
+tickStatus : Status -> Status
+tickStatus status =
+    case status of
+        Loading ann ->
+            Loading (Announcement.tick ann)
+
+        Ready words passed ann ->
+            Ready words passed (Announcement.tick ann)
+
+        Playing words passed game ->
+            case game of
+                Hotseat turn ->
+                    case turn of
+                        GameStart ann ->
+                            Playing words passed (Hotseat (GameStart (ann |> Announcement.tick)))
+
+                        Rules ann ->
+                            Playing words passed (Hotseat (Rules (ann |> Announcement.tick)))
+
+                        TurnStart score athlete cnts ann ->
+                            Playing words passed (Hotseat (TurnStart score athlete cnts (ann |> Announcement.tick)))
+
+                        _ ->
+                            status
+
+                _ ->
+                    status
+
+        _ ->
+            status
 
 
 
@@ -634,8 +641,8 @@ startGame2 model =
             let
                 vars =
                     Dict.fromList
-                        [ ( "athleteA", "player" )
-                        , ( "athleteB", "computer" )
+                        [ ( "athleteA", "left" )
+                        , ( "athleteB", "right" )
                         ]
 
                 setStyles txt =
@@ -716,14 +723,14 @@ startTurn model =
 
                                 vars =
                                     Dict.fromList
-                                        [ ( "turn", "computer" )
+                                        [ ( "turn", "left" )
                                         , ( "letter", initial |> String.fromChar )
                                         ]
 
                                 setStyles txt =
                                     case Doc.Text.content txt of
                                         "turn" ->
-                                            txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just AthleteB))
+                                            txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just AthleteA))
 
                                         "letter" ->
                                             txt |> Doc.Text.mapFormat (Doc.Format.setBold True)
@@ -751,6 +758,33 @@ startTurn model =
                             { model
                                 | status = Playing words newPassed newGame
                                 , randomSeed = newSeed
+                            }
+
+                        _ ->
+                            model
+
+                _ ->
+                    model
+
+        _ ->
+            model
+
+
+startPlay : Model -> Model
+startPlay model =
+    case model.status of
+        Playing words passed game ->
+            case game of
+                Hotseat turn ->
+                    case turn of
+                        TurnStart score athlete cnts ann ->
+                            let
+                                newPassed =
+                                    passed
+                                        |> Passed.push (Announcement.toMessage ann)
+                            in
+                            { model
+                                | status = Playing words newPassed (Hotseat (Play score athlete "" cnts))
                             }
 
                         _ ->
