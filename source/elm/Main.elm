@@ -310,6 +310,149 @@ tickStatus status =
             status
 
 
+startGame : Model -> Model
+startGame model =
+    case model.status of
+        Ready words passed ann ->
+            let
+                vars =
+                    Dict.fromList
+                        [ ( "athleteA", "left" )
+                        , ( "athleteB", "right" )
+                        ]
+
+                setStyles txt =
+                    case Doc.Text.content txt of
+                        "athleteA" ->
+                            txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just AthleteA))
+
+                        "athleteB" ->
+                            txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just AthleteB))
+
+                        _ ->
+                            txt
+
+                newPassed =
+                    passed
+                        |> Passed.push (Announcement.toMessage ann)
+
+                game =
+                    Hotseat
+                        (GameStart
+                            (Texts.comments.start
+                                |> emu setStyles vars
+                                |> Announcement.create
+                            )
+                        )
+            in
+            { model | status = Playing words newPassed game }
+
+        _ ->
+            model
+
+
+showRules : Model -> Model
+showRules model =
+    case model.status of
+        Playing words passed (Hotseat (GameStart ann)) ->
+            let
+                newPassed =
+                    passed
+                        |> Passed.push (Announcement.toMessage ann)
+
+                newGame =
+                    Hotseat
+                        (Rules
+                            (Texts.comments.rules
+                                |> emu identity Dict.empty
+                                |> Announcement.create
+                            )
+                        )
+            in
+            { model | status = Playing words newPassed newGame }
+
+        _ ->
+            model
+
+
+startTurn : Model -> Model
+startTurn model =
+    case model.status of
+        Playing words passed (Hotseat (Rules ann)) ->
+            let
+                ( initial, seed1 ) =
+                    randomLetter model.randomSeed Texts.alphabet
+
+                vars =
+                    Dict.fromList
+                        [ ( "turn", "left" )
+                        , ( "letter", initial |> String.fromChar )
+                        ]
+
+                setStyles txt =
+                    case Doc.Text.content txt of
+                        "turn" ->
+                            txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just AthleteA))
+
+                        "letter" ->
+                            txt |> Doc.Text.mapFormat (Doc.Format.setBold True)
+
+                        _ ->
+                            txt
+
+                ( turnAndLetter, newSeed ) =
+                    Texts.comments.turnAndLetter
+                        |> emuRandomString seed1 setStyles vars
+
+                newPassed =
+                    passed
+                        |> Passed.push (Announcement.toMessage ann)
+
+                newGame =
+                    Hotseat
+                        (TurnStart
+                            Score.emptyPlayingScore
+                            AthleteB
+                            (Constraints.serve initial)
+                            (Announcement.create turnAndLetter)
+                        )
+            in
+            { model
+                | status = Playing words newPassed newGame
+                , randomSeed = newSeed
+            }
+
+        _ ->
+            model
+
+
+startPlay : Model -> Model
+startPlay model =
+    case model.status of
+        Playing words passed (Hotseat (TurnStart score athlete cnts ann)) ->
+            let
+                newPassed =
+                    passed
+                        |> Passed.push (Announcement.toMessage ann)
+            in
+            { model
+                | status = Playing words newPassed (Hotseat (Play score athlete "" cnts))
+            }
+
+        _ ->
+            model
+
+
+userInput : String -> Model -> Model
+userInput text model =
+    case model.status of
+        Playing words passed (Hotseat (Play score athlete oldText cnts)) ->
+            { model | status = Playing words passed (Hotseat (Play score athlete (oldText ++ text) cnts)) }
+
+        _ ->
+            model
+
+
 
 -- VIEW
 
@@ -653,149 +796,6 @@ subscriptions model =
 
 
 -- OTHER
-
-
-startGame : Model -> Model
-startGame model =
-    case model.status of
-        Ready words passed ann ->
-            let
-                vars =
-                    Dict.fromList
-                        [ ( "athleteA", "left" )
-                        , ( "athleteB", "right" )
-                        ]
-
-                setStyles txt =
-                    case Doc.Text.content txt of
-                        "athleteA" ->
-                            txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just AthleteA))
-
-                        "athleteB" ->
-                            txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just AthleteB))
-
-                        _ ->
-                            txt
-
-                newPassed =
-                    passed
-                        |> Passed.push (Announcement.toMessage ann)
-
-                game =
-                    Hotseat
-                        (GameStart
-                            (Texts.comments.start
-                                |> emu setStyles vars
-                                |> Announcement.create
-                            )
-                        )
-            in
-            { model | status = Playing words newPassed game }
-
-        _ ->
-            model
-
-
-showRules : Model -> Model
-showRules model =
-    case model.status of
-        Playing words passed (Hotseat (GameStart ann)) ->
-            let
-                newPassed =
-                    passed
-                        |> Passed.push (Announcement.toMessage ann)
-
-                newGame =
-                    Hotseat
-                        (Rules
-                            (Texts.comments.rules
-                                |> emu identity Dict.empty
-                                |> Announcement.create
-                            )
-                        )
-            in
-            { model | status = Playing words newPassed newGame }
-
-        _ ->
-            model
-
-
-startTurn : Model -> Model
-startTurn model =
-    case model.status of
-        Playing words passed (Hotseat (Rules ann)) ->
-            let
-                ( initial, seed1 ) =
-                    randomLetter model.randomSeed Texts.alphabet
-
-                vars =
-                    Dict.fromList
-                        [ ( "turn", "left" )
-                        , ( "letter", initial |> String.fromChar )
-                        ]
-
-                setStyles txt =
-                    case Doc.Text.content txt of
-                        "turn" ->
-                            txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just AthleteA))
-
-                        "letter" ->
-                            txt |> Doc.Text.mapFormat (Doc.Format.setBold True)
-
-                        _ ->
-                            txt
-
-                ( turnAndLetter, newSeed ) =
-                    Texts.comments.turnAndLetter
-                        |> emuRandomString seed1 setStyles vars
-
-                newPassed =
-                    passed
-                        |> Passed.push (Announcement.toMessage ann)
-
-                newGame =
-                    Hotseat
-                        (TurnStart
-                            Score.emptyPlayingScore
-                            AthleteB
-                            (Constraints.serve initial)
-                            (Announcement.create turnAndLetter)
-                        )
-            in
-            { model
-                | status = Playing words newPassed newGame
-                , randomSeed = newSeed
-            }
-
-        _ ->
-            model
-
-
-startPlay : Model -> Model
-startPlay model =
-    case model.status of
-        Playing words passed (Hotseat (TurnStart score athlete cnts ann)) ->
-            let
-                newPassed =
-                    passed
-                        |> Passed.push (Announcement.toMessage ann)
-            in
-            { model
-                | status = Playing words newPassed (Hotseat (Play score athlete "" cnts))
-            }
-
-        _ ->
-            model
-
-
-userInput : String -> Model -> Model
-userInput text model =
-    case model.status of
-        Playing words passed (Hotseat (Play score athlete oldText cnts)) ->
-            { model | status = Playing words passed (Hotseat (Play score athlete (oldText ++ text) cnts)) }
-
-        _ ->
-            model
 
 
 checkPartialInput : Words -> Model -> Model
