@@ -199,23 +199,34 @@ update msg model =
                         --         modelCmd
 
                     else
-                        case Ticker.current model.ticker of
-                            Just (Message.ActiveAthleteInput AthleteA _ _) ->
-                                ( { model | ticker = Ticker.input text model.ticker }
-                                    |> checkPartialInput words
-                                , Cmd.none
-                                )
+                        case game of
+                            Hotseat turn ->
+                                case turn of
+                                    Play _ _ _ _ ->
+                                        ( userInput text model
+                                        , Cmd.none
+                                        )
 
-                            Just (Message.ActiveAthleteInput AthleteB _ _) ->
-                                -- For now, user inputs for computer too.
-                                ( { model | ticker = Ticker.input text model.ticker }
-                                    |> checkPartialInput words
-                                , Cmd.none
-                                )
+                                    _ ->
+                                        modelCmd
 
                             _ ->
                                 modelCmd
 
+                -- case Ticker.current model.ticker of
+                --     Just (Message.ActiveAthleteInput AthleteA _ _) ->
+                --         ( { model | ticker = Ticker.input text model.ticker }
+                --             |> checkPartialInput words
+                --         , Cmd.none
+                --         )
+                --     Just (Message.ActiveAthleteInput AthleteB _ _) ->
+                --         -- For now, user inputs for computer too.
+                --         ( { model | ticker = Ticker.input text model.ticker }
+                --             |> checkPartialInput words
+                --         , Cmd.none
+                --         )
+                --     _ ->
+                --         modelCmd
                 Loading _ ->
                     modelCmd
 
@@ -384,14 +395,14 @@ ticker model =
                 ]
                 none
 
-        toTickerTexts ann passed =
-            (tickerAnnouncement ann
+        toTickerTexts act passed =
+            (act
                 :: tickerPassed passed
             )
                 |> List.reverse
                 |> List.intersperse (text " ")
 
-        tickerEl ann passed =
+        tickerEl act passed =
             row
                 [ centerY
                 , width fill
@@ -405,39 +416,39 @@ ticker model =
                     ]
                     (row
                         [ alignRight ]
-                        (toTickerTexts ann passed)
+                        (toTickerTexts act passed)
                     )
                 , cursor
                 ]
+    in
+    case model.status of
+        Loading ann ->
+            tickerEl (tickerAnnouncement ann) Passed.empty
 
-        announcementFromGame game =
+        Ready _ passed ann ->
+            tickerEl (tickerAnnouncement ann) passed
+
+        Playing _ passed game ->
             case game of
                 Hotseat turn ->
                     case turn of
                         GameStart ann ->
-                            ann
+                            tickerEl (tickerAnnouncement ann) passed
 
                         Rules ann ->
-                            ann
+                            tickerEl (tickerAnnouncement ann) passed
 
                         TurnStart _ _ _ ann ->
-                            ann
+                            tickerEl (tickerAnnouncement ann) passed
+
+                        Play _ athlete text _ ->
+                            tickerEl (tickerPlay athlete text) passed
 
                         _ ->
-                            Announcement.create Paragraph.empty
+                            none
 
                 _ ->
-                    Announcement.create Paragraph.empty
-    in
-    case model.status of
-        Loading ann ->
-            tickerEl ann Passed.empty
-
-        Ready _ passed ann ->
-            tickerEl ann passed
-
-        Playing _ passed game ->
-            tickerEl (announcementFromGame game) passed
+                    none
 
         WordsLoadError err ->
             none
@@ -447,6 +458,16 @@ tickerAnnouncement : Announcement -> Element Msg
 tickerAnnouncement ann =
     Announcement.getCurrent ann
         |> fromDocParagraph
+
+
+tickerPlay : Athlete -> String -> Element Msg
+tickerPlay athlete txt =
+    el
+        [ Font.color (athleteColor athlete)
+        , Font.underline
+        , Font.bold
+        ]
+        (text (String.toUpper txt))
 
 
 tickerPassed : Passed -> List (Element Msg)
@@ -797,65 +818,21 @@ startPlay model =
             model
 
 
-startGame : Model -> Model
-startGame model =
+userInput : String -> Model -> Model
+userInput text model =
     case model.status of
-        Ready words passed ann ->
-            let
-                vars =
-                    Dict.fromList
-                        [ ( "turn", "computer" )
-                        , ( "letter", initial |> String.fromChar )
-                        , ( "athleteA", "player" )
-                        , ( "athleteB", "computer" )
-                        ]
-
-                setStyles txt =
-                    case Doc.Text.content txt of
-                        "athleteA" ->
-                            txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just AthleteA))
-
-                        "athleteB" ->
-                            txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just AthleteB))
-
-                        "turn" ->
-                            txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just AthleteB))
-
-                        "letter" ->
-                            txt |> Doc.Text.mapFormat (Doc.Format.setBold True)
+        Playing words passed game ->
+            case game of
+                Hotseat turn ->
+                    case turn of
+                        Play score athlete oldText cnts ->
+                            { model | status = Playing words passed (Hotseat (Play score athlete (oldText ++ text) cnts)) }
 
                         _ ->
-                            txt
+                            model
 
-                ( initial, seed1 ) =
-                    randomLetter model.randomSeed Texts.alphabet
-
-                start =
-                    Texts.comments.start
-                        |> emu setStyles vars
-
-                rules =
-                    Texts.comments.rules
-                        |> emu setStyles vars
-
-                ( turnAndLetter, newSeed ) =
-                    Texts.comments.turnAndLetter
-                        |> emuRandomString seed1 setStyles vars
-            in
-            { model
-                | status =
-                    Playing
-                        words
-                        (passed |> Passed.push (Announcement.toMessage ann))
-                        (Hotseat (GameStart (Announcement.create start)))
-                , ticker =
-                    model.ticker
-                        |> Ticker.queueUp (Message.QueuedAnnouncement start)
-                        |> Ticker.queueUp (Message.QueuedAnnouncement rules)
-                        |> Ticker.queueUp (Message.QueuedInstruction turnAndLetter)
-                        |> Ticker.queueUp (Message.QueuedAthleteInput AthleteB (Constraints.serve initial))
-                , randomSeed = newSeed
-            }
+                _ ->
+                    model
 
         _ ->
             model
