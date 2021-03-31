@@ -38,7 +38,6 @@ comments =
         ]
     , turnAndLetter =
         [ "starting, it's `turn`{var} with “`letter`{var}”!"
-        , "it's `turn`{var} with “`letter`{var}”!"
         , "serving is `turn`{var}, with “`letter`{var}”!"
         , "here we go, turn for `turn`{var}, with “`letter`{var}”!"
         , "watch for that “`letter`{var}”, `turn`{var}!"
