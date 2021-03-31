@@ -27,8 +27,8 @@ module Game2 exposing (..)
 
 type Status
     = Loading Announcement
-    | Ready Passed Announcement
-    | Playing Passed Game
+    | Ready Words Passed Announcement
+    | Playing Words Passed Game
 
 
 type alias Passed =

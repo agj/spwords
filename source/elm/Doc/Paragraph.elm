@@ -3,11 +3,12 @@ module Doc.Paragraph exposing
     , content
     , create
     , empty
+    , length
     , mapContent
     , toString
     )
 
-import Doc.Text exposing (Text)
+import Doc.Text as Text exposing (Text)
 
 
 type Paragraph
@@ -29,6 +30,13 @@ content (Paragraph texts) =
     texts
 
 
+length : Paragraph -> Int
+length (Paragraph texts) =
+    texts
+        |> List.map Text.length
+        |> List.foldl (+) 0
+
+
 mapContent : (List Text -> List Text) -> Paragraph -> Paragraph
 mapContent mapper (Paragraph texts) =
     mapper texts |> Paragraph
@@ -37,5 +45,5 @@ mapContent mapper (Paragraph texts) =
 toString : Paragraph -> String
 toString (Paragraph texts) =
     texts
-        |> List.map Doc.Text.content
+        |> List.map Text.content
         |> List.foldr (++) ""

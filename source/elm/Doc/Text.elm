@@ -4,6 +4,7 @@ module Doc.Text exposing
     , create
     , empty
     , format
+    , length
     , mapContent
     , mapFormat
     , setContent
@@ -41,6 +42,11 @@ content (Text text) =
 format : Text -> Format
 format (Text text) =
     text.format
+
+
+length : Text -> Int
+length (Text text) =
+    String.length text.content
 
 
 

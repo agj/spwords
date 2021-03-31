@@ -159,6 +159,9 @@ update msg model =
                 Loading ann ->
                     Loading (Announcement.tick ann)
 
+                Ready words passed ann ->
+                    Ready words passed (Announcement.tick ann)
+
                 _ ->
                     status
     in
@@ -173,9 +176,37 @@ update msg model =
 
         Inputted text ->
             case model.status of
-                Ready _ _ _ ->
+                Ready words passed ann ->
                     if isEnter text then
-                        ( model |> startGame
+                        let
+                            vars =
+                                Dict.fromList
+                                    [ ( "athleteA", "player" )
+                                    , ( "athleteB", "computer" )
+                                    ]
+
+                            setStyles txt =
+                                case Doc.Text.content txt of
+                                    "athleteA" ->
+                                        txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just AthleteA))
+
+                                    "athleteB" ->
+                                        txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just AthleteB))
+
+                                    _ ->
+                                        txt
+                        in
+                        ( { model
+                            | status =
+                                Playing
+                                    words
+                                    (passed |> Passed.push (Announcement.toMessage ann))
+                                    (Hotseat
+                                        (GameStart
+                                            (Announcement.create (Texts.comments.start |> emu setStyles vars))
+                                        )
+                                    )
+                          }
                         , Cmd.none
                         )
 
@@ -237,7 +268,7 @@ update msg model =
                             ( { model
                                 | status =
                                     Ready (Words.parse words)
-                                        Passed.empty
+                                        (Passed.empty |> Passed.push (Announcement.toMessage ann))
                                         (Announcement.create (Texts.comments.toStart |> emu identity Dict.empty))
                               }
                             , Cmd.none
@@ -338,21 +369,6 @@ ticker model =
                 , spellcheck = False
                 }
 
-        passedTexts =
-            Ticker.passed model.ticker
-                |> List.map tickerText
-
-        tickerTexts =
-            (case Ticker.current model.ticker of
-                Just cur ->
-                    tickerActive cur :: passedTexts
-
-                Nothing ->
-                    passedTexts
-            )
-                |> List.reverse
-                |> List.intersperse (text " ")
-
         cursor =
             el
                 [ width (px 5)
@@ -366,24 +382,57 @@ ticker model =
                             Palette.transparent
                 ]
                 none
-    in
-    row
-        [ centerY
-        , width fill
-        ]
-        [ el
-            [ clip
-            , width fill
-            , height (px Palette.textSizeLarger)
-            , Font.size Palette.textSizeLarger
-            , inFront input
-            ]
-            (row
-                [ alignRight ]
-                tickerTexts
+
+        toTickerTexts ann passed =
+            (tickerAnnouncement ann
+                :: tickerPassed passed
             )
-        , cursor
-        ]
+                |> List.reverse
+                |> List.intersperse (text " ")
+
+        tickerEl ann passed =
+            row
+                [ centerY
+                , width fill
+                ]
+                [ el
+                    [ clip
+                    , width fill
+                    , height (px Palette.textSizeLarger)
+                    , Font.size Palette.textSizeLarger
+                    , inFront input
+                    ]
+                    (row
+                        [ alignRight ]
+                        (toTickerTexts ann passed)
+                    )
+                , cursor
+                ]
+    in
+    case model.status of
+        Loading ann ->
+            tickerEl ann Passed.empty
+
+        Ready _ passed ann ->
+            tickerEl ann passed
+
+        Playing _ passed game ->
+            tickerEl (Announcement.create Paragraph.empty) passed
+
+        WordsLoadError err ->
+            none
+
+
+tickerAnnouncement : Announcement -> Element Msg
+tickerAnnouncement ann =
+    Announcement.getCurrent ann
+        |> fromDocParagraph
+
+
+tickerPassed : Passed -> List (Element Msg)
+tickerPassed passed =
+    Passed.toList passed
+        |> List.map tickerText
 
 
 tickerActive : Message.Active -> Element Msg
@@ -611,7 +660,11 @@ startGame model =
                         |> emuRandomString seed1 setStyles vars
             in
             { model
-                | status = Playing words Passed.empty (Hotseat (GameStart (Announcement.create start)))
+                | status =
+                    Playing
+                        words
+                        (passed |> Passed.push (Announcement.toMessage ann))
+                        (Hotseat (GameStart (Announcement.create start)))
                 , ticker =
                     model.ticker
                         |> Ticker.queueUp (Message.QueuedAnnouncement start)
