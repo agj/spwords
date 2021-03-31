@@ -1,5 +1,6 @@
 module Main exposing (..)
 
+import Announcement exposing (Announcement)
 import Athlete exposing (..)
 import Browser
 import Browser.Events
@@ -18,12 +19,12 @@ import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
-import Game exposing (Game)
 import Html exposing (Html)
 import Http
 import Levers
 import Message exposing (Message)
 import Palette
+import Passed exposing (Passed)
 import Random
 import Return as R exposing (Return)
 import Texts
@@ -54,17 +55,61 @@ main =
 
 type alias Model =
     { ticker : Ticker
-    , game : GameStatus
+    , status : Status
     , viewport : Viewport
     , randomSeed : Random.Seed
     }
 
 
-type GameStatus
-    = GameLoading
-    | GameLoaded Words
-    | GamePlaying Words Game
+type Status
+    = Loading Announcement
+    | Ready Words Passed Announcement
+    | Playing Words Passed Game
     | WordsLoadError Http.Error
+
+
+type Game
+    = Hotseat Turn
+    | Single Turn
+
+
+type Turn
+    = GameStart Announcement
+    | Rules Announcement
+    | TurnStart PlayingScore Athlete Constraints Announcement
+    | Play PlayingScore Athlete String Constraints
+    | PlayCorrect PlayingScore Athlete Announcement
+    | PlayWrong Score Athlete ReasonWrong Announcement
+    | RoundEnd Score Announcement
+    | NewRound PlayingScore Announcement
+    | Tally Score Announcement
+    | End Athlete Points Announcement
+
+
+type ReasonWrong
+    = InitialWrong
+    | IncorporatesWrong
+    | AlreadyPlayed
+    | NotAWord
+
+
+type Score
+    = PlayingScore PlayingScore
+    | WinnerScore Athlete Points
+
+
+type alias PlayingScore =
+    ( Points, Points )
+
+
+type Points
+    = Love
+    | One
+    | Two
+
+
+
+-- INIT
 
 
 type alias Flags =
@@ -74,11 +119,8 @@ type alias Flags =
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( { ticker =
-            Ticker.empty
-                |> Ticker.queueUp
-                    (Message.QueuedInstruction (Texts.comments.loading |> emu identity Dict.empty))
-      , game = GameLoading
+    ( { ticker = Ticker.empty
+      , status = Loading (Announcement.create (Texts.comments.loading |> emu identity Dict.empty))
       , viewport = flags.viewport
       , randomSeed = Random.initialSeed 64
       }
@@ -111,26 +153,36 @@ update msg model =
     let
         modelCmd =
             ( model, Cmd.none )
+
+        tickStatus status =
+            case status of
+                Loading ann ->
+                    Loading (Announcement.tick ann)
+
+                _ ->
+                    status
     in
     case msg of
         Ticked _ ->
-            ( { model | ticker = Ticker.tick model.ticker }
+            ( { model
+                | ticker = Ticker.tick model.ticker
+                , status = tickStatus model.status
+              }
             , Cmd.none
             )
 
         Inputted text ->
-            case model.game of
-                GameLoaded _ ->
+            case model.status of
+                Ready _ _ _ ->
                     if isEnter text then
-                        ( { model | ticker = Ticker.enter model.ticker }
-                            |> startGame
+                        ( model |> startGame
                         , Cmd.none
                         )
 
                     else
                         modelCmd
 
-                GamePlaying words game ->
+                Playing words passed game ->
                     if isEnter text then
                         case Ticker.current model.ticker of
                             Just (Message.ActiveAthleteInput athlete _ _) ->
@@ -164,7 +216,7 @@ update msg model =
                             _ ->
                                 modelCmd
 
-                GameLoading ->
+                Loading _ ->
                     modelCmd
 
                 WordsLoadError _ ->
@@ -178,32 +230,25 @@ update msg model =
             )
 
         GotWords result ->
-            case model.game of
-                GameLoading ->
+            case model.status of
+                Loading ann ->
                     case result of
                         Ok words ->
                             ( { model
-                                | game = GameLoaded (Words.parse words)
-                                , ticker =
-                                    model.ticker
-                                        |> Ticker.queueUp
-                                            (Message.QueuedAnnouncement (Texts.comments.toStart |> emu identity Dict.empty))
+                                | status =
+                                    Ready (Words.parse words)
+                                        Passed.empty
+                                        (Announcement.create (Texts.comments.toStart |> emu identity Dict.empty))
                               }
                             , Cmd.none
                             )
 
                         Err err ->
-                            ( { model | game = WordsLoadError err }
+                            ( { model | status = WordsLoadError err }
                             , Cmd.none
                             )
 
-                GameLoaded _ ->
-                    modelCmd
-
-                GamePlaying _ _ ->
-                    modelCmd
-
-                WordsLoadError _ ->
+                _ ->
                     modelCmd
 
         -- OTHERS
@@ -522,8 +567,8 @@ subscriptions model =
 
 startGame : Model -> Model
 startGame model =
-    case model.game of
-        GameLoaded words ->
+    case model.status of
+        Ready words passed ann ->
             let
                 vars =
                     Dict.fromList
@@ -566,7 +611,7 @@ startGame model =
                         |> emuRandomString seed1 setStyles vars
             in
             { model
-                | game = GamePlaying words Game.empty
+                | status = Playing words Passed.empty (Hotseat (GameStart (Announcement.create start)))
                 , ticker =
                     model.ticker
                         |> Ticker.queueUp (Message.QueuedAnnouncement start)
