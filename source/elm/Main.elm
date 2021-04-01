@@ -408,7 +408,7 @@ doStartPlay score athlete cnts ann model =
                 newGame =
                     startPlay
                         { score = score
-                        , athlete = oppositeAthlete athlete
+                        , athlete = athlete
                         , constraints = cnts
                         }
             in
