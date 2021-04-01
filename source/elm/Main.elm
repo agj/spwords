@@ -19,7 +19,6 @@ import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
-import Element.Region exposing (announce)
 import Html exposing (Html)
 import Http
 import Levers
@@ -27,10 +26,8 @@ import Message exposing (Message)
 import Palette
 import Passed exposing (Passed)
 import Random
-import Return as R exposing (Return)
 import Score exposing (..)
 import Texts
-import Ticker exposing (Ticker, inputCorrect)
 import Time
 import Utils exposing (..)
 import Viewport exposing (Viewport)
@@ -56,8 +53,7 @@ main =
 
 
 type alias Model =
-    { ticker : Ticker
-    , status : Status
+    { status : Status
     , viewport : Viewport
     , randomSeed : Random.Seed
     }
@@ -99,8 +95,7 @@ type alias Flags =
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( { ticker = Ticker.empty
-      , status = Loading (Announcement.create (Texts.comments.loading |> emu identity Dict.empty))
+    ( { status = Loading (Announcement.create (Texts.comments.loading |> emu identity Dict.empty))
       , viewport = flags.viewport
       , randomSeed = Random.initialSeed 64
       }
@@ -711,12 +706,7 @@ mainScreen : Model -> Element Msg
 mainScreen model =
     let
         activeAthlete =
-            case Ticker.current model.ticker of
-                Just (Message.ActiveAthleteInput athlete _ _) ->
-                    Just athlete
-
-                _ ->
-                    Nothing
+            getActiveAthlete model.status
 
         isAthlete athlete =
             case activeAthlete of
@@ -757,11 +747,11 @@ ticker model =
                 [ width (px 5)
                 , height (px (Palette.textSizeLarger * 2))
                 , Background.color <|
-                    case Ticker.current model.ticker of
-                        Just (Message.ActiveAthleteInput athlete _ _) ->
+                    case getActiveAthlete model.status of
+                        Just athlete ->
                             athleteColor athlete
 
-                        _ ->
+                        Nothing ->
                             Palette.transparent
                 ]
                 none
@@ -1110,3 +1100,13 @@ indexToItem list index =
     list
         |> List.drop index
         |> List.head
+
+
+getActiveAthlete : Status -> Maybe Athlete
+getActiveAthlete status =
+    case status of
+        Playing _ _ (Hotseat (Play _ athlete _ _)) ->
+            Just athlete
+
+        _ ->
+            Nothing
