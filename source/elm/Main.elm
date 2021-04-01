@@ -95,7 +95,7 @@ type alias Flags =
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( { status = Loading (Announcement.create (Texts.comments.loading |> emu identity Dict.empty))
+    ( { status = Loading (Announcement.create Texts.loading)
       , viewport = flags.viewport
       , randomSeed = Random.initialSeed 64
       }
@@ -251,7 +251,7 @@ gotWords result model =
                         | status =
                             Ready (Words.parse words)
                                 (Passed.empty |> Passed.push (Announcement.toMessage ann))
-                                (Announcement.create (Texts.comments.toStart |> emu identity Dict.empty))
+                                (Announcement.create Texts.ready)
                     }
 
                 Err err ->
@@ -348,23 +348,6 @@ startGame model =
     case model.status of
         Ready words passed ann ->
             let
-                vars =
-                    Dict.fromList
-                        [ ( "athleteA", "left" )
-                        , ( "athleteB", "right" )
-                        ]
-
-                setStyles txt =
-                    case Doc.Text.content txt of
-                        "athleteA" ->
-                            txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just AthleteA))
-
-                        "athleteB" ->
-                            txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just AthleteB))
-
-                        _ ->
-                            txt
-
                 newPassed =
                     passed
                         |> Passed.push (Announcement.toMessage ann)
@@ -372,8 +355,10 @@ startGame model =
                 game =
                     Hotseat
                         (GameStart
-                            (Texts.comments.start
-                                |> emu setStyles vars
+                            (Texts.gameStart
+                                { athleteA = "left"
+                                , athleteB = "right"
+                                }
                                 |> Announcement.create
                             )
                         )
@@ -396,8 +381,7 @@ showRules model =
                 newGame =
                     Hotseat
                         (Rules
-                            (Texts.comments.rules
-                                |> emu identity Dict.empty
+                            (Texts.rules
                                 |> Announcement.create
                             )
                         )
@@ -411,30 +395,6 @@ showRules model =
 startTurn : Model -> Model
 startTurn model =
     let
-        vars athlete initial =
-            Dict.fromList
-                [ ( "turn"
-                  , case athlete of
-                        AthleteA ->
-                            "left"
-
-                        AthleteB ->
-                            "right"
-                  )
-                , ( "letter", initial |> String.fromChar )
-                ]
-
-        setStyles turnAthlete txt =
-            case Doc.Text.content txt of
-                "turn" ->
-                    txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just turnAthlete))
-
-                "letter" ->
-                    txt |> Doc.Text.mapFormat (Doc.Format.setBold True)
-
-                _ ->
-                    txt
-
         doIt { athlete, passed, words, ann, score } =
             let
                 ( initial, seed1 ) =
@@ -445,8 +405,18 @@ startTurn model =
                         |> Passed.push (Announcement.toMessage ann)
 
                 ( turnAndLetter, newSeed ) =
-                    Texts.comments.turnAndLetter
-                        |> emuRandomString seed1 (setStyles athlete) (vars athlete initial)
+                    Texts.roundStart
+                        { turnAthlete = athlete
+                        , seed = seed1
+                        , turn =
+                            case athlete of
+                                AthleteA ->
+                                    "left"
+
+                                AthleteB ->
+                                    "right"
+                        , initial = initial
+                        }
 
                 newGame =
                     Hotseat
@@ -529,16 +499,16 @@ athleteInput text model =
 checkPartialInput : Model -> Model
 checkPartialInput model =
     case model.status of
-        Playing words passed (Hotseat (Play score athlete txt cnts)) ->
+        Playing words _ (Hotseat (Play _ _ txt cnts)) ->
             case Constraints.checkCandidate txt cnts words of
                 Constraints.CandidateCorrect ->
                     model
 
                 Constraints.CandidateInitialWrong ->
-                    inputWrong Texts.comments.mistake.initial model
+                    inputWrong Texts.initialWrong model
 
                 Constraints.CandidateNotAWord ->
-                    inputWrong Texts.comments.mistake.notAWord model
+                    inputWrong Texts.notAWord model
 
         Playing words passed (Single (Play score athlete txt cnts)) ->
             Debug.todo "Single mode not implemented."
@@ -550,22 +520,22 @@ checkPartialInput model =
 checkInput : Model -> Model
 checkInput model =
     case model.status of
-        Playing words passed (Hotseat (Play score athlete txt cnts)) ->
+        Playing words _ (Hotseat (Play _ _ txt cnts)) ->
             case Constraints.check txt cnts words of
                 Constraints.InputCorrect ->
                     inputCorrect model
 
                 Constraints.InputInitialWrong ->
-                    inputWrong Texts.comments.mistake.initial model
+                    inputWrong Texts.initialWrong model
 
                 Constraints.InputIncorporatesWrong ->
-                    inputWrong Texts.comments.mistake.incorporates model
+                    inputWrong Texts.incorporatesWrong model
 
                 Constraints.InputAlreadyPlayed ->
-                    inputWrong Texts.comments.mistake.alreadyPlayed model
+                    inputWrong Texts.alreadyPlayed model
 
                 Constraints.InputNotAWord ->
-                    inputWrong Texts.comments.mistake.notAWord model
+                    inputWrong Texts.notAWord model
 
         Playing words passed (Single (Play score athlete txt cnts)) ->
             Debug.todo "Single mode not implemented."
@@ -593,8 +563,7 @@ inputCorrect model =
                         |> Passed.push (Message.CorrectAthleteInput athlete newWord)
 
                 ( message, newSeed ) =
-                    Texts.comments.interjection
-                        |> emuRandomString model.randomSeed identity Dict.empty
+                    Texts.interjection model.randomSeed
 
                 newGame =
                     Hotseat (PlayCorrect (PlayingScore score) athlete newCnts (message |> Announcement.create))
@@ -611,8 +580,8 @@ inputCorrect model =
             model
 
 
-inputWrong : List String -> Model -> Model
-inputWrong messages model =
+inputWrong : (Texts.MistakeArguments -> ( Paragraph, Random.Seed )) -> Model -> Model
+inputWrong messageFn model =
     case model.status of
         Playing words passed (Hotseat (Play score athlete txt cnts)) ->
             let
@@ -623,25 +592,12 @@ inputWrong messages model =
                     passed
                         |> Passed.push (Message.WrongAthleteInput athlete txt)
 
-                vars =
-                    case Constraints.getIncorporates cnts of
-                        Just char ->
-                            Dict.fromList
-                                [ ( "initial", cnts |> Constraints.getInitial |> String.fromChar )
-                                , ( "incorporates", char |> String.fromChar )
-                                ]
-
-                        Nothing ->
-                            Dict.fromList
-                                [ ( "initial", cnts |> Constraints.getInitial |> String.fromChar )
-                                ]
-
-                setStyles =
-                    Doc.Text.mapFormat (Doc.Format.setBold True)
-
                 ( message, newSeed ) =
-                    messages
-                        |> emuRandomString model.randomSeed setStyles vars
+                    messageFn
+                        { initial = cnts |> Constraints.getInitial
+                        , incorporates = cnts |> Constraints.getIncorporates
+                        , seed = model.randomSeed
+                        }
 
                 newGame =
                     Hotseat
@@ -1012,37 +968,6 @@ isEnter text =
     text == "\n"
 
 
-emu : (Doc.Text.Text -> Doc.Text.Text) -> Dict String String -> String -> Paragraph.Paragraph
-emu formatter vars str =
-    Doc.EmuDecode.fromEmu str
-        |> Doc.content
-        |> List.head
-        |> Maybe.withDefault Paragraph.empty
-        |> replaceVars formatter vars
-
-
-replaceVars : (Doc.Text.Text -> Doc.Text.Text) -> Dict String String -> Paragraph.Paragraph -> Paragraph.Paragraph
-replaceVars formatter vars par =
-    let
-        replaceVar txt =
-            let
-                content =
-                    Doc.Text.content txt
-            in
-            if txt |> Doc.Text.format |> Doc.Format.isVar then
-                txt
-                    |> Doc.Text.mapFormat (Doc.Format.setVar False)
-                    |> formatter
-                    |> Doc.Text.setContent
-                        (Dict.get content vars |> Maybe.withDefault content)
-
-            else
-                txt
-    in
-    par
-        |> Paragraph.mapContent (List.map replaceVar)
-
-
 randomLetter : Random.Seed -> String -> ( Char, Random.Seed )
 randomLetter seed alphabet =
     Random.step (letterGenerator alphabet) seed
@@ -1058,36 +983,6 @@ indexToLetter : String -> Int -> Char
 indexToLetter alpha n =
     Utils.stringCharAt n alpha
         |> Maybe.withDefault '?'
-
-
-emuRandomString : Random.Seed -> (Doc.Text.Text -> Doc.Text.Text) -> Dict String String -> List String -> ( Paragraph, Random.Seed )
-emuRandomString seed formatter vars strings =
-    randomString seed strings
-        |> Tuple.mapFirst (emu formatter vars)
-
-
-randomString : Random.Seed -> List String -> ( String, Random.Seed )
-randomString seed strings =
-    randomItem seed strings
-        |> Tuple.mapFirst (Maybe.withDefault "")
-
-
-randomItem : Random.Seed -> List a -> ( Maybe a, Random.Seed )
-randomItem seed list =
-    Random.step (itemGenerator list) seed
-
-
-itemGenerator : List a -> Random.Generator (Maybe a)
-itemGenerator list =
-    Random.int 0 (List.length list - 1)
-        |> Random.map (indexToItem list)
-
-
-indexToItem : List a -> Int -> Maybe a
-indexToItem list index =
-    list
-        |> List.drop index
-        |> List.head
 
 
 getActiveAthlete : Status -> Maybe Athlete

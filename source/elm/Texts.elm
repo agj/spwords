@@ -1,4 +1,31 @@
-module Texts exposing (..)
+module Texts exposing
+    ( MistakeArguments
+    , alphabet
+    , alreadyPlayed
+    , gameStart
+    , incorporatesWrong
+    , initialWrong
+    , interjection
+    , loading
+    , names
+    , notAWord
+    , ready
+    , roundStart
+    , rules
+    , timeOut
+    , title
+    )
+
+import Athlete exposing (..)
+import Constraints
+import Dict exposing (Dict)
+import Doc
+import Doc.EmuDecode
+import Doc.Format as Format exposing (Format)
+import Doc.Paragraph as Paragraph exposing (Paragraph)
+import Doc.Text as Text exposing (Text)
+import Palette exposing (athleteB)
+import Random
 
 
 title =
@@ -17,10 +44,112 @@ names =
     }
 
 
+loading =
+    comments.loading
+        |> emu identity Dict.empty
+
+
+ready =
+    comments.ready
+        |> emu identity Dict.empty
+
+
+gameStart : { athleteA : String, athleteB : String } -> Paragraph
+gameStart { athleteA, athleteB } =
+    let
+        setStyles txt =
+            case Text.content txt of
+                "athleteA" ->
+                    txt |> Text.mapFormat (Format.setAthlete (Just AthleteA))
+
+                "athleteB" ->
+                    txt |> Text.mapFormat (Format.setAthlete (Just AthleteB))
+
+                _ ->
+                    txt
+
+        vars =
+            Dict.fromList
+                [ ( "athleteA", athleteA )
+                , ( "athleteB", athleteB )
+                ]
+    in
+    comments.gameStart
+        |> emu setStyles vars
+
+
+rules =
+    comments.rules
+        |> emu identity Dict.empty
+
+
+roundStart : { turnAthlete : Athlete, turn : String, initial : Char, seed : Random.Seed } -> ( Paragraph, Random.Seed )
+roundStart { turnAthlete, turn, initial, seed } =
+    let
+        setStyles txt =
+            case Text.content txt of
+                "turn" ->
+                    txt |> Text.mapFormat (Format.setAthlete (Just turnAthlete))
+
+                "letter" ->
+                    txt |> Text.mapFormat (Format.setBold True)
+
+                _ ->
+                    txt
+
+        vars =
+            Dict.fromList
+                [ ( "turn", turn )
+                , ( "letter", initial |> String.fromChar )
+                ]
+    in
+    comments.roundStart
+        |> emuRandomString seed setStyles vars
+
+
+interjection : Random.Seed -> ( Paragraph, Random.Seed )
+interjection seed =
+    comments.interjection
+        |> emuRandomString seed identity Dict.empty
+
+
+
+-- MISTAKES
+
+
+initialWrong : MistakeArguments -> ( Paragraph, Random.Seed )
+initialWrong arguments =
+    mistake comments.mistake.initial arguments
+
+
+incorporatesWrong : MistakeArguments -> ( Paragraph, Random.Seed )
+incorporatesWrong arguments =
+    mistake comments.mistake.incorporates arguments
+
+
+alreadyPlayed : MistakeArguments -> ( Paragraph, Random.Seed )
+alreadyPlayed arguments =
+    mistake comments.mistake.alreadyPlayed arguments
+
+
+notAWord : MistakeArguments -> ( Paragraph, Random.Seed )
+notAWord arguments =
+    mistake comments.mistake.notAWord arguments
+
+
+timeOut : MistakeArguments -> ( Paragraph, Random.Seed )
+timeOut arguments =
+    mistake comments.mistake.timeOut arguments
+
+
+
+-- INTERNAL
+
+
 comments =
-    { loading = "(loading...)"
-    , toStart = "(done. press *enter*.)"
-    , start =
+    { loading = "/loading.../"
+    , ready = "/ready. press *enter*./"
+    , gameStart =
         "welcome to tonight's exciting match! "
             ++ "it's menacing `athleteB`{var} against crowd favorite `athleteA`{var}!"
     , rules =
@@ -32,11 +161,6 @@ comments =
             ++ "first to seize *three rounds* is the victor. "
             ++ "now, let the match begin!"
     , roundStart =
-        [ "let's see who comes out victorious in the next round!"
-        , "now for another round full of suspense!"
-        , "who will make the best of this round?"
-        ]
-    , turnAndLetter =
         [ "starting, it's `turn`{var} with “`letter`{var}”!"
         , "serving is `turn`{var}, with “`letter`{var}”!"
         , "here we go, turn for `turn`{var}, with “`letter`{var}”!"
@@ -85,18 +209,23 @@ comments =
             ]
         }
     , roundEnd =
-        { point =
-            [ "brilliant point for `winner`{var}!"
-            , "`loser`{var} wastes a chance!"
-            , "tough luck!"
-            , "what a shock!"
-            , "`winner`{var} scores!"
-            , "too bad for `loser`{var}!"
-            , "close, but no dice!"
-            , "it's `loser`{var}'s miss!"
-            , "`winner`{var} takes this point!"
-            ]
-        , winning =
+        [ "brilliant point for `winner`{var}!"
+        , "`loser`{var} wastes a chance!"
+        , "tough luck!"
+        , "what a shock!"
+        , "`winner`{var} scores!"
+        , "too bad for `loser`{var}!"
+        , "close, but no dice!"
+        , "it's `loser`{var}'s miss!"
+        , "`winner`{var} takes this point!"
+        ]
+    , tally =
+        [ "we have our game at `athleteA`{var} `pointsA`{var}, `athleteB`{var} `pointsB`{var}!"
+        , "the panel reads `athleteA`{var} `pointsA`{var} versus `athleteB`{var} `pointsB`{var}."
+        , "`athleteA`{var} at `pointsA`{var}, `athleteB`{var} at `pointsB`{var}!"
+        ]
+    , assessment =
+        { winning =
             [ "`winner`{var} has the lead!"
             , "`winner`{var} is ahead!"
             , "`loser`{var} needs to step up!"
@@ -110,13 +239,104 @@ comments =
             , "both with `points`{var}!"
             ]
         }
-    , scoreTally =
-        [ "we have our game at `athleteA`{var} `pointsA`{var}, `athleteB`{var} `pointsB`{var}!"
-        , "the panel reads `athleteA`{var} `pointsA`{var} versus `athleteB`{var} `pointsB`{var}."
-        , "`athleteA`{var} at `pointsA`{var}, `athleteB`{var} at `pointsB`{var}!"
+    , newRound =
+        [ "let's see who comes out victorious in the next round!"
+        , "now for another round full of suspense!"
+        , "who will make the best of this round?"
         ]
     , gameEnd =
         "and it's settled! `winner`{var} defeats `loser`{var} `winnerPoints`{var} to `loserPoints`{var} in a match to remember! "
             ++ "we look forward to when these two titans have another face-off. "
             ++ "see you next time!"
     }
+
+
+emu : (Text -> Text) -> Dict String String -> String -> Paragraph
+emu formatter vars str =
+    Doc.EmuDecode.fromEmu str
+        |> Doc.content
+        |> List.head
+        |> Maybe.withDefault Paragraph.empty
+        |> replaceVars formatter vars
+
+
+replaceVars : (Text -> Text) -> Dict String String -> Paragraph -> Paragraph
+replaceVars formatter vars par =
+    let
+        replaceVar txt =
+            let
+                content =
+                    Text.content txt
+            in
+            if txt |> Text.format |> Format.isVar then
+                txt
+                    |> Text.mapFormat (Format.setVar False)
+                    |> formatter
+                    |> Text.setContent
+                        (Dict.get content vars |> Maybe.withDefault content)
+
+            else
+                txt
+    in
+    par
+        |> Paragraph.mapContent (List.map replaceVar)
+
+
+emuRandomString : Random.Seed -> (Text -> Text) -> Dict String String -> List String -> ( Paragraph, Random.Seed )
+emuRandomString seed formatter vars strings =
+    randomString seed strings
+        |> Tuple.mapFirst (emu formatter vars)
+
+
+randomString : Random.Seed -> List String -> ( String, Random.Seed )
+randomString seed strings =
+    randomItem seed strings
+        |> Tuple.mapFirst (Maybe.withDefault "")
+
+
+randomItem : Random.Seed -> List a -> ( Maybe a, Random.Seed )
+randomItem seed list =
+    Random.step (itemGenerator list) seed
+
+
+itemGenerator : List a -> Random.Generator (Maybe a)
+itemGenerator list =
+    Random.int 0 (List.length list - 1)
+        |> Random.map (indexToItem list)
+
+
+indexToItem : List a -> Int -> Maybe a
+indexToItem list index =
+    list
+        |> List.drop index
+        |> List.head
+
+
+type alias MistakeArguments =
+    { initial : Char
+    , incorporates : Maybe Char
+    , seed : Random.Seed
+    }
+
+
+mistake : List String -> MistakeArguments -> ( Paragraph, Random.Seed )
+mistake texts { initial, incorporates, seed } =
+    let
+        vars =
+            case incorporates of
+                Just char ->
+                    Dict.fromList
+                        [ ( "initial", initial |> String.fromChar )
+                        , ( "incorporates", char |> String.fromChar )
+                        ]
+
+                Nothing ->
+                    Dict.fromList
+                        [ ( "initial", initial |> String.fromChar )
+                        ]
+
+        setStyles =
+            Text.mapFormat (Format.setBold True)
+    in
+    texts
+        |> emuRandomString seed setStyles vars
