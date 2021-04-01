@@ -137,7 +137,7 @@ update msg model =
 
         Inputted text ->
             case model.status of
-                Ready words passed ann ->
+                Ready _ _ _ ->
                     if isEnter text then
                         ( startGame model
                         , Cmd.none
@@ -146,7 +146,7 @@ update msg model =
                     else
                         modelCmd
 
-                Playing words passed game ->
+                Playing _ _ game ->
                     if isEnter text then
                         case game of
                             Hotseat turn ->
@@ -199,15 +199,10 @@ update msg model =
 
                     else
                         case game of
-                            Hotseat turn ->
-                                case turn of
-                                    Play _ _ _ _ ->
-                                        ( athleteInput text model
-                                        , Cmd.none
-                                        )
-
-                                    _ ->
-                                        modelCmd
+                            Hotseat (Play _ _ _ _) ->
+                                ( athleteInput text model
+                                , Cmd.none
+                                )
 
                             _ ->
                                 modelCmd
@@ -226,26 +221,9 @@ update msg model =
             )
 
         GotWords result ->
-            case model.status of
-                Loading ann ->
-                    case result of
-                        Ok words ->
-                            ( { model
-                                | status =
-                                    Ready (Words.parse words)
-                                        (Passed.empty |> Passed.push (Announcement.toMessage ann))
-                                        (Announcement.create (Texts.comments.toStart |> emu identity Dict.empty))
-                              }
-                            , Cmd.none
-                            )
-
-                        Err err ->
-                            ( { model | status = WordsLoadError err }
-                            , Cmd.none
-                            )
-
-                _ ->
-                    modelCmd
+            ( gotWords result model
+            , Cmd.none
+            )
 
         -- OTHERS
         --
@@ -261,6 +239,26 @@ update msg model =
 
         NoOp ->
             modelCmd
+
+
+gotWords : Result Http.Error String -> Model -> Model
+gotWords result model =
+    case model.status of
+        Loading ann ->
+            case result of
+                Ok words ->
+                    { model
+                        | status =
+                            Ready (Words.parse words)
+                                (Passed.empty |> Passed.push (Announcement.toMessage ann))
+                                (Announcement.create (Texts.comments.toStart |> emu identity Dict.empty))
+                    }
+
+                Err err ->
+                    { model | status = WordsLoadError err }
+
+        _ ->
+            model
 
 
 tickStatus : Model -> Model
@@ -485,16 +483,6 @@ startTurn model =
 
         _ ->
             model
-
-
-oppositeAthlete : Athlete -> Athlete
-oppositeAthlete athlete =
-    case athlete of
-        AthleteA ->
-            AthleteB
-
-        AthleteB ->
-            AthleteA
 
 
 startPlay : Model -> Model
@@ -1110,3 +1098,13 @@ getActiveAthlete status =
 
         _ ->
             Nothing
+
+
+oppositeAthlete : Athlete -> Athlete
+oppositeAthlete athlete =
+    case athlete of
+        AthleteA ->
+            AthleteB
+
+        AthleteB ->
+            AthleteA
