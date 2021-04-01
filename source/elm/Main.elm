@@ -9,7 +9,7 @@ import CustomEl
 import Dict exposing (Dict)
 import Doc
 import Doc.EmuDecode
-import Doc.Format
+import Doc.Format exposing (athlete)
 import Doc.Paragraph as Paragraph exposing (Paragraph)
 import Doc.Text
 import Doc.Util
@@ -267,6 +267,21 @@ checkAnnouncementDone model =
 
             else
                 model
+
+        doStartRound words passed ann score athlete =
+            let
+                ( newGame, newSeed ) =
+                    startRound
+                        { athlete = oppositeAthlete athlete
+                        , score = score
+                        , words = words
+                        , seed = model.randomSeed
+                        }
+            in
+            { model
+                | status = Playing words (Passed.pushAnnouncement ann passed) newGame
+                , randomSeed = newSeed
+            }
     in
     case model.status of
         Ready _ _ _ ->
@@ -278,7 +293,11 @@ checkAnnouncementDone model =
                     check2 words passed ann showRules
 
                 Rules ann ->
-                    check startRound ann
+                    if Announcement.isFinished ann then
+                        doStartRound words passed ann Score.emptyPlayingScore AthleteA
+
+                    else
+                        model
 
                 RoundStart _ _ _ ann ->
                     check startPlay ann
@@ -294,13 +313,17 @@ checkAnnouncementDone model =
                 PlayWrong _ _ _ ann ->
                     check endRound ann
 
-                RoundEnd score _ ann ->
-                    case score of
-                        PlayingScore _ ->
-                            check startRound ann
+                RoundEnd score athlete ann ->
+                    if Announcement.isFinished ann then
+                        case score of
+                            PlayingScore playingScore ->
+                                doStartRound words passed ann playingScore (oppositeAthlete athlete)
 
-                        WinnerScore _ _ ->
-                            model
+                            WinnerScore winnerAthlete loserScore ->
+                                model
+
+                    else
+                        model
 
                 _ ->
                     model
@@ -314,6 +337,22 @@ checkAnnouncementDone model =
 
 pressedEnter : Model -> Model
 pressedEnter model =
+    let
+        doStartRound words passed ann score athlete =
+            let
+                ( newGame, newSeed ) =
+                    startRound
+                        { athlete = oppositeAthlete athlete
+                        , score = score
+                        , words = words
+                        , seed = model.randomSeed
+                        }
+            in
+            { model
+                | status = Playing words (Passed.pushAnnouncement ann passed) newGame
+                , randomSeed = newSeed
+            }
+    in
     case model.status of
         Ready words passed ann ->
             { model | status = Playing words (Passed.pushAnnouncement ann passed) startGame }
@@ -325,8 +364,8 @@ pressedEnter model =
                         GameStart ann ->
                             { model | status = Playing words (Passed.pushAnnouncement ann passed) showRules }
 
-                        Rules _ ->
-                            startRound model
+                        Rules ann ->
+                            doStartRound words passed ann Score.emptyPlayingScore AthleteA
 
                         RoundStart _ _ _ _ ->
                             model
@@ -345,12 +384,12 @@ pressedEnter model =
                         PlayWrong _ _ _ _ ->
                             endRound model
 
-                        RoundEnd score _ _ ->
-                            case Debug.log "RoundEnd score" score of
-                                PlayingScore _ ->
-                                    startRound model
+                        RoundEnd score athlete ann ->
+                            case score of
+                                PlayingScore playingScore ->
+                                    doStartRound words passed ann playingScore (oppositeAthlete athlete)
 
-                                WinnerScore athlete loserScore ->
+                                WinnerScore winnerAthlete loserScore ->
                                     model
 
                         _ ->
@@ -385,67 +424,91 @@ showRules =
     Hotseat (Rules (Texts.rules |> Announcement.create))
 
 
-startRound : Model -> Model
-startRound model =
+startRound : { athlete : Athlete, words : Words, score : PlayingScore, seed : Random.Seed } -> ( Game, Random.Seed )
+startRound { athlete, words, score, seed } =
     let
-        doIt { athlete, passed, words, ann, score } =
-            let
-                ( initial, seed1 ) =
-                    randomLetter model.randomSeed Texts.alphabet
+        ( initial, seed1 ) =
+            randomLetter seed Texts.alphabet
 
-                newPassed =
-                    passed
-                        |> Passed.push (Announcement.toMessage ann)
+        ( message, newSeed ) =
+            Texts.roundStart
+                { turnAthlete = athlete
+                , seed = seed1
+                , turn =
+                    case athlete of
+                        AthleteA ->
+                            "left"
 
-                ( turnAndLetter, newSeed ) =
-                    Texts.roundStart
-                        { turnAthlete = athlete
-                        , seed = seed1
-                        , turn =
-                            case athlete of
-                                AthleteA ->
-                                    "left"
-
-                                AthleteB ->
-                                    "right"
-                        , initial = initial
-                        }
-
-                newGame =
-                    Hotseat
-                        (RoundStart
-                            score
-                            athlete
-                            (Constraints.serve initial)
-                            (Announcement.create turnAndLetter)
-                        )
-            in
-            { model
-                | status = Playing words newPassed newGame
-                , randomSeed = newSeed
-            }
+                        AthleteB ->
+                            "right"
+                , initial = initial
+                }
     in
-    case model.status of
-        Playing words passed (Hotseat (Rules ann)) ->
-            doIt
-                { athlete = AthleteA
-                , score = Score.emptyPlayingScore
-                , passed = passed
-                , words = words
-                , ann = ann
-                }
+    ( Hotseat
+        (RoundStart
+            score
+            athlete
+            (Constraints.serve initial)
+            (Announcement.create message)
+        )
+    , newSeed
+    )
 
-        Playing words passed (Hotseat (RoundEnd (PlayingScore score) athlete ann)) ->
-            doIt
-                { athlete = oppositeAthlete athlete
-                , score = score
-                , passed = passed
-                , words = words
-                , ann = ann
-                }
 
-        _ ->
-            model
+
+-- let
+--     doIt { athlete, passed, words, ann, score } =
+--         let
+--             ( initial, seed1 ) =
+--                 randomLetter model.randomSeed Texts.alphabet
+--             newPassed =
+--                 passed
+--                     |> Passed.push (Announcement.toMessage ann)
+--             ( turnAndLetter, newSeed ) =
+--                 Texts.roundStart
+--                     { turnAthlete = athlete
+--                     , seed = seed1
+--                     , turn =
+--                         case athlete of
+--                             AthleteA ->
+--                                 "left"
+--                             AthleteB ->
+--                                 "right"
+--                     , initial = initial
+--                     }
+--             newGame =
+--                 Hotseat
+--                     (RoundStart
+--                         score
+--                         athlete
+--                         (Constraints.serve initial)
+--                         (Announcement.create turnAndLetter)
+--                     )
+--         in
+--         { model
+--             | status = Playing words newPassed newGame
+--             , randomSeed = newSeed
+--         }
+-- in
+-- case model.status of
+--     Playing words passed (Hotseat (Rules ann)) ->
+--         doIt
+--             { athlete = AthleteA
+--             , score = Score.emptyPlayingScore
+--             , passed = passed
+--             , words = words
+--             , ann = ann
+--             }
+--     Playing words passed (Hotseat (RoundEnd (PlayingScore score) athlete ann)) ->
+--         doIt
+--             { athlete = oppositeAthlete athlete
+--             , score = score
+--             , passed = passed
+--             , words = words
+--             , ann = ann
+--             }
+--     _ ->
+--         model
 
 
 startPlay : Model -> Model
