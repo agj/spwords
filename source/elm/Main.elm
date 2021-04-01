@@ -388,7 +388,6 @@ doStartRound score athlete ann model =
                     startRound
                         { athlete = oppositeAthlete athlete
                         , score = score
-                        , words = words
                         , seed = model.randomSeed
                         }
             in
@@ -441,8 +440,8 @@ showRules =
     Hotseat (Rules (Texts.rules |> Announcement.create))
 
 
-startRound : { athlete : Athlete, words : Words, score : PlayingScore, seed : Random.Seed } -> ( Game, Random.Seed )
-startRound { athlete, words, score, seed } =
+startRound : { athlete : Athlete, score : PlayingScore, seed : Random.Seed } -> ( Game, Random.Seed )
+startRound { athlete, score, seed } =
     let
         ( initial, seed1 ) =
             randomLetter seed Texts.alphabet
