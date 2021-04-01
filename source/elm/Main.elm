@@ -298,7 +298,7 @@ checkAnnouncementDone model =
         Ready _ _ _ ->
             model
 
-        Playing words passed (Hotseat turn) ->
+        Playing _ _ (Hotseat turn) ->
             case turn of
                 GameStart ann ->
                     check showRules ann
@@ -328,8 +328,15 @@ checkAnnouncementDone model =
                 _ ->
                     model
 
+        Playing _ _ (Single turn) ->
+            Debug.todo "Single mode not implemented."
+
         _ ->
             model
+
+
+
+-- STATUS ADVANCING
 
 
 startGame : Model -> Model
