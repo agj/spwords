@@ -204,17 +204,6 @@ update msg model =
 
                             _ ->
                                 modelCmd
-                        -- case Ticker.current model.ticker of
-                        --     Just (Message.ActiveAthleteInput athlete _ _) ->
-                        --         ( model |> checkInput words
-                        --         , Cmd.none
-                        --         )
-                        --     Just _ ->
-                        --         ( { model | ticker = Ticker.enter model.ticker }
-                        --         , Cmd.none
-                        --         )
-                        --     Nothing ->
-                        --         modelCmd
 
                     else
                         case game of
@@ -231,20 +220,6 @@ update msg model =
                             _ ->
                                 modelCmd
 
-                -- case Ticker.current model.ticker of
-                --     Just (Message.ActiveAthleteInput AthleteA _ _) ->
-                --         ( { model | ticker = Ticker.input text model.ticker }
-                --             |> checkPartialInput words
-                --         , Cmd.none
-                --         )
-                --     Just (Message.ActiveAthleteInput AthleteB _ _) ->
-                --         -- For now, user inputs for computer too.
-                --         ( { model | ticker = Ticker.input text model.ticker }
-                --             |> checkPartialInput words
-                --         , Cmd.none
-                --         )
-                --     _ ->
-                --         modelCmd
                 Loading _ ->
                     modelCmd
 
@@ -525,6 +500,144 @@ userInput text model =
 
             _ ->
                 model
+
+
+checkPartialInput : Model -> Model
+checkPartialInput model =
+    case model.status of
+        Playing words passed (Hotseat (Play score athlete txt cnts)) ->
+            case Constraints.checkCandidate txt cnts words of
+                Constraints.CandidateCorrect ->
+                    model
+
+                Constraints.CandidateInitialWrong ->
+                    inputWrong Texts.comments.mistake.initial model
+
+                Constraints.CandidateNotAWord ->
+                    inputWrong Texts.comments.mistake.notAWord model
+
+        Playing words passed (Single (Play score athlete txt cnts)) ->
+            Debug.todo "Single mode not implemented."
+
+        _ ->
+            model
+
+
+checkInput : Model -> Model
+checkInput model =
+    case model.status of
+        Playing words passed (Hotseat (Play score athlete txt cnts)) ->
+            case Constraints.check txt cnts words of
+                Constraints.InputCorrect ->
+                    inputCorrect model
+
+                Constraints.InputInitialWrong ->
+                    inputWrong Texts.comments.mistake.initial model
+
+                Constraints.InputIncorporatesWrong ->
+                    inputWrong Texts.comments.mistake.incorporates model
+
+                Constraints.InputAlreadyPlayed ->
+                    inputWrong Texts.comments.mistake.alreadyPlayed model
+
+                Constraints.InputNotAWord ->
+                    inputWrong Texts.comments.mistake.notAWord model
+
+        Playing words passed (Single (Play score athlete txt cnts)) ->
+            Debug.todo "Single mode not implemented."
+
+        _ ->
+            model
+
+
+inputCorrect : Model -> Model
+inputCorrect model =
+    case model.status of
+        Playing words passed (Hotseat (Play score athlete newWord cnts)) ->
+            let
+                newCnts =
+                    Constraints.rally
+                        { initial = Constraints.getInitial cnts
+                        , incorporates = Utils.stringLast newWord |> Maybe.withDefault '?'
+                        , played =
+                            Constraints.getPlayed cnts
+                                |> (::) newWord
+                        }
+
+                newPassed =
+                    passed
+                        |> Passed.push (Message.CorrectAthleteInput athlete newWord)
+
+                ( message, newSeed ) =
+                    Texts.comments.interjection
+                        |> emuRandomString model.randomSeed identity Dict.empty
+
+                newGame =
+                    Hotseat (PlayCorrect (PlayingScore score) athlete newCnts (message |> Announcement.create))
+            in
+            { model
+                | status = Playing words newPassed newGame
+                , randomSeed = newSeed
+            }
+
+        Playing words passed (Single (Play score athlete txt cnts)) ->
+            Debug.todo "Single mode not implemented."
+
+        _ ->
+            model
+
+
+inputWrong : List String -> Model -> Model
+inputWrong messages model =
+    case model.status of
+        Playing words passed (Hotseat (Play score athlete txt cnts)) ->
+            let
+                newScore =
+                    Score.increaseScore (oppositeAthlete athlete) score
+
+                newPassed =
+                    passed
+                        |> Passed.push (Message.WrongAthleteInput athlete txt)
+
+                vars =
+                    case Constraints.getIncorporates cnts of
+                        Just char ->
+                            Dict.fromList
+                                [ ( "initial", cnts |> Constraints.getInitial |> String.fromChar )
+                                , ( "incorporates", char |> String.fromChar )
+                                ]
+
+                        Nothing ->
+                            Dict.fromList
+                                [ ( "initial", cnts |> Constraints.getInitial |> String.fromChar )
+                                ]
+
+                setStyles =
+                    Doc.Text.mapFormat (Doc.Format.setBold True)
+
+                ( message, newSeed ) =
+                    messages
+                        |> emuRandomString model.randomSeed setStyles vars
+
+                newGame =
+                    Hotseat
+                        (PlayWrong
+                            newScore
+                            athlete
+                            cnts
+                            (message |> Announcement.create)
+                        )
+            in
+            { model
+                | status = Playing words newPassed newGame
+                , randomSeed = newSeed
+            }
+
+        Playing words passed (Single (Play score athlete txt cnts)) ->
+            Debug.todo "Single mode not implemented."
+
+        _ ->
+            model
 
 
 
@@ -874,144 +987,6 @@ subscriptions model =
 
 
 -- OTHER
-
-
-checkPartialInput : Model -> Model
-checkPartialInput model =
-    case model.status of
-        Playing words passed (Hotseat (Play score athlete txt cnts)) ->
-            case Constraints.checkCandidate txt cnts words of
-                Constraints.CandidateCorrect ->
-                    model
-
-                Constraints.CandidateInitialWrong ->
-                    inputWrong Texts.comments.mistake.initial model
-
-                Constraints.CandidateNotAWord ->
-                    inputWrong Texts.comments.mistake.notAWord model
-
-        Playing words passed (Single (Play score athlete txt cnts)) ->
-            Debug.todo "Single mode not implemented."
-
-        _ ->
-            model
-
-
-checkInput : Model -> Model
-checkInput model =
-    case model.status of
-        Playing words passed (Hotseat (Play score athlete txt cnts)) ->
-            case Constraints.check txt cnts words of
-                Constraints.InputCorrect ->
-                    inputCorrect model
-
-                Constraints.InputInitialWrong ->
-                    inputWrong Texts.comments.mistake.initial model
-
-                Constraints.InputIncorporatesWrong ->
-                    inputWrong Texts.comments.mistake.incorporates model
-
-                Constraints.InputAlreadyPlayed ->
-                    inputWrong Texts.comments.mistake.alreadyPlayed model
-
-                Constraints.InputNotAWord ->
-                    inputWrong Texts.comments.mistake.notAWord model
-
-        Playing words passed (Single (Play score athlete txt cnts)) ->
-            Debug.todo "Single mode not implemented."
-
-        _ ->
-            model
-
-
-inputCorrect : Model -> Model
-inputCorrect model =
-    case model.status of
-        Playing words passed (Hotseat (Play score athlete newWord cnts)) ->
-            let
-                newCnts =
-                    Constraints.rally
-                        { initial = Constraints.getInitial cnts
-                        , incorporates = Utils.stringLast newWord |> Maybe.withDefault '?'
-                        , played =
-                            Constraints.getPlayed cnts
-                                |> (::) newWord
-                        }
-
-                newPassed =
-                    passed
-                        |> Passed.push (Message.CorrectAthleteInput athlete newWord)
-
-                ( message, newSeed ) =
-                    Texts.comments.interjection
-                        |> emuRandomString model.randomSeed identity Dict.empty
-
-                newGame =
-                    Hotseat (PlayCorrect (PlayingScore score) athlete newCnts (message |> Announcement.create))
-            in
-            { model
-                | status = Playing words newPassed newGame
-                , randomSeed = newSeed
-            }
-
-        Playing words passed (Single (Play score athlete txt cnts)) ->
-            Debug.todo "Single mode not implemented."
-
-        _ ->
-            model
-
-
-inputWrong : List String -> Model -> Model
-inputWrong messages model =
-    case model.status of
-        Playing words passed (Hotseat (Play score athlete txt cnts)) ->
-            let
-                newScore =
-                    Score.increaseScore (oppositeAthlete athlete) score
-
-                newPassed =
-                    passed
-                        |> Passed.push (Message.WrongAthleteInput athlete txt)
-
-                vars =
-                    case Constraints.getIncorporates cnts of
-                        Just char ->
-                            Dict.fromList
-                                [ ( "initial", cnts |> Constraints.getInitial |> String.fromChar )
-                                , ( "incorporates", char |> String.fromChar )
-                                ]
-
-                        Nothing ->
-                            Dict.fromList
-                                [ ( "initial", cnts |> Constraints.getInitial |> String.fromChar )
-                                ]
-
-                setStyles =
-                    Doc.Text.mapFormat (Doc.Format.setBold True)
-
-                ( message, newSeed ) =
-                    messages
-                        |> emuRandomString model.randomSeed setStyles vars
-
-                newGame =
-                    Hotseat
-                        (PlayWrong
-                            newScore
-                            athlete
-                            cnts
-                            (message |> Announcement.create)
-                        )
-            in
-            { model
-                | status = Playing words newPassed newGame
-                , randomSeed = newSeed
-            }
-
-        Playing words passed (Single (Play score athlete txt cnts)) ->
-            Debug.todo "Single mode not implemented."
-
-        _ ->
-            model
 
 
 isEnter text =
