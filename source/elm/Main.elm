@@ -334,7 +334,7 @@ pressedEnter model =
                                     model
 
                         PlayWrong score athlete _ ann ->
-                            endRound athlete score ann model
+                            model
 
                         RoundEnd score athlete ann ->
                             case score of
