@@ -18,6 +18,7 @@ import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
+import Game exposing (Game(..), Turn(..))
 import Html exposing (Html)
 import Http
 import Levers
@@ -63,24 +64,6 @@ type Status
     | Ready Words Passed Announcement
     | Playing Words Passed Game
     | WordsLoadError Http.Error
-
-
-type Game
-    = Hotseat Turn
-    | Single Turn
-
-
-type Turn
-    = GameStart Announcement
-    | Rules Announcement
-    | RoundStart PlayingScore Athlete Constraints Announcement
-    | Play PlayingScore Athlete String Constraints
-    | PlayCorrect Score Athlete Constraints Announcement
-    | PlayWrong Score Athlete Constraints Announcement
-    | RoundEnd Score Athlete Announcement
-    | NewRound PlayingScore Athlete Announcement
-    | Tally Score Athlete Announcement
-    | End Athlete Points Announcement
 
 
 
@@ -274,7 +257,7 @@ checkAnnouncementDone model =
         Playing words passed (Hotseat turn) ->
             case turn of
                 GameStart ann ->
-                    check2 words passed ann showRules
+                    check2 words passed ann Game.showRules
 
                 Rules ann ->
                     if Announcement.isFinished ann then
@@ -335,14 +318,14 @@ pressedEnter : Model -> Model
 pressedEnter model =
     case model.status of
         Ready words passed ann ->
-            { model | status = Playing words (Passed.pushAnnouncement ann passed) startGame }
+            { model | status = Playing words (Passed.pushAnnouncement ann passed) Game.startGame }
 
         Playing words passed game ->
             case game of
                 Hotseat turn ->
                     case turn of
                         GameStart ann ->
-                            { model | status = Playing words (Passed.pushAnnouncement ann passed) showRules }
+                            { model | status = Playing words (Passed.pushAnnouncement ann passed) Game.showRules }
 
                         Rules ann ->
                             doStartRound Score.emptyPlayingScore AthleteA ann model
@@ -361,7 +344,7 @@ pressedEnter model =
                                 WinnerScore athlete loserScore ->
                                     model
 
-                        PlayWrong score athlete cnts ann ->
+                        PlayWrong score athlete _ ann ->
                             doEndRound athlete score ann model
 
                         RoundEnd score athlete ann ->
@@ -382,13 +365,17 @@ pressedEnter model =
             model
 
 
+
+-- STATUS ADVANCING
+
+
 doStartRound : PlayingScore -> Athlete -> Announcement -> Model -> Model
 doStartRound score athlete ann model =
     case model.status of
         Playing words passed _ ->
             let
                 ( newGame, newSeed ) =
-                    startRound
+                    Game.startRound
                         { athlete = oppositeAthlete athlete
                         , score = score
                         , seed = model.randomSeed
@@ -409,7 +396,7 @@ doStartPlay score athlete cnts ann model =
         Playing words passed _ ->
             let
                 newGame =
-                    startPlay
+                    Game.startPlay
                         { score = score
                         , athlete = athlete
                         , constraints = cnts
@@ -428,7 +415,7 @@ doAthleteInput input previousInput score athlete cnts model =
             Playing words passed _ ->
                 let
                     newGame =
-                        athleteInput
+                        Game.athleteInput
                             { input = input
                             , previousInput = previousInput
                             , score = score
@@ -452,7 +439,7 @@ doEndRound athlete score ann model =
                         |> Passed.pushAnnouncement ann
 
                 ( newGame, newSeed ) =
-                    endRound
+                    Game.endRound
                         { winner = oppositeAthlete athlete
                         , athleteA = "left"
                         , athleteB = "right"
@@ -467,86 +454,6 @@ doEndRound athlete score ann model =
 
         _ ->
             model
-
-
-
--- STATUS ADVANCING
-
-
-startGame : Game
-startGame =
-    Hotseat
-        (GameStart
-            (Texts.gameStart
-                { athleteA = "left"
-                , athleteB = "right"
-                }
-                |> Announcement.create
-            )
-        )
-
-
-showRules : Game
-showRules =
-    Hotseat (Rules (Texts.rules |> Announcement.create))
-
-
-startRound : { athlete : Athlete, score : PlayingScore, seed : Random.Seed } -> ( Game, Random.Seed )
-startRound { athlete, score, seed } =
-    let
-        ( initial, seed1 ) =
-            randomLetter seed Texts.alphabet
-
-        ( message, newSeed ) =
-            Texts.roundStart
-                { turnAthlete = athlete
-                , seed = seed1
-                , turn =
-                    case athlete of
-                        AthleteA ->
-                            "left"
-
-                        AthleteB ->
-                            "right"
-                , initial = initial
-                }
-    in
-    ( Hotseat
-        (RoundStart
-            score
-            athlete
-            (Constraints.serve initial)
-            (Announcement.create message)
-        )
-    , newSeed
-    )
-
-
-startPlay : { score : PlayingScore, athlete : Athlete, constraints : Constraints } -> Game
-startPlay { score, athlete, constraints } =
-    Hotseat (Play score athlete "" constraints)
-
-
-athleteInput : { input : String, previousInput : String, score : PlayingScore, athlete : Athlete, constraints : Constraints } -> Game
-athleteInput { input, previousInput, score, athlete, constraints } =
-    Hotseat (Play score athlete (previousInput ++ input) constraints)
-
-
-endRound : { winner : Athlete, athleteA : String, athleteB : String, score : Score, seed : Random.Seed } -> ( Game, Random.Seed )
-endRound { winner, athleteA, athleteB, score, seed } =
-    let
-        ( message, newSeed ) =
-            Texts.roundEnd
-                { winner = winner
-                , athleteA = athleteA
-                , athleteB = athleteB
-                , seed = seed
-                }
-
-        newGame =
-            Hotseat (RoundEnd score winner (message |> Announcement.create))
-    in
-    ( newGame, newSeed )
 
 
 
@@ -1011,23 +918,6 @@ subscriptions model =
 
 isEnter text =
     text == "\n"
-
-
-randomLetter : Random.Seed -> String -> ( Char, Random.Seed )
-randomLetter seed alphabet =
-    Random.step (letterGenerator alphabet) seed
-
-
-letterGenerator : String -> Random.Generator Char
-letterGenerator alphabet =
-    Random.int 0 (String.length alphabet - 1)
-        |> Random.map (indexToLetter alphabet)
-
-
-indexToLetter : String -> Int -> Char
-indexToLetter alpha n =
-    Utils.stringCharAt n alpha
-        |> Maybe.withDefault '?'
 
 
 getActiveAthlete : Status -> Maybe Athlete
