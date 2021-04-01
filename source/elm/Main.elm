@@ -126,7 +126,7 @@ update msg model =
             else
                 case model.status of
                     Playing _ _ (Hotseat (Play score athlete previousInput cnts)) ->
-                        ( doAthleteInput input previousInput score athlete cnts model
+                        ( athleteInput input previousInput score athlete cnts model
                         , Cmd.none
                         )
 
@@ -261,14 +261,14 @@ checkAnnouncementDone model =
 
                 Rules ann ->
                     if Announcement.isFinished ann then
-                        doStartRound Score.emptyPlayingScore AthleteA ann model
+                        startRound Score.emptyPlayingScore AthleteA ann model
 
                     else
                         model
 
                 RoundStart score athlete cnts ann ->
                     if Announcement.isFinished ann then
-                        doStartPlay score athlete cnts ann model
+                        startPlay score athlete cnts ann model
 
                     else
                         model
@@ -277,7 +277,7 @@ checkAnnouncementDone model =
                     if Announcement.isFinished ann then
                         case score of
                             PlayingScore playingScore ->
-                                doStartPlay playingScore (oppositeAthlete athlete) cnts ann model
+                                startPlay playingScore (oppositeAthlete athlete) cnts ann model
 
                             WinnerScore _ _ ->
                                 model
@@ -287,7 +287,7 @@ checkAnnouncementDone model =
 
                 PlayWrong score athlete _ ann ->
                     if Announcement.isFinished ann then
-                        doEndRound athlete score ann model
+                        endRound athlete score ann model
 
                     else
                         model
@@ -296,7 +296,7 @@ checkAnnouncementDone model =
                     if Announcement.isFinished ann then
                         case score of
                             PlayingScore playingScore ->
-                                doStartRound playingScore (oppositeAthlete athlete) ann model
+                                startRound playingScore (oppositeAthlete athlete) ann model
 
                             WinnerScore winnerAthlete loserScore ->
                                 model
@@ -328,7 +328,7 @@ pressedEnter model =
                             { model | status = Playing words (Passed.pushAnnouncement ann passed) Game.showRules }
 
                         Rules ann ->
-                            doStartRound Score.emptyPlayingScore AthleteA ann model
+                            startRound Score.emptyPlayingScore AthleteA ann model
 
                         RoundStart _ _ _ _ ->
                             model
@@ -345,12 +345,12 @@ pressedEnter model =
                                     model
 
                         PlayWrong score athlete _ ann ->
-                            doEndRound athlete score ann model
+                            endRound athlete score ann model
 
                         RoundEnd score athlete ann ->
                             case score of
                                 PlayingScore playingScore ->
-                                    doStartRound playingScore (oppositeAthlete athlete) ann model
+                                    startRound playingScore (oppositeAthlete athlete) ann model
 
                                 WinnerScore winnerAthlete loserScore ->
                                     model
@@ -369,8 +369,8 @@ pressedEnter model =
 -- STATUS ADVANCING
 
 
-doStartRound : PlayingScore -> Athlete -> Announcement -> Model -> Model
-doStartRound score athlete ann model =
+startRound : PlayingScore -> Athlete -> Announcement -> Model -> Model
+startRound score athlete ann model =
     case model.status of
         Playing words passed _ ->
             let
@@ -390,8 +390,8 @@ doStartRound score athlete ann model =
             model
 
 
-doStartPlay : PlayingScore -> Athlete -> Constraints -> Announcement -> Model -> Model
-doStartPlay score athlete cnts ann model =
+startPlay : PlayingScore -> Athlete -> Constraints -> Announcement -> Model -> Model
+startPlay score athlete cnts ann model =
     case model.status of
         Playing words passed _ ->
             let
@@ -408,8 +408,8 @@ doStartPlay score athlete cnts ann model =
             model
 
 
-doAthleteInput : String -> String -> PlayingScore -> Athlete -> Constraints -> Model -> Model
-doAthleteInput input previousInput score athlete cnts model =
+athleteInput : String -> String -> PlayingScore -> Athlete -> Constraints -> Model -> Model
+athleteInput input previousInput score athlete cnts model =
     checkPartialInput <|
         case model.status of
             Playing words passed _ ->
@@ -429,8 +429,8 @@ doAthleteInput input previousInput score athlete cnts model =
                 model
 
 
-doEndRound : Athlete -> Score -> Announcement -> Model -> Model
-doEndRound athlete score ann model =
+endRound : Athlete -> Score -> Announcement -> Model -> Model
+endRound athlete score ann model =
     case model.status of
         Playing words passed _ ->
             let
