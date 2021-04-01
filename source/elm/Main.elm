@@ -235,21 +235,6 @@ tickStatus model =
 
 checkAnnouncementDone : Model -> Model
 checkAnnouncementDone model =
-    let
-        check stepper ann =
-            if Announcement.isFinished ann then
-                stepper model
-
-            else
-                model
-
-        check2 words passed ann newGame =
-            if Announcement.isFinished ann then
-                { model | status = Playing words (Passed.pushAnnouncement ann passed) newGame }
-
-            else
-                model
-    in
     case model.status of
         Ready _ _ _ ->
             model
@@ -257,7 +242,11 @@ checkAnnouncementDone model =
         Playing words passed (Hotseat turn) ->
             case turn of
                 GameStart ann ->
-                    check2 words passed ann Game.showRules
+                    if Announcement.isFinished ann then
+                        { model | status = Playing words (Passed.pushAnnouncement ann passed) Game.showRules }
+
+                    else
+                        model
 
                 Rules ann ->
                     if Announcement.isFinished ann then
