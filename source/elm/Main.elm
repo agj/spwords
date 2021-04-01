@@ -260,15 +260,22 @@ checkAnnouncementDone model =
 
             else
                 model
+
+        check2 words passed ann newGame =
+            if Announcement.isFinished ann then
+                { model | status = Playing words (Passed.pushAnnouncement ann passed) newGame }
+
+            else
+                model
     in
     case model.status of
         Ready _ _ _ ->
             model
 
-        Playing _ _ (Hotseat turn) ->
+        Playing words passed (Hotseat turn) ->
             case turn of
                 GameStart ann ->
-                    check showRules ann
+                    check2 words passed ann showRules
 
                 Rules ann ->
                     check startRound ann
@@ -308,15 +315,15 @@ checkAnnouncementDone model =
 pressedEnter : Model -> Model
 pressedEnter model =
     case model.status of
-        Ready _ _ _ ->
-            startGame model
+        Ready words passed ann ->
+            { model | status = Playing words (Passed.pushAnnouncement ann passed) startGame }
 
-        Playing _ _ game ->
+        Playing words passed game ->
             case game of
                 Hotseat turn ->
                     case turn of
-                        GameStart _ ->
-                            showRules model
+                        GameStart ann ->
+                            { model | status = Playing words (Passed.pushAnnouncement ann passed) showRules }
 
                         Rules _ ->
                             startRound model
@@ -360,53 +367,22 @@ pressedEnter model =
 -- STATUS ADVANCING
 
 
-startGame : Model -> Model
-startGame model =
-    case model.status of
-        Ready words passed ann ->
-            let
-                newPassed =
-                    passed
-                        |> Passed.push (Announcement.toMessage ann)
-
-                game =
-                    Hotseat
-                        (GameStart
-                            (Texts.gameStart
-                                { athleteA = "left"
-                                , athleteB = "right"
-                                }
-                                |> Announcement.create
-                            )
-                        )
-            in
-            { model | status = Playing words newPassed game }
-
-        _ ->
-            model
+startGame : Game
+startGame =
+    Hotseat
+        (GameStart
+            (Texts.gameStart
+                { athleteA = "left"
+                , athleteB = "right"
+                }
+                |> Announcement.create
+            )
+        )
 
 
-showRules : Model -> Model
-showRules model =
-    case model.status of
-        Playing words passed (Hotseat (GameStart ann)) ->
-            let
-                newPassed =
-                    passed
-                        |> Passed.push (Announcement.toMessage ann)
-
-                newGame =
-                    Hotseat
-                        (Rules
-                            (Texts.rules
-                                |> Announcement.create
-                            )
-                        )
-            in
-            { model | status = Playing words newPassed newGame }
-
-        _ ->
-            model
+showRules : Game
+showRules =
+    Hotseat (Rules (Texts.rules |> Announcement.create))
 
 
 startRound : Model -> Model
