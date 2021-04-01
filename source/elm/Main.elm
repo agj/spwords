@@ -496,6 +496,10 @@ athleteInput text model =
                 model
 
 
+
+-- INPUT CHECKING
+
+
 checkPartialInput : Model -> Model
 checkPartialInput model =
     case model.status of
@@ -785,24 +789,6 @@ tickerPassed passed =
         |> List.map tickerText
 
 
-tickerActive : Message.Active -> Element Msg
-tickerActive ta =
-    case ta of
-        Message.ActiveAnnouncement txt ticks ->
-            fromDocParagraph (Doc.Util.paragraphLeft ticks txt)
-
-        Message.ActiveInstruction txt ticks ->
-            fromDocParagraph (Doc.Util.paragraphLeft ticks txt)
-
-        Message.ActiveAthleteInput athlete txt _ ->
-            el
-                [ Font.color (athleteColor athlete)
-                , Font.underline
-                , Font.bold
-                ]
-                (text (String.toUpper txt))
-
-
 tickerText : Message -> Element Msg
 tickerText tt =
     case tt of
@@ -810,9 +796,6 @@ tickerText tt =
             fromDocParagraph (Doc.Util.paragraphAppend "—" (Doc.Util.paragraphLeft ticks txt))
 
         Message.FinishedAnnouncement txt ->
-            fromDocParagraph txt
-
-        Message.Instruction txt ->
             fromDocParagraph txt
 
         Message.CorrectAthleteInput athlete txt ->
