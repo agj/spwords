@@ -1,5 +1,6 @@
 module Utils exposing (..)
 
+import Athlete exposing (..)
 import Element exposing (Color)
 
 
@@ -69,3 +70,13 @@ stringCharAt index str =
 stringMember : Char -> String -> Bool
 stringMember char str =
     String.any (\ch -> char == ch) str
+
+
+oppositeAthlete : Athlete -> Athlete
+oppositeAthlete athlete =
+    case athlete of
+        AthleteA ->
+            AthleteB
+
+        AthleteB ->
+            AthleteA

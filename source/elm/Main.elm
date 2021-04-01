@@ -74,13 +74,13 @@ type Game
 type Turn
     = GameStart Announcement
     | Rules Announcement
-    | TurnStart PlayingScore Athlete Constraints Announcement
+    | RoundStart PlayingScore Athlete Constraints Announcement
     | Play PlayingScore Athlete String Constraints
     | PlayCorrect Score Athlete Constraints Announcement
     | PlayWrong Score Athlete Constraints Announcement
-    | RoundEnd Score Announcement
-    | NewRound PlayingScore Announcement
-    | Tally Score Announcement
+    | RoundEnd Score Athlete Announcement
+    | NewRound PlayingScore Athlete Announcement
+    | Tally Score Athlete Announcement
     | End Athlete Points Announcement
 
 
@@ -220,8 +220,8 @@ tickStatus model =
                     Rules ann ->
                         { model | status = Playing words passed (Hotseat (Rules (ann |> Announcement.tick))) }
 
-                    TurnStart score athlete cnts ann ->
-                        { model | status = Playing words passed (Hotseat (TurnStart score athlete cnts (ann |> Announcement.tick))) }
+                    RoundStart score athlete cnts ann ->
+                        { model | status = Playing words passed (Hotseat (RoundStart score athlete cnts (ann |> Announcement.tick))) }
 
                     PlayCorrect score athlete cnts ann ->
                         { model | status = Playing words passed (Hotseat (PlayCorrect score athlete cnts (ann |> Announcement.tick))) }
@@ -229,59 +229,26 @@ tickStatus model =
                     PlayWrong score athlete cnts ann ->
                         { model | status = Playing words passed (Hotseat (PlayWrong score athlete cnts (ann |> Announcement.tick))) }
 
-                    _ ->
+                    RoundEnd score athlete ann ->
+                        { model | status = Playing words passed (Hotseat (RoundEnd score athlete (ann |> Announcement.tick))) }
+
+                    NewRound score athlete ann ->
+                        { model | status = Playing words passed (Hotseat (NewRound score athlete (ann |> Announcement.tick))) }
+
+                    Tally score athlete ann ->
+                        { model | status = Playing words passed (Hotseat (Tally score athlete (ann |> Announcement.tick))) }
+
+                    End athlete points ann ->
+                        { model | status = Playing words passed (Hotseat (End athlete points (ann |> Announcement.tick))) }
+
+                    Play _ _ _ _ ->
                         model
+
+            Playing words passed (Single turn) ->
+                Debug.todo "Single mode not implemented."
 
             _ ->
                 model
-
-
-pressedEnter : Model -> Model
-pressedEnter model =
-    case model.status of
-        Ready _ _ _ ->
-            startGame model
-
-        Playing _ _ game ->
-            case game of
-                Hotseat turn ->
-                    case turn of
-                        GameStart _ ->
-                            showRules model
-
-                        Rules _ ->
-                            startTurn model
-
-                        TurnStart _ _ _ _ ->
-                            model
-
-                        Play _ _ _ _ ->
-                            checkInput model
-
-                        PlayCorrect score _ _ _ ->
-                            case score of
-                                PlayingScore _ ->
-                                    model
-
-                                WinnerScore athlete loserScore ->
-                                    model
-
-                        PlayWrong score _ _ _ ->
-                            case score of
-                                PlayingScore _ ->
-                                    startTurn model
-
-                                WinnerScore athlete loserScore ->
-                                    model
-
-                        _ ->
-                            model
-
-                Single turn ->
-                    Debug.todo "Single mode not implemented."
-
-        _ ->
-            model
 
 
 checkAnnouncementDone : Model -> Model
@@ -304,9 +271,9 @@ checkAnnouncementDone model =
                     check showRules ann
 
                 Rules ann ->
-                    check startTurn ann
+                    check startRound ann
 
-                TurnStart _ _ _ ann ->
+                RoundStart _ _ _ ann ->
                     check startPlay ann
 
                 PlayCorrect score _ _ ann ->
@@ -317,10 +284,13 @@ checkAnnouncementDone model =
                         WinnerScore _ _ ->
                             model
 
-                PlayWrong score _ _ ann ->
+                PlayWrong _ _ _ ann ->
+                    check endRound ann
+
+                RoundEnd score _ ann ->
                     case score of
                         PlayingScore _ ->
-                            check startTurn ann
+                            check startRound ann
 
                         WinnerScore _ _ ->
                             model
@@ -330,6 +300,57 @@ checkAnnouncementDone model =
 
         Playing _ _ (Single turn) ->
             Debug.todo "Single mode not implemented."
+
+        _ ->
+            model
+
+
+pressedEnter : Model -> Model
+pressedEnter model =
+    case model.status of
+        Ready _ _ _ ->
+            startGame model
+
+        Playing _ _ game ->
+            case game of
+                Hotseat turn ->
+                    case turn of
+                        GameStart _ ->
+                            showRules model
+
+                        Rules _ ->
+                            startRound model
+
+                        RoundStart _ _ _ _ ->
+                            model
+
+                        Play _ _ _ _ ->
+                            checkInput model
+
+                        PlayCorrect score _ _ _ ->
+                            case score of
+                                PlayingScore _ ->
+                                    model
+
+                                WinnerScore athlete loserScore ->
+                                    model
+
+                        PlayWrong _ _ _ _ ->
+                            endRound model
+
+                        RoundEnd score _ _ ->
+                            case Debug.log "RoundEnd score" score of
+                                PlayingScore _ ->
+                                    startRound model
+
+                                WinnerScore athlete loserScore ->
+                                    model
+
+                        _ ->
+                            model
+
+                Single turn ->
+                    Debug.todo "Single mode not implemented."
 
         _ ->
             model
@@ -388,8 +409,8 @@ showRules model =
             model
 
 
-startTurn : Model -> Model
-startTurn model =
+startRound : Model -> Model
+startRound model =
     let
         doIt { athlete, passed, words, ann, score } =
             let
@@ -416,7 +437,7 @@ startTurn model =
 
                 newGame =
                     Hotseat
-                        (TurnStart
+                        (RoundStart
                             score
                             athlete
                             (Constraints.serve initial)
@@ -438,7 +459,7 @@ startTurn model =
                 , ann = ann
                 }
 
-        Playing words passed (Hotseat (PlayWrong (PlayingScore score) athlete cnts ann)) ->
+        Playing words passed (Hotseat (RoundEnd (PlayingScore score) athlete ann)) ->
             doIt
                 { athlete = oppositeAthlete athlete
                 , score = score
@@ -454,7 +475,7 @@ startTurn model =
 startPlay : Model -> Model
 startPlay model =
     case model.status of
-        Playing words passed (Hotseat (TurnStart score athlete cnts ann)) ->
+        Playing words passed (Hotseat (RoundStart score athlete cnts ann)) ->
             let
                 newPassed =
                     passed
@@ -490,6 +511,41 @@ athleteInput text model =
 
             _ ->
                 model
+
+
+endRound : Model -> Model
+endRound model =
+    case model.status of
+        Playing words passed (Hotseat (PlayWrong score athlete _ ann)) ->
+            let
+                newPassed =
+                    passed
+                        |> Passed.push (Announcement.toMessage ann)
+
+                newAthlete =
+                    oppositeAthlete athlete
+
+                ( message, newSeed ) =
+                    Texts.roundEnd
+                        { winner = oppositeAthlete athlete
+                        , athleteA = "left"
+                        , athleteB = "right"
+                        , seed = model.randomSeed
+                        }
+
+                newGame =
+                    Hotseat (RoundEnd score newAthlete (message |> Announcement.create))
+            in
+            { model
+                | status = Playing words newPassed newGame
+                , randomSeed = newSeed
+            }
+
+        Playing words passed (Single (PlayWrong score athlete _ ann)) ->
+            Debug.todo "Single mode not implemented."
+
+        _ ->
+            model
 
 
 
@@ -741,20 +797,29 @@ ticker model =
                 Rules ann ->
                     tickerEl (tickerAnnouncement ann) passed
 
-                TurnStart _ _ _ ann ->
+                RoundStart _ _ _ ann ->
                     tickerEl (tickerAnnouncement ann) passed
 
                 Play _ athlete text _ ->
                     tickerEl (tickerPlay athlete text) passed
 
-                PlayCorrect _ athlete _ ann ->
+                PlayCorrect _ _ _ ann ->
                     tickerEl (tickerAnnouncement ann) passed
 
-                PlayWrong _ athlete _ ann ->
+                PlayWrong _ _ _ ann ->
                     tickerEl (tickerAnnouncement ann) passed
 
-                _ ->
-                    none
+                RoundEnd _ _ ann ->
+                    tickerEl (tickerAnnouncement ann) passed
+
+                NewRound _ _ ann ->
+                    tickerEl (tickerAnnouncement ann) passed
+
+                Tally _ _ ann ->
+                    tickerEl (tickerAnnouncement ann) passed
+
+                End _ _ ann ->
+                    tickerEl (tickerAnnouncement ann) passed
 
         Playing _ passed (Single turn) ->
             Debug.todo "Single mode not implemented."
@@ -972,13 +1037,3 @@ getActiveAthlete status =
 
         _ ->
             Nothing
-
-
-oppositeAthlete : Athlete -> Athlete
-oppositeAthlete athlete =
-    case athlete of
-        AthleteA ->
-            AthleteB
-
-        AthleteB ->
-            AthleteA

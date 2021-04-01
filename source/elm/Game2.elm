@@ -43,13 +43,13 @@ type Game
 type Turn
     = GameStart Announcement
     | Rules Announcement
-    | TurnStart PlayingScore Athlete Constraints Announcement
+    | RoundStart PlayingScore Athlete Constraints Announcement
     | Play PlayingScore Athlete String Constraints
     | PlayCorrect Score Athlete Constraints Announcement
     | PlayWrong Score Athlete Constraints Announcement
-    | RoundEnd Score Announcement
-    | NewRound PlayingScore Announcement
-    | Tally Score Announcement
+    | RoundEnd Score Athlete Announcement
+    | NewRound PlayingScore Athlete Announcement
+    | Tally Score Athlete Announcement
     | End Athlete Points Announcement
 
 

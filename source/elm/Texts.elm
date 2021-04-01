@@ -10,6 +10,7 @@ module Texts exposing
     , names
     , notAWord
     , ready
+    , roundEnd
     , roundStart
     , rules
     , timeOut
@@ -26,6 +27,7 @@ import Doc.Paragraph as Paragraph exposing (Paragraph)
 import Doc.Text as Text exposing (Text)
 import Palette exposing (athleteB)
 import Random
+import Utils exposing (..)
 
 
 title =
@@ -111,6 +113,37 @@ interjection : Random.Seed -> ( Paragraph, Random.Seed )
 interjection seed =
     comments.interjection
         |> emuRandomString seed identity Dict.empty
+
+
+roundEnd : { winner : Athlete, athleteA : String, athleteB : String, seed : Random.Seed } -> ( Paragraph, Random.Seed )
+roundEnd { winner, athleteA, athleteB, seed } =
+    let
+        setStyles txt =
+            case Text.content txt of
+                "winner" ->
+                    txt |> Text.mapFormat (Format.setAthlete (Just winner))
+
+                "loser" ->
+                    txt |> Text.mapFormat (Format.setAthlete (Just (oppositeAthlete winner)))
+
+                _ ->
+                    txt
+
+        vars =
+            Dict.fromList <|
+                case winner of
+                    AthleteA ->
+                        [ ( "winner", athleteA )
+                        , ( "loser", athleteB )
+                        ]
+
+                    AthleteB ->
+                        [ ( "winner", athleteB )
+                        , ( "loser", athleteA )
+                        ]
+    in
+    comments.roundEnd
+        |> emuRandomString seed setStyles vars
 
 
 
