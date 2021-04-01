@@ -253,7 +253,7 @@ pressedEnter model =
                             startTurn model
 
                         TurnStart _ _ _ _ ->
-                            startPlay model
+                            model
 
                         Play _ _ _ _ ->
                             checkInput model
@@ -261,7 +261,7 @@ pressedEnter model =
                         PlayCorrect score _ _ _ ->
                             case score of
                                 PlayingScore _ ->
-                                    startPlay model
+                                    model
 
                                 WinnerScore athlete loserScore ->
                                     model
