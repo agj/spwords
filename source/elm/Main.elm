@@ -126,7 +126,7 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     let
-        modelCmd =
+        default =
             ( model, Cmd.none )
     in
     case msg of
@@ -136,82 +136,23 @@ update msg model =
             )
 
         Inputted text ->
-            case model.status of
-                Ready _ _ _ ->
-                    if isEnter text then
-                        ( startGame model
+            if isEnter text then
+                ( pressedEnter model
+                , Cmd.none
+                )
+
+            else
+                case model.status of
+                    Playing _ _ (Hotseat (Play _ _ _ _)) ->
+                        ( athleteInput text model
                         , Cmd.none
                         )
 
-                    else
-                        modelCmd
+                    Playing _ _ (Single (Play _ _ _ _)) ->
+                        Debug.todo "Single mode not implemented."
 
-                Playing _ _ game ->
-                    if isEnter text then
-                        case game of
-                            Hotseat turn ->
-                                case turn of
-                                    GameStart _ ->
-                                        ( showRules model
-                                        , Cmd.none
-                                        )
-
-                                    Rules _ ->
-                                        ( startTurn model
-                                        , Cmd.none
-                                        )
-
-                                    TurnStart _ _ _ _ ->
-                                        ( startPlay model
-                                        , Cmd.none
-                                        )
-
-                                    Play _ _ _ _ ->
-                                        ( checkInput model
-                                        , Cmd.none
-                                        )
-
-                                    PlayCorrect score _ _ _ ->
-                                        case score of
-                                            PlayingScore _ ->
-                                                ( startPlay model
-                                                , Cmd.none
-                                                )
-
-                                            WinnerScore athlete loserScore ->
-                                                modelCmd
-
-                                    PlayWrong score _ _ _ ->
-                                        case score of
-                                            PlayingScore _ ->
-                                                ( startTurn model
-                                                , Cmd.none
-                                                )
-
-                                            WinnerScore athlete loserScore ->
-                                                modelCmd
-
-                                    _ ->
-                                        modelCmd
-
-                            _ ->
-                                modelCmd
-
-                    else
-                        case game of
-                            Hotseat (Play _ _ _ _) ->
-                                ( athleteInput text model
-                                , Cmd.none
-                                )
-
-                            _ ->
-                                modelCmd
-
-                Loading _ ->
-                    modelCmd
-
-                WordsLoadError _ ->
-                    modelCmd
+                    _ ->
+                        default
 
         -- INITIALIZATION STAGE
         --
@@ -238,7 +179,7 @@ update msg model =
             )
 
         NoOp ->
-            modelCmd
+            default
 
 
 gotWords : Result Http.Error String -> Model -> Model
@@ -293,6 +234,54 @@ tickStatus model =
 
             _ ->
                 model
+
+
+pressedEnter : Model -> Model
+pressedEnter model =
+    case model.status of
+        Ready _ _ _ ->
+            startGame model
+
+        Playing _ _ game ->
+            case game of
+                Hotseat turn ->
+                    case turn of
+                        GameStart _ ->
+                            showRules model
+
+                        Rules _ ->
+                            startTurn model
+
+                        TurnStart _ _ _ _ ->
+                            startPlay model
+
+                        Play _ _ _ _ ->
+                            checkInput model
+
+                        PlayCorrect score _ _ _ ->
+                            case score of
+                                PlayingScore _ ->
+                                    startPlay model
+
+                                WinnerScore athlete loserScore ->
+                                    model
+
+                        PlayWrong score _ _ _ ->
+                            case score of
+                                PlayingScore _ ->
+                                    startTurn model
+
+                                WinnerScore athlete loserScore ->
+                                    model
+
+                        _ ->
+                            model
+
+                Single turn ->
+                    Debug.todo "Single mode not implemented."
+
+        _ ->
+            model
 
 
 checkAnnouncementDone : Model -> Model
