@@ -45,8 +45,8 @@ type Turn
     | Rules Announcement
     | TurnStart PlayingScore Athlete Constraints Announcement
     | Play PlayingScore Athlete String Constraints
-    | PlayCorrect PlayingScore Athlete Announcement
-    | PlayWrong Score Athlete ReasonWrong Announcement
+    | PlayCorrect PlayingScore Athlete Constraints Announcement
+    | PlayWrong Score Athlete Constraints Announcement
     | RoundEnd Score Announcement
     | NewRound PlayingScore Announcement
     | Tally Score Announcement

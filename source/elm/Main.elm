@@ -80,19 +80,12 @@ type Turn
     | Rules Announcement
     | TurnStart PlayingScore Athlete Constraints Announcement
     | Play PlayingScore Athlete String Constraints
-    | PlayCorrect PlayingScore Athlete Announcement
-    | PlayWrong Score Athlete ReasonWrong Announcement
+    | PlayCorrect PlayingScore Athlete Constraints Announcement
+    | PlayWrong Score Athlete Constraints Announcement
     | RoundEnd Score Announcement
     | NewRound PlayingScore Announcement
     | Tally Score Announcement
     | End Athlete Points Announcement
-
-
-type ReasonWrong
-    = InitialWrong
-    | IncorporatesWrong
-    | AlreadyPlayed
-    | NotAWord
 
 
 
@@ -180,6 +173,16 @@ update msg model =
                                         ( startPlay model
                                         , Cmd.none
                                         )
+
+                                    PlayWrong score _ _ _ ->
+                                        case score of
+                                            PlayingScore _ ->
+                                                ( startTurn model
+                                                , Cmd.none
+                                                )
+
+                                            WinnerScore athlete loserScore ->
+                                                modelCmd
 
                                     _ ->
                                         modelCmd
@@ -377,43 +380,50 @@ showRules model =
 
 startTurn : Model -> Model
 startTurn model =
-    case model.status of
-        Playing words passed (Hotseat (Rules ann)) ->
+    let
+        vars athlete initial =
+            Dict.fromList
+                [ ( "turn"
+                  , case athlete of
+                        AthleteA ->
+                            "left"
+
+                        AthleteB ->
+                            "right"
+                  )
+                , ( "letter", initial |> String.fromChar )
+                ]
+
+        setStyles turnAthlete txt =
+            case Doc.Text.content txt of
+                "turn" ->
+                    txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just turnAthlete))
+
+                "letter" ->
+                    txt |> Doc.Text.mapFormat (Doc.Format.setBold True)
+
+                _ ->
+                    txt
+
+        doIt { athlete, passed, words, randomSeed, ann, cnts, score } =
             let
-                ( initial, seed1 ) =
-                    randomLetter model.randomSeed Texts.alphabet
-
-                vars =
-                    Dict.fromList
-                        [ ( "turn", "left" )
-                        , ( "letter", initial |> String.fromChar )
-                        ]
-
-                setStyles txt =
-                    case Doc.Text.content txt of
-                        "turn" ->
-                            txt |> Doc.Text.mapFormat (Doc.Format.setAthlete (Just AthleteA))
-
-                        "letter" ->
-                            txt |> Doc.Text.mapFormat (Doc.Format.setBold True)
-
-                        _ ->
-                            txt
-
-                ( turnAndLetter, newSeed ) =
-                    Texts.comments.turnAndLetter
-                        |> emuRandomString seed1 setStyles vars
-
                 newPassed =
                     passed
                         |> Passed.push (Announcement.toMessage ann)
 
+                initial =
+                    Constraints.getInitial cnts
+
+                ( turnAndLetter, newSeed ) =
+                    Texts.comments.turnAndLetter
+                        |> emuRandomString randomSeed (setStyles AthleteA) (vars athlete initial)
+
                 newGame =
                     Hotseat
                         (TurnStart
-                            Score.emptyPlayingScore
-                            AthleteB
-                            (Constraints.serve initial)
+                            score
+                            athlete
+                            cnts
                             (Announcement.create turnAndLetter)
                         )
             in
@@ -421,9 +431,50 @@ startTurn model =
                 | status = Playing words newPassed newGame
                 , randomSeed = newSeed
             }
+    in
+    case model.status of
+        Playing words passed (Hotseat (Rules ann)) ->
+            let
+                ( initial, seed1 ) =
+                    randomLetter model.randomSeed Texts.alphabet
+            in
+            doIt
+                { athlete = AthleteA
+                , passed = passed
+                , words = words
+                , randomSeed = seed1
+                , ann = ann
+                , cnts = Constraints.serve initial
+                , score = Score.emptyPlayingScore
+                }
+
+        Playing words passed (Hotseat (PlayWrong (PlayingScore score) athlete cnts ann)) ->
+            let
+                newAthlete =
+                    oppositeAthlete athlete
+            in
+            doIt
+                { athlete = newAthlete
+                , passed = passed
+                , words = words
+                , randomSeed = model.randomSeed
+                , ann = ann
+                , cnts = cnts
+                , score = score
+                }
 
         _ ->
             model
+
+
+oppositeAthlete : Athlete -> Athlete
+oppositeAthlete athlete =
+    case athlete of
+        AthleteA ->
+            AthleteB
+
+        AthleteB ->
+            AthleteA
 
 
 startPlay : Model -> Model
@@ -445,12 +496,13 @@ startPlay model =
 
 userInput : String -> Model -> Model
 userInput text model =
-    case model.status of
-        Playing words passed (Hotseat (Play score athlete oldText cnts)) ->
-            { model | status = Playing words passed (Hotseat (Play score athlete (oldText ++ text) cnts)) }
+    checkPartialInput <|
+        case model.status of
+            Playing words passed (Hotseat (Play score athlete oldText cnts)) ->
+                { model | status = Playing words passed (Hotseat (Play score athlete (oldText ++ text) cnts)) }
 
-        _ ->
-            model
+            _ ->
+                model
 
 
 
@@ -571,27 +623,28 @@ ticker model =
         Ready _ passed ann ->
             tickerEl (tickerAnnouncement ann) passed
 
-        Playing _ passed game ->
-            case game of
-                Hotseat turn ->
-                    case turn of
-                        GameStart ann ->
-                            tickerEl (tickerAnnouncement ann) passed
+        Playing _ passed (Hotseat turn) ->
+            case turn of
+                GameStart ann ->
+                    tickerEl (tickerAnnouncement ann) passed
 
-                        Rules ann ->
-                            tickerEl (tickerAnnouncement ann) passed
+                Rules ann ->
+                    tickerEl (tickerAnnouncement ann) passed
 
-                        TurnStart _ _ _ ann ->
-                            tickerEl (tickerAnnouncement ann) passed
+                TurnStart _ _ _ ann ->
+                    tickerEl (tickerAnnouncement ann) passed
 
-                        Play _ athlete text _ ->
-                            tickerEl (tickerPlay athlete text) passed
+                Play _ athlete text _ ->
+                    tickerEl (tickerPlay athlete text) passed
 
-                        _ ->
-                            none
+                PlayWrong _ athlete _ ann ->
+                    tickerEl (tickerAnnouncement ann) passed
 
                 _ ->
                     none
+
+        Playing _ passed (Single turn) ->
+            Debug.todo "Single mode not implemented."
 
         WordsLoadError err ->
             none
@@ -798,10 +851,10 @@ subscriptions model =
 -- OTHER
 
 
-checkPartialInput : Words -> Model -> Model
-checkPartialInput words model =
-    case Ticker.current model.ticker of
-        Just (Message.ActiveAthleteInput athlete txt cnts) ->
+checkPartialInput : Model -> Model
+checkPartialInput model =
+    case model.status of
+        Playing words passed (Hotseat (Play score athlete txt cnts)) ->
             case Constraints.checkCandidate txt cnts words of
                 Constraints.CandidateCorrect ->
                     model
@@ -812,10 +865,10 @@ checkPartialInput words model =
                 Constraints.CandidateNotAWord ->
                     inputWrong Texts.comments.mistake.notAWord model
 
-        Just _ ->
-            model
+        Playing words passed (Single (Play score athlete txt cnts)) ->
+            Debug.todo "Single mode not implemented."
 
-        Nothing ->
+        _ ->
             model
 
 
@@ -883,65 +936,52 @@ inputCorrect model =
 
 inputWrong : List String -> Model -> Model
 inputWrong messages model =
-    case Ticker.current model.ticker of
-        Just (Message.ActiveAthleteInput athlete previousWord cnts) ->
+    case model.status of
+        Playing words passed (Hotseat (Play score athlete txt cnts)) ->
             let
-                newCnts =
-                    case Constraints.getIncorporates cnts of
-                        Just incorporates ->
-                            Constraints.rally
-                                { initial = Constraints.getInitial cnts
-                                , incorporates = incorporates
-                                , played = Constraints.getPlayed cnts
-                                }
+                newScore =
+                    Score.increaseScore (oppositeAthlete athlete) score
 
-                        Nothing ->
-                            Constraints.serve (Constraints.getInitial cnts)
-
-                newAthlete =
-                    case athlete of
-                        AthleteA ->
-                            AthleteB
-
-                        AthleteB ->
-                            AthleteA
+                newPassed =
+                    passed
+                        |> Passed.push (Message.WrongAthleteInput athlete txt)
 
                 vars =
-                    Dict.singleton "initial" (Constraints.getInitial newCnts |> String.fromChar)
-                        |> (case Constraints.getIncorporates newCnts of
-                                Just char ->
-                                    Dict.insert "incorporates" (char |> String.fromChar)
+                    case Constraints.getIncorporates cnts of
+                        Just char ->
+                            Dict.fromList
+                                [ ( "initial", cnts |> Constraints.getInitial |> String.fromChar )
+                                , ( "incorporates", char |> String.fromChar )
+                                ]
 
-                                Nothing ->
-                                    identity
-                           )
+                        Nothing ->
+                            Dict.fromList
+                                [ ( "initial", cnts |> Constraints.getInitial |> String.fromChar )
+                                ]
 
-                setStyles txt =
-                    let
-                        boldify =
-                            Doc.Text.mapFormat (Doc.Format.setBold True)
-                    in
-                    case Doc.Text.content txt of
-                        "initial" ->
-                            boldify txt
-
-                        "incorporates" ->
-                            boldify txt
-
-                        _ ->
-                            txt
+                setStyles =
+                    Doc.Text.mapFormat (Doc.Format.setBold True)
 
                 ( message, newSeed ) =
                     messages
                         |> emuRandomString model.randomSeed setStyles vars
+
+                newGame =
+                    Hotseat
+                        (PlayWrong
+                            newScore
+                            athlete
+                            cnts
+                            (message |> Announcement.create)
+                        )
             in
             { model
-                | ticker =
-                    Ticker.inputWrong model.ticker
-                        |> Ticker.queueUp (Message.QueuedInstruction message)
-                        |> Ticker.queueUp (Message.QueuedAthleteInput newAthlete newCnts)
+                | status = Playing words newPassed newGame
                 , randomSeed = newSeed
             }
+
+        Playing words passed (Single (Play score athlete txt cnts)) ->
+            Debug.todo "Single mode not implemented."
 
         _ ->
             model
