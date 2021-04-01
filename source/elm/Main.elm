@@ -282,6 +282,17 @@ checkAnnouncementDone model =
                 | status = Playing words (Passed.pushAnnouncement ann passed) newGame
                 , randomSeed = newSeed
             }
+
+        doStartPlay words passed ann score athlete cnts =
+            let
+                newGame =
+                    startPlay
+                        { score = score
+                        , athlete = oppositeAthlete athlete
+                        , constraints = cnts
+                        }
+            in
+            { model | status = Playing words (Passed.pushAnnouncement ann passed) newGame }
     in
     case model.status of
         Ready _ _ _ ->
@@ -299,16 +310,24 @@ checkAnnouncementDone model =
                     else
                         model
 
-                RoundStart _ _ _ ann ->
-                    check startPlay ann
+                RoundStart score athlete cnts ann ->
+                    if Announcement.isFinished ann then
+                        doStartPlay words passed ann score athlete cnts
 
-                PlayCorrect score _ _ ann ->
-                    case score of
-                        PlayingScore _ ->
-                            check startPlay ann
+                    else
+                        model
 
-                        WinnerScore _ _ ->
-                            model
+                PlayCorrect score athlete cnts ann ->
+                    if Announcement.isFinished ann then
+                        case score of
+                            PlayingScore playingScore ->
+                                doStartPlay words passed ann playingScore (oppositeAthlete athlete) cnts
+
+                            WinnerScore _ _ ->
+                                model
+
+                    else
+                        model
 
                 PlayWrong _ _ _ ann ->
                     check endRound ann
@@ -455,90 +474,35 @@ startRound { athlete, words, score, seed } =
     )
 
 
+startPlay : { score : PlayingScore, athlete : Athlete, constraints : Constraints } -> Game
+startPlay { score, athlete, constraints } =
+    Hotseat (Play score athlete "" constraints)
 
--- let
---     doIt { athlete, passed, words, ann, score } =
+
+
+-- case model.status of
+--     Playing words passed (Hotseat (RoundStart score athlete cnts ann)) ->
 --         let
---             ( initial, seed1 ) =
---                 randomLetter model.randomSeed Texts.alphabet
 --             newPassed =
 --                 passed
 --                     |> Passed.push (Announcement.toMessage ann)
---             ( turnAndLetter, newSeed ) =
---                 Texts.roundStart
---                     { turnAthlete = athlete
---                     , seed = seed1
---                     , turn =
---                         case athlete of
---                             AthleteA ->
---                                 "left"
---                             AthleteB ->
---                                 "right"
---                     , initial = initial
---                     }
---             newGame =
---                 Hotseat
---                     (RoundStart
---                         score
---                         athlete
---                         (Constraints.serve initial)
---                         (Announcement.create turnAndLetter)
---                     )
 --         in
 --         { model
---             | status = Playing words newPassed newGame
---             , randomSeed = newSeed
+--             | status = Playing words newPassed (Hotseat (Play score athlete "" cnts))
 --         }
--- in
--- case model.status of
---     Playing words passed (Hotseat (Rules ann)) ->
---         doIt
---             { athlete = AthleteA
---             , score = Score.emptyPlayingScore
---             , passed = passed
---             , words = words
---             , ann = ann
---             }
---     Playing words passed (Hotseat (RoundEnd (PlayingScore score) athlete ann)) ->
---         doIt
---             { athlete = oppositeAthlete athlete
---             , score = score
---             , passed = passed
---             , words = words
---             , ann = ann
---             }
+--     Playing words passed (Hotseat (PlayCorrect (PlayingScore score) athlete cnts ann)) ->
+--         let
+--             newPassed =
+--                 passed
+--                     |> Passed.push (Announcement.toMessage ann)
+--             newAthlete =
+--                 oppositeAthlete athlete
+--         in
+--         { model
+--             | status = Playing words newPassed (Hotseat (Play score newAthlete "" cnts))
+--         }
 --     _ ->
 --         model
-
-
-startPlay : Model -> Model
-startPlay model =
-    case model.status of
-        Playing words passed (Hotseat (RoundStart score athlete cnts ann)) ->
-            let
-                newPassed =
-                    passed
-                        |> Passed.push (Announcement.toMessage ann)
-            in
-            { model
-                | status = Playing words newPassed (Hotseat (Play score athlete "" cnts))
-            }
-
-        Playing words passed (Hotseat (PlayCorrect (PlayingScore score) athlete cnts ann)) ->
-            let
-                newPassed =
-                    passed
-                        |> Passed.push (Announcement.toMessage ann)
-
-                newAthlete =
-                    oppositeAthlete athlete
-            in
-            { model
-                | status = Playing words newPassed (Hotseat (Play score newAthlete "" cnts))
-            }
-
-        _ ->
-            model
 
 
 athleteInput : String -> Model -> Model
