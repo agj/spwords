@@ -2,6 +2,7 @@ module Announcement exposing
     ( Announcement
     , create
     , getCurrent
+    , isFinished
     , tick
     , toMessage
     )
@@ -29,6 +30,11 @@ getCurrent (Announcement ( par, ticks )) =
     Doc.Util.paragraphLeft ticks par
 
 
+isFinished : Announcement -> Bool
+isFinished (Announcement ( par, ticks )) =
+    ticks >= Paragraph.length par
+
+
 
 -- MODIFICATION
 
@@ -39,8 +45,8 @@ tick (Announcement ( par, ticks )) =
 
 
 toMessage : Announcement -> Message
-toMessage (Announcement ( par, ticks )) =
-    if ticks >= Paragraph.length par then
+toMessage ((Announcement ( par, ticks )) as ann) =
+    if isFinished ann then
         Message.FinishedAnnouncement par
 
     else

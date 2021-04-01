@@ -136,10 +136,7 @@ update msg model =
     in
     case msg of
         Ticked _ ->
-            ( { model
-                | ticker = Ticker.tick model.ticker
-                , status = tickStatus model.status
-              }
+            ( tickStatus model
             , Cmd.none
             )
 
@@ -271,42 +268,86 @@ update msg model =
             modelCmd
 
 
-tickStatus : Status -> Status
-tickStatus status =
-    case status of
-        Loading ann ->
-            Loading (Announcement.tick ann)
+tickStatus : Model -> Model
+tickStatus model =
+    checkAnnouncementDone <|
+        case model.status of
+            Loading ann ->
+                { model | status = Loading (Announcement.tick ann) }
 
-        Ready words passed ann ->
-            Ready words passed (Announcement.tick ann)
+            Ready words passed ann ->
+                { model | status = Ready words passed (Announcement.tick ann) }
 
-        Playing words passed game ->
-            case game of
-                Hotseat turn ->
-                    case turn of
-                        GameStart ann ->
-                            Playing words passed (Hotseat (GameStart (ann |> Announcement.tick)))
+            Playing words passed (Hotseat turn) ->
+                case turn of
+                    GameStart ann ->
+                        { model | status = Playing words passed (Hotseat (GameStart (ann |> Announcement.tick))) }
 
-                        Rules ann ->
-                            Playing words passed (Hotseat (Rules (ann |> Announcement.tick)))
+                    Rules ann ->
+                        { model | status = Playing words passed (Hotseat (Rules (ann |> Announcement.tick))) }
 
-                        TurnStart score athlete cnts ann ->
-                            Playing words passed (Hotseat (TurnStart score athlete cnts (ann |> Announcement.tick)))
+                    TurnStart score athlete cnts ann ->
+                        { model | status = Playing words passed (Hotseat (TurnStart score athlete cnts (ann |> Announcement.tick))) }
 
-                        PlayCorrect score athlete cnts ann ->
-                            Playing words passed (Hotseat (PlayCorrect score athlete cnts (ann |> Announcement.tick)))
+                    PlayCorrect score athlete cnts ann ->
+                        { model | status = Playing words passed (Hotseat (PlayCorrect score athlete cnts (ann |> Announcement.tick))) }
 
-                        PlayWrong score athlete cnts ann ->
-                            Playing words passed (Hotseat (PlayWrong score athlete cnts (ann |> Announcement.tick)))
+                    PlayWrong score athlete cnts ann ->
+                        { model | status = Playing words passed (Hotseat (PlayWrong score athlete cnts (ann |> Announcement.tick))) }
 
-                        _ ->
-                            status
+                    _ ->
+                        model
+
+            _ ->
+                model
+
+
+checkAnnouncementDone : Model -> Model
+checkAnnouncementDone model =
+    let
+        check stepper ann =
+            if Announcement.isFinished ann then
+                stepper model
+
+            else
+                model
+    in
+    case model.status of
+        Ready _ _ _ ->
+            model
+
+        Playing words passed (Hotseat turn) ->
+            case turn of
+                GameStart ann ->
+                    check showRules ann
+
+                Rules ann ->
+                    check startTurn ann
+
+                TurnStart _ _ _ ann ->
+                    check startPlay ann
+
+                PlayCorrect score _ _ ann ->
+                    case score of
+                        PlayingScore _ ->
+                            check startPlay ann
+
+                        WinnerScore _ _ ->
+                            model
+
+                PlayWrong score _ _ ann ->
+                    case score of
+                        PlayingScore _ ->
+                            check startTurn ann
+
+                        WinnerScore _ _ ->
+                            model
 
                 _ ->
-                    status
+                    model
 
         _ ->
-            status
+            model
 
 
 startGame : Model -> Model
