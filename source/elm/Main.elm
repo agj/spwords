@@ -271,10 +271,10 @@ pressedEnter model =
                         PlayingScore _ ->
                             model
 
-                        WinnerScore athlete loserScore ->
+                        WinnerScore _ _ ->
                             model
 
-                PlayWrong score athlete _ ann ->
+                PlayWrong _ _ _ _ ->
                     model
 
                 _ ->
