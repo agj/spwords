@@ -8,8 +8,7 @@ import Constraints exposing (Constraints)
 import CustomEl
 import Dict exposing (Dict)
 import Doc
-import Doc.EmuDecode
-import Doc.Format exposing (athlete)
+import Doc.Format
 import Doc.Paragraph as Paragraph exposing (Paragraph)
 import Doc.Text
 import Doc.Util
@@ -303,8 +302,12 @@ checkAnnouncementDone model =
                     else
                         model
 
-                PlayWrong _ _ _ ann ->
-                    check endRound ann
+                PlayWrong score athlete _ ann ->
+                    if Announcement.isFinished ann then
+                        doEndRound athlete score ann model
+
+                    else
+                        model
 
                 RoundEnd score athlete ann ->
                     if Announcement.isFinished ann then
@@ -358,8 +361,8 @@ pressedEnter model =
                                 WinnerScore athlete loserScore ->
                                     model
 
-                        PlayWrong _ _ _ _ ->
-                            endRound model
+                        PlayWrong score athlete cnts ann ->
+                            doEndRound athlete score ann model
 
                         RoundEnd score athlete ann ->
                             case score of
@@ -439,6 +442,33 @@ doAthleteInput input previousInput score athlete cnts model =
                 model
 
 
+doEndRound : Athlete -> Score -> Announcement -> Model -> Model
+doEndRound athlete score ann model =
+    case model.status of
+        Playing words passed _ ->
+            let
+                newPassed =
+                    passed
+                        |> Passed.pushAnnouncement ann
+
+                ( newGame, newSeed ) =
+                    endRound
+                        { winner = oppositeAthlete athlete
+                        , athleteA = "left"
+                        , athleteB = "right"
+                        , score = score
+                        , seed = model.randomSeed
+                        }
+            in
+            { model
+                | status = Playing words newPassed newGame
+                , randomSeed = newSeed
+            }
+
+        _ ->
+            model
+
+
 
 -- STATUS ADVANCING
 
@@ -502,39 +532,21 @@ athleteInput { input, previousInput, score, athlete, constraints } =
     Hotseat (Play score athlete (previousInput ++ input) constraints)
 
 
-endRound : Model -> Model
-endRound model =
-    case model.status of
-        Playing words passed (Hotseat (PlayWrong score athlete _ ann)) ->
-            let
-                newPassed =
-                    passed
-                        |> Passed.push (Announcement.toMessage ann)
+endRound : { winner : Athlete, athleteA : String, athleteB : String, score : Score, seed : Random.Seed } -> ( Game, Random.Seed )
+endRound { winner, athleteA, athleteB, score, seed } =
+    let
+        ( message, newSeed ) =
+            Texts.roundEnd
+                { winner = winner
+                , athleteA = athleteA
+                , athleteB = athleteB
+                , seed = seed
+                }
 
-                newAthlete =
-                    oppositeAthlete athlete
-
-                ( message, newSeed ) =
-                    Texts.roundEnd
-                        { winner = oppositeAthlete athlete
-                        , athleteA = "left"
-                        , athleteB = "right"
-                        , seed = model.randomSeed
-                        }
-
-                newGame =
-                    Hotseat (RoundEnd score newAthlete (message |> Announcement.create))
-            in
-            { model
-                | status = Playing words newPassed newGame
-                , randomSeed = newSeed
-            }
-
-        Playing words passed (Single (PlayWrong score athlete _ ann)) ->
-            Debug.todo "Single mode not implemented."
-
-        _ ->
-            model
+        newGame =
+            Hotseat (RoundEnd score winner (message |> Announcement.create))
+    in
+    ( newGame, newSeed )
 
 
 
