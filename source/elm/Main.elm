@@ -135,16 +135,16 @@ update msg model =
             , Cmd.none
             )
 
-        Inputted text ->
-            if isEnter text then
+        Inputted input ->
+            if isEnter input then
                 ( pressedEnter model
                 , Cmd.none
                 )
 
             else
                 case model.status of
-                    Playing _ _ (Hotseat (Play _ _ _ _)) ->
-                        ( athleteInput text model
+                    Playing _ _ (Hotseat (Play score athlete previousInput cnts)) ->
+                        ( doAthleteInput input previousInput score athlete cnts model
                         , Cmd.none
                         )
 
@@ -418,6 +418,27 @@ doStartPlay score athlete cnts ann model =
             model
 
 
+doAthleteInput : String -> String -> PlayingScore -> Athlete -> Constraints -> Model -> Model
+doAthleteInput input previousInput score athlete cnts model =
+    checkPartialInput <|
+        case model.status of
+            Playing words passed _ ->
+                let
+                    newGame =
+                        athleteInput
+                            { input = input
+                            , previousInput = previousInput
+                            , score = score
+                            , athlete = athlete
+                            , constraints = cnts
+                            }
+                in
+                { model | status = Playing words passed newGame }
+
+            _ ->
+                model
+
+
 
 -- STATUS ADVANCING
 
@@ -476,15 +497,9 @@ startPlay { score, athlete, constraints } =
     Hotseat (Play score athlete "" constraints)
 
 
-athleteInput : String -> Model -> Model
-athleteInput text model =
-    checkPartialInput <|
-        case model.status of
-            Playing words passed (Hotseat (Play score athlete oldText cnts)) ->
-                { model | status = Playing words passed (Hotseat (Play score athlete (oldText ++ text) cnts)) }
-
-            _ ->
-                model
+athleteInput : { input : String, previousInput : String, score : PlayingScore, athlete : Athlete, constraints : Constraints } -> Game
+athleteInput { input, previousInput, score, athlete, constraints } =
+    Hotseat (Play score athlete (previousInput ++ input) constraints)
 
 
 endRound : Model -> Model
