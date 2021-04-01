@@ -80,7 +80,7 @@ type Turn
     | Rules Announcement
     | TurnStart PlayingScore Athlete Constraints Announcement
     | Play PlayingScore Athlete String Constraints
-    | PlayCorrect PlayingScore Athlete Constraints Announcement
+    | PlayCorrect Score Athlete Constraints Announcement
     | PlayWrong Score Athlete Constraints Announcement
     | RoundEnd Score Announcement
     | NewRound PlayingScore Announcement
@@ -173,6 +173,21 @@ update msg model =
                                         ( startPlay model
                                         , Cmd.none
                                         )
+
+                                    Play _ _ _ _ ->
+                                        ( checkInput model
+                                        , Cmd.none
+                                        )
+
+                                    PlayCorrect score _ _ _ ->
+                                        case score of
+                                            PlayingScore _ ->
+                                                ( startPlay model
+                                                , Cmd.none
+                                                )
+
+                                            WinnerScore athlete loserScore ->
+                                                modelCmd
 
                                     PlayWrong score _ _ _ ->
                                         case score of
@@ -303,6 +318,12 @@ tickStatus status =
                         TurnStart score athlete cnts ann ->
                             Playing words passed (Hotseat (TurnStart score athlete cnts (ann |> Announcement.tick)))
 
+                        PlayCorrect score athlete cnts ann ->
+                            Playing words passed (Hotseat (PlayCorrect score athlete cnts (ann |> Announcement.tick)))
+
+                        PlayWrong score athlete cnts ann ->
+                            Playing words passed (Hotseat (PlayWrong score athlete cnts (ann |> Announcement.tick)))
+
                         _ ->
                             status
 
@@ -405,25 +426,25 @@ startTurn model =
                 _ ->
                     txt
 
-        doIt { athlete, passed, words, randomSeed, ann, cnts, score } =
+        doIt { athlete, passed, words, ann, score } =
             let
+                ( initial, seed1 ) =
+                    randomLetter model.randomSeed Texts.alphabet
+
                 newPassed =
                     passed
                         |> Passed.push (Announcement.toMessage ann)
 
-                initial =
-                    Constraints.getInitial cnts
-
                 ( turnAndLetter, newSeed ) =
                     Texts.comments.turnAndLetter
-                        |> emuRandomString randomSeed (setStyles AthleteA) (vars athlete initial)
+                        |> emuRandomString seed1 (setStyles athlete) (vars athlete initial)
 
                 newGame =
                     Hotseat
                         (TurnStart
                             score
                             athlete
-                            cnts
+                            (Constraints.serve initial)
                             (Announcement.create turnAndLetter)
                         )
             in
@@ -434,33 +455,21 @@ startTurn model =
     in
     case model.status of
         Playing words passed (Hotseat (Rules ann)) ->
-            let
-                ( initial, seed1 ) =
-                    randomLetter model.randomSeed Texts.alphabet
-            in
             doIt
                 { athlete = AthleteA
+                , score = Score.emptyPlayingScore
                 , passed = passed
                 , words = words
-                , randomSeed = seed1
                 , ann = ann
-                , cnts = Constraints.serve initial
-                , score = Score.emptyPlayingScore
                 }
 
         Playing words passed (Hotseat (PlayWrong (PlayingScore score) athlete cnts ann)) ->
-            let
-                newAthlete =
-                    oppositeAthlete athlete
-            in
             doIt
-                { athlete = newAthlete
+                { athlete = oppositeAthlete athlete
+                , score = score
                 , passed = passed
                 , words = words
-                , randomSeed = model.randomSeed
                 , ann = ann
-                , cnts = cnts
-                , score = score
                 }
 
         _ ->
@@ -488,6 +497,19 @@ startPlay model =
             in
             { model
                 | status = Playing words newPassed (Hotseat (Play score athlete "" cnts))
+            }
+
+        Playing words passed (Hotseat (PlayCorrect (PlayingScore score) athlete cnts ann)) ->
+            let
+                newPassed =
+                    passed
+                        |> Passed.push (Announcement.toMessage ann)
+
+                newAthlete =
+                    oppositeAthlete athlete
+            in
+            { model
+                | status = Playing words newPassed (Hotseat (Play score newAthlete "" cnts))
             }
 
         _ ->
@@ -636,6 +658,9 @@ ticker model =
 
                 Play _ athlete text _ ->
                     tickerEl (tickerPlay athlete text) passed
+
+                PlayCorrect _ athlete _ ann ->
+                    tickerEl (tickerAnnouncement ann) passed
 
                 PlayWrong _ athlete _ ann ->
                     tickerEl (tickerAnnouncement ann) passed
@@ -872,10 +897,10 @@ checkPartialInput model =
             model
 
 
-checkInput : Words -> Model -> Model
-checkInput words model =
-    case Ticker.current model.ticker of
-        Just (Message.ActiveAthleteInput athlete txt cnts) ->
+checkInput : Model -> Model
+checkInput model =
+    case model.status of
+        Playing words passed (Hotseat (Play score athlete txt cnts)) ->
             case Constraints.check txt cnts words of
                 Constraints.InputCorrect ->
                     inputCorrect model
@@ -892,43 +917,45 @@ checkInput words model =
                 Constraints.InputNotAWord ->
                     inputWrong Texts.comments.mistake.notAWord model
 
+        Playing words passed (Single (Play score athlete txt cnts)) ->
+            Debug.todo "Single mode not implemented."
+
         _ ->
             model
 
 
 inputCorrect : Model -> Model
 inputCorrect model =
-    case Ticker.current model.ticker of
-        Just (Message.ActiveAthleteInput athlete previousWord cnts) ->
+    case model.status of
+        Playing words passed (Hotseat (Play score athlete newWord cnts)) ->
             let
                 newCnts =
                     Constraints.rally
                         { initial = Constraints.getInitial cnts
-                        , incorporates = Utils.stringLast previousWord |> Maybe.withDefault '?'
+                        , incorporates = Utils.stringLast newWord |> Maybe.withDefault '?'
                         , played =
                             Constraints.getPlayed cnts
-                                |> (::) previousWord
+                                |> (::) newWord
                         }
+
+                newPassed =
+                    passed
+                        |> Passed.push (Message.CorrectAthleteInput athlete newWord)
 
                 ( message, newSeed ) =
                     Texts.comments.interjection
                         |> emuRandomString model.randomSeed identity Dict.empty
 
-                newAthlete =
-                    case athlete of
-                        AthleteA ->
-                            AthleteB
-
-                        AthleteB ->
-                            AthleteA
+                newGame =
+                    Hotseat (PlayCorrect (PlayingScore score) athlete newCnts (message |> Announcement.create))
             in
             { model
-                | ticker =
-                    Ticker.inputCorrect model.ticker
-                        |> Ticker.queueUp (Message.QueuedInstruction message)
-                        |> Ticker.queueUp (Message.QueuedAthleteInput newAthlete newCnts)
+                | status = Playing words newPassed newGame
                 , randomSeed = newSeed
             }
+
+        Playing words passed (Single (Play score athlete txt cnts)) ->
+            Debug.todo "Single mode not implemented."
 
         _ ->
             model

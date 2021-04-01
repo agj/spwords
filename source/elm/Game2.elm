@@ -45,7 +45,7 @@ type Turn
     | Rules Announcement
     | TurnStart PlayingScore Athlete Constraints Announcement
     | Play PlayingScore Athlete String Constraints
-    | PlayCorrect PlayingScore Athlete Constraints Announcement
+    | PlayCorrect Score Athlete Constraints Announcement
     | PlayWrong Score Athlete Constraints Announcement
     | RoundEnd Score Announcement
     | NewRound PlayingScore Announcement
