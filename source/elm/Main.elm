@@ -210,7 +210,7 @@ update msg model =
                             Hotseat turn ->
                                 case turn of
                                     Play _ _ _ _ ->
-                                        ( userInput text model
+                                        ( athleteInput text model
                                         , Cmd.none
                                         )
 
@@ -491,8 +491,8 @@ startPlay model =
             model
 
 
-userInput : String -> Model -> Model
-userInput text model =
+athleteInput : String -> Model -> Model
+athleteInput text model =
     checkPartialInput <|
         case model.status of
             Playing words passed (Hotseat (Play score athlete oldText cnts)) ->
