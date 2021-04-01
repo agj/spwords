@@ -27,6 +27,45 @@ type Turn
     | End Athlete Points Announcement
 
 
+getAnnouncement : Game -> Maybe Announcement
+getAnnouncement game =
+    case game of
+        Hotseat turn ->
+            case turn of
+                GameStart ann ->
+                    Just ann
+
+                Rules ann ->
+                    Just ann
+
+                RoundStart _ _ _ ann ->
+                    Just ann
+
+                PlayCorrect _ _ _ ann ->
+                    Just ann
+
+                PlayWrong _ _ _ ann ->
+                    Just ann
+
+                RoundEnd _ _ ann ->
+                    Just ann
+
+                NewRound _ _ ann ->
+                    Just ann
+
+                Tally _ _ ann ->
+                    Just ann
+
+                End _ _ ann ->
+                    Just ann
+
+                _ ->
+                    Nothing
+
+        Single turn ->
+            Debug.todo "Single mode not implemented."
+
+
 startGame : Game
 startGame =
     Hotseat

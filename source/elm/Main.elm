@@ -239,65 +239,17 @@ checkAnnouncementDone model =
         Ready _ _ _ ->
             model
 
-        Playing words passed (Hotseat turn) ->
-            case turn of
-                GameStart ann ->
+        Playing _ _ game ->
+            case Game.getAnnouncement game of
+                Just ann ->
                     if Announcement.isFinished ann then
-                        { model | status = Playing words (Passed.pushAnnouncement ann passed) Game.showRules }
+                        nextStatus model
 
                     else
                         model
 
-                Rules ann ->
-                    if Announcement.isFinished ann then
-                        startRound Score.emptyPlayingScore AthleteA ann model
-
-                    else
-                        model
-
-                RoundStart score athlete cnts ann ->
-                    if Announcement.isFinished ann then
-                        startPlay score athlete cnts ann model
-
-                    else
-                        model
-
-                PlayCorrect score athlete cnts ann ->
-                    if Announcement.isFinished ann then
-                        case score of
-                            PlayingScore playingScore ->
-                                startPlay playingScore (oppositeAthlete athlete) cnts ann model
-
-                            WinnerScore _ _ ->
-                                model
-
-                    else
-                        model
-
-                PlayWrong score athlete _ ann ->
-                    if Announcement.isFinished ann then
-                        endRound athlete score ann model
-
-                    else
-                        model
-
-                RoundEnd score athlete ann ->
-                    if Announcement.isFinished ann then
-                        case score of
-                            PlayingScore playingScore ->
-                                startRound playingScore (oppositeAthlete athlete) ann model
-
-                            WinnerScore winnerAthlete loserScore ->
-                                model
-
-                    else
-                        model
-
-                _ ->
+                Nothing ->
                     model
-
-        Playing _ _ (Single turn) ->
-            Debug.todo "Single mode not implemented."
 
         _ ->
             model
@@ -306,49 +258,82 @@ checkAnnouncementDone model =
 pressedEnter : Model -> Model
 pressedEnter model =
     case model.status of
+        Ready _ _ _ ->
+            nextStatus model
+
+        Playing _ _ (Hotseat turn) ->
+            case turn of
+                RoundStart _ _ _ _ ->
+                    model
+
+                PlayCorrect score _ _ _ ->
+                    case score of
+                        PlayingScore _ ->
+                            model
+
+                        WinnerScore athlete loserScore ->
+                            model
+
+                PlayWrong score athlete _ ann ->
+                    model
+
+                _ ->
+                    nextStatus model
+
+        _ ->
+            model
+
+
+nextStatus : Model -> Model
+nextStatus model =
+    case model.status of
         Ready words passed ann ->
             { model | status = Playing words (Passed.pushAnnouncement ann passed) Game.startGame }
 
-        Playing words passed game ->
-            case game of
-                Hotseat turn ->
-                    case turn of
-                        GameStart ann ->
-                            { model | status = Playing words (Passed.pushAnnouncement ann passed) Game.showRules }
+        Playing words passed (Hotseat turn) ->
+            case turn of
+                GameStart ann ->
+                    { model | status = Playing words (Passed.pushAnnouncement ann passed) Game.showRules }
 
-                        Rules ann ->
-                            startRound Score.emptyPlayingScore AthleteA ann model
+                Rules ann ->
+                    startRound Score.emptyPlayingScore AthleteA ann model
 
-                        RoundStart _ _ _ _ ->
+                RoundStart score athlete cnts ann ->
+                    startPlay score athlete cnts ann model
+
+                Play _ _ _ _ ->
+                    checkInput model
+
+                PlayCorrect score athlete cnts ann ->
+                    case score of
+                        PlayingScore playingScore ->
+                            startPlay playingScore (oppositeAthlete athlete) cnts ann model
+
+                        WinnerScore winner loserScore ->
                             model
 
-                        Play _ _ _ _ ->
-                            checkInput model
+                PlayWrong score athlete _ ann ->
+                    endRound athlete score ann model
 
-                        PlayCorrect score _ _ _ ->
-                            case score of
-                                PlayingScore _ ->
-                                    model
+                RoundEnd score athlete ann ->
+                    case score of
+                        PlayingScore playingScore ->
+                            startRound playingScore (oppositeAthlete athlete) ann model
 
-                                WinnerScore athlete loserScore ->
-                                    model
-
-                        PlayWrong score athlete _ ann ->
+                        WinnerScore winner loserScore ->
                             model
 
-                        RoundEnd score athlete ann ->
-                            case score of
-                                PlayingScore playingScore ->
-                                    startRound playingScore (oppositeAthlete athlete) ann model
+                NewRound score athlete ann ->
+                    model
 
-                                WinnerScore winnerAthlete loserScore ->
-                                    model
+                Tally score athlete ann ->
+                    model
 
-                        _ ->
-                            model
+                End winner loserPoints ann ->
+                    model
 
-                Single turn ->
-                    Debug.todo "Single mode not implemented."
+        Playing words passed (Single turn) ->
+            Debug.todo "Single mode not implemented."
 
         _ ->
             model
