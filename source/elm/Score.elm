@@ -43,3 +43,16 @@ increaseScore athlete score =
 
         ( AthleteB, ( sa, Two ) ) ->
             WinnerScore AthleteB sa
+
+
+intFromPoints : Points -> Int
+intFromPoints points =
+    case points of
+        Love ->
+            0
+
+        One ->
+            1
+
+        Two ->
+            2

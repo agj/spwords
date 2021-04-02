@@ -13,20 +13,20 @@ module Texts exposing
     , roundEnd
     , roundStart
     , rules
+    , tally
     , timeOut
     , title
     )
 
 import Athlete exposing (..)
-import Constraints
 import Dict exposing (Dict)
 import Doc
 import Doc.EmuDecode
 import Doc.Format as Format exposing (Format)
 import Doc.Paragraph as Paragraph exposing (Paragraph)
 import Doc.Text as Text exposing (Text)
-import Palette exposing (athleteB)
 import Random
+import Score exposing (Points)
 import Utils exposing (..)
 
 
@@ -143,6 +143,32 @@ roundEnd { winner, athleteA, athleteB, seed } =
                         ]
     in
     comments.roundEnd
+        |> emuRandomString seed setStyles vars
+
+
+tally : { athleteA : String, athleteB : String, pointsA : Points, pointsB : Points, seed : Random.Seed } -> ( Paragraph, Random.Seed )
+tally { athleteA, athleteB, pointsA, pointsB, seed } =
+    let
+        setStyles txt =
+            case Text.content txt of
+                "athleteA" ->
+                    txt |> Text.mapFormat (Format.setAthlete (Just AthleteA))
+
+                "athleteB" ->
+                    txt |> Text.mapFormat (Format.setAthlete (Just AthleteB))
+
+                _ ->
+                    txt |> Text.mapFormat (Format.setBold True)
+
+        vars =
+            Dict.fromList
+                [ ( "athleteA", athleteA )
+                , ( "athleteB", athleteB )
+                , ( "pointsA", pointsA |> Score.intFromPoints |> String.fromInt )
+                , ( "pointsB", pointsB |> Score.intFromPoints |> String.fromInt )
+                ]
+    in
+    comments.tally
         |> emuRandomString seed setStyles vars
 
 

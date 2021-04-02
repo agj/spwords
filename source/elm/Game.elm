@@ -23,7 +23,7 @@ type Turn
     | PlayWrong Score Athlete Constraints Announcement
     | RoundEnd Score Athlete Announcement
     | NewRound PlayingScore Athlete Announcement
-    | Tally Score Athlete Announcement
+    | Tally PlayingScore Athlete Announcement
     | End Athlete Points Announcement
 
 
@@ -125,19 +125,37 @@ athleteInput { input, previousInput, score, athlete, constraints } =
     Hotseat (Play score athlete (previousInput ++ input) constraints)
 
 
-endRound : { winner : Athlete, athleteA : String, athleteB : String, score : Score, seed : Random.Seed } -> ( Game, Random.Seed )
-endRound { winner, athleteA, athleteB, score, seed } =
+endRound : { winner : Athlete, score : Score, seed : Random.Seed } -> ( Game, Random.Seed )
+endRound { winner, score, seed } =
     let
         ( message, newSeed ) =
             Texts.roundEnd
                 { winner = winner
-                , athleteA = athleteA
-                , athleteB = athleteB
+                , athleteA = "left"
+                , athleteB = "right"
                 , seed = seed
                 }
 
         newGame =
             Hotseat (RoundEnd score winner (message |> Announcement.create))
+    in
+    ( newGame, newSeed )
+
+
+tally : { score : PlayingScore, athlete : Athlete, seed : Random.Seed } -> ( Game, Random.Seed )
+tally { score, athlete, seed } =
+    let
+        ( message, newSeed ) =
+            Texts.tally
+                { athleteA = "left"
+                , athleteB = "right"
+                , pointsA = Tuple.first score
+                , pointsB = Tuple.second score
+                , seed = seed
+                }
+
+        newGame =
+            Hotseat (Tally score athlete (message |> Announcement.create))
     in
     ( newGame, newSeed )
 

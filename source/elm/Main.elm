@@ -415,8 +415,6 @@ endRound athlete score ann model =
                 ( newGame, newSeed ) =
                     Game.endRound
                         { winner = oppositeAthlete athlete
-                        , athleteA = "left"
-                        , athleteB = "right"
                         , score = score
                         , seed = model.randomSeed
                         }
