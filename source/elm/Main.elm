@@ -321,18 +321,16 @@ nextStatus model =
                 RoundEnd score athlete ann ->
                     case score of
                         PlayingScore playingScore ->
-                            newRound playingScore athlete ann model
+                            tally playingScore athlete ann model
 
                         WinnerScore winner loserScore ->
                             model
 
-                -- tally
                 Tally score athlete ann ->
-                    model
+                    assessment score athlete ann model
 
-                -- assess
                 Assessment score athlete ann ->
-                    startRound score (oppositeAthlete athlete) ann model
+                    newRound score athlete ann model
 
                 NewRound score athlete ann ->
                     startRound score athlete ann model
@@ -348,7 +346,7 @@ nextStatus model =
 
 
 
--- STATUS ADVANCING
+-- STATUS GENERATION
 
 
 startRound : PlayingScore -> Athlete -> Announcement -> Model -> Model
@@ -424,6 +422,56 @@ endRound athlete score ann model =
                     Game.endRound
                         { winner = oppositeAthlete athlete
                         , score = score
+                        , seed = model.randomSeed
+                        }
+            in
+            { model
+                | status = Playing words newPassed newGame
+                , randomSeed = newSeed
+            }
+
+        _ ->
+            model
+
+
+tally : PlayingScore -> Athlete -> Announcement -> Model -> Model
+tally score athlete ann model =
+    case model.status of
+        Playing words passed _ ->
+            let
+                newPassed =
+                    passed
+                        |> Passed.pushAnnouncement ann
+
+                ( newGame, newSeed ) =
+                    Game.tally
+                        { score = score
+                        , athlete = athlete
+                        , seed = model.randomSeed
+                        }
+            in
+            { model
+                | status = Playing words newPassed newGame
+                , randomSeed = newSeed
+            }
+
+        _ ->
+            model
+
+
+assessment : PlayingScore -> Athlete -> Announcement -> Model -> Model
+assessment score athlete ann model =
+    case model.status of
+        Playing words passed _ ->
+            let
+                newPassed =
+                    passed
+                        |> Passed.pushAnnouncement ann
+
+                ( newGame, newSeed ) =
+                    Game.assessment
+                        { score = score
+                        , athlete = athlete
                         , seed = model.randomSeed
                         }
             in

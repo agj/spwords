@@ -70,6 +70,10 @@ getAnnouncement game =
             Debug.todo "Single mode not implemented."
 
 
+
+-- GAME TURN GENERATION
+
+
 startGame : Game
 startGame =
     Hotseat
@@ -146,18 +150,6 @@ endRound { winner, score, seed } =
     ( newGame, newSeed )
 
 
-newRound : { athlete : Athlete, score : PlayingScore, seed : Random.Seed } -> ( Game, Random.Seed )
-newRound { athlete, score, seed } =
-    let
-        ( message, newSeed ) =
-            Texts.newRound seed
-
-        newGame =
-            Hotseat (NewRound score athlete (message |> Announcement.create))
-    in
-    ( newGame, newSeed )
-
-
 tally : { score : PlayingScore, athlete : Athlete, seed : Random.Seed } -> ( Game, Random.Seed )
 tally { score, athlete, seed } =
     let
@@ -203,6 +195,18 @@ assessment { score, athlete, seed } =
 
         newGame =
             Hotseat (Assessment score athlete (message |> Announcement.create))
+    in
+    ( newGame, newSeed )
+
+
+newRound : { athlete : Athlete, score : PlayingScore, seed : Random.Seed } -> ( Game, Random.Seed )
+newRound { athlete, score, seed } =
+    let
+        ( message, newSeed ) =
+            Texts.newRound seed
+
+        newGame =
+            Hotseat (NewRound score athlete (message |> Announcement.create))
     in
     ( newGame, newSeed )
 
