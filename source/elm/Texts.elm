@@ -14,8 +14,10 @@ module Texts exposing
     , roundStart
     , rules
     , tally
+    , tie
     , timeOut
     , title
+    , winning
     )
 
 import Athlete exposing (..)
@@ -169,6 +171,52 @@ tally { athleteA, athleteB, pointsA, pointsB, seed } =
                 ]
     in
     comments.tally
+        |> emuRandomString seed setStyles vars
+
+
+winning : { winner : Athlete, athleteA : String, athleteB : String, seed : Random.Seed } -> ( Paragraph, Random.Seed )
+winning { winner, athleteA, athleteB, seed } =
+    let
+        setStyles txt =
+            case Text.content txt of
+                "winner" ->
+                    txt |> Text.mapFormat (Format.setAthlete (Just winner))
+
+                "loser" ->
+                    txt |> Text.mapFormat (Format.setAthlete (Just (oppositeAthlete winner)))
+
+                _ ->
+                    txt
+
+        vars =
+            Dict.fromList <|
+                case winner of
+                    AthleteA ->
+                        [ ( "winner", athleteA )
+                        , ( "loser", athleteB )
+                        ]
+
+                    AthleteB ->
+                        [ ( "winner", athleteB )
+                        , ( "loser", athleteA )
+                        ]
+    in
+    comments.assessment.winning
+        |> emuRandomString seed setStyles vars
+
+
+tie : { points : Points, seed : Random.Seed } -> ( Paragraph, Random.Seed )
+tie { points, seed } =
+    let
+        setStyles =
+            Text.mapFormat (Format.setBold True)
+
+        vars =
+            Dict.fromList
+                [ ( "points", points |> Score.intFromPoints |> String.fromInt )
+                ]
+    in
+    comments.assessment.tie
         |> emuRandomString seed setStyles vars
 
 

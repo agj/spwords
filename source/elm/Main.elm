@@ -220,6 +220,9 @@ tickStatus model =
                     Tally score athlete ann ->
                         { model | status = Playing words passed (Hotseat (Tally score athlete (ann |> Announcement.tick))) }
 
+                    Assessment score athlete ann ->
+                        { model | status = Playing words passed (Hotseat (Assessment score athlete (ann |> Announcement.tick))) }
+
                     End athlete points ann ->
                         { model | status = Playing words passed (Hotseat (End athlete points (ann |> Announcement.tick))) }
 
@@ -327,6 +330,9 @@ nextStatus model =
                     model
 
                 Tally score athlete ann ->
+                    model
+
+                Assessment score athlete ann ->
                     model
 
                 End winner loserPoints ann ->
@@ -696,6 +702,9 @@ ticker model =
                     tickerEl (tickerAnnouncement ann) passed
 
                 Tally _ _ ann ->
+                    tickerEl (tickerAnnouncement ann) passed
+
+                Assessment _ _ ann ->
                     tickerEl (tickerAnnouncement ann) passed
 
                 End _ _ ann ->

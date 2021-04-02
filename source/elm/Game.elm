@@ -24,6 +24,7 @@ type Turn
     | RoundEnd Score Athlete Announcement
     | NewRound PlayingScore Athlete Announcement
     | Tally PlayingScore Athlete Announcement
+    | Assessment PlayingScore Athlete Announcement
     | End Athlete Points Announcement
 
 
@@ -56,10 +57,13 @@ getAnnouncement game =
                 Tally _ _ ann ->
                     Just ann
 
+                Assessment _ _ ann ->
+                    Just ann
+
                 End _ _ ann ->
                     Just ann
 
-                _ ->
+                Play _ _ _ _ ->
                     Nothing
 
         Single turn ->
@@ -156,6 +160,37 @@ tally { score, athlete, seed } =
 
         newGame =
             Hotseat (Tally score athlete (message |> Announcement.create))
+    in
+    ( newGame, newSeed )
+
+
+assessment : { score : PlayingScore, athlete : Athlete, seed : Random.Seed } -> ( Game, Random.Seed )
+assessment { score, athlete, seed } =
+    let
+        ( message, newSeed ) =
+            case score of
+                ( pointsA, pointsB ) ->
+                    if pointsA == pointsB then
+                        Texts.tie
+                            { points = pointsA
+                            , seed = seed
+                            }
+
+                    else
+                        Texts.winning
+                            { winner =
+                                if (pointsA |> Score.intFromPoints) > (pointsB |> Score.intFromPoints) then
+                                    AthleteA
+
+                                else
+                                    AthleteB
+                            , athleteA = "left"
+                            , athleteB = "right"
+                            , seed = seed
+                            }
+
+        newGame =
+            Hotseat (Assessment score athlete (message |> Announcement.create))
     in
     ( newGame, newSeed )
 
