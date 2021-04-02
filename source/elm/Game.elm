@@ -22,9 +22,9 @@ type Turn
     | PlayCorrect Score Athlete Constraints Announcement
     | PlayWrong Score Athlete Constraints Announcement
     | RoundEnd Score Athlete Announcement
-    | NewRound PlayingScore Athlete Announcement
     | Tally PlayingScore Athlete Announcement
     | Assessment PlayingScore Athlete Announcement
+    | NewRound PlayingScore Athlete Announcement
     | End Athlete Points Announcement
 
 
@@ -51,13 +51,13 @@ getAnnouncement game =
                 RoundEnd _ _ ann ->
                     Just ann
 
-                NewRound _ _ ann ->
-                    Just ann
-
                 Tally _ _ ann ->
                     Just ann
 
                 Assessment _ _ ann ->
+                    Just ann
+
+                NewRound _ _ ann ->
                     Just ann
 
                 End _ _ ann ->
@@ -142,6 +142,18 @@ endRound { winner, score, seed } =
 
         newGame =
             Hotseat (RoundEnd score winner (message |> Announcement.create))
+    in
+    ( newGame, newSeed )
+
+
+newRound : { athlete : Athlete, score : PlayingScore, seed : Random.Seed } -> ( Game, Random.Seed )
+newRound { athlete, score, seed } =
+    let
+        ( message, newSeed ) =
+            Texts.newRound seed
+
+        newGame =
+            Hotseat (NewRound score athlete (message |> Announcement.create))
     in
     ( newGame, newSeed )
 

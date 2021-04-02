@@ -214,14 +214,14 @@ tickStatus model =
                     RoundEnd score athlete ann ->
                         { model | status = Playing words passed (Hotseat (RoundEnd score athlete (ann |> Announcement.tick))) }
 
-                    NewRound score athlete ann ->
-                        { model | status = Playing words passed (Hotseat (NewRound score athlete (ann |> Announcement.tick))) }
-
                     Tally score athlete ann ->
                         { model | status = Playing words passed (Hotseat (Tally score athlete (ann |> Announcement.tick))) }
 
                     Assessment score athlete ann ->
                         { model | status = Playing words passed (Hotseat (Assessment score athlete (ann |> Announcement.tick))) }
+
+                    NewRound score athlete ann ->
+                        { model | status = Playing words passed (Hotseat (NewRound score athlete (ann |> Announcement.tick))) }
 
                     End athlete points ann ->
                         { model | status = Playing words passed (Hotseat (End athlete points (ann |> Announcement.tick))) }
@@ -321,19 +321,21 @@ nextStatus model =
                 RoundEnd score athlete ann ->
                     case score of
                         PlayingScore playingScore ->
-                            startRound playingScore (oppositeAthlete athlete) ann model
+                            newRound playingScore athlete ann model
 
                         WinnerScore winner loserScore ->
                             model
 
-                NewRound score athlete ann ->
-                    model
-
+                -- tally
                 Tally score athlete ann ->
                     model
 
+                -- assess
                 Assessment score athlete ann ->
-                    model
+                    startRound score (oppositeAthlete athlete) ann model
+
+                NewRound score athlete ann ->
+                    startRound score athlete ann model
 
                 End winner loserPoints ann ->
                     model
@@ -421,6 +423,31 @@ endRound athlete score ann model =
                 ( newGame, newSeed ) =
                     Game.endRound
                         { winner = oppositeAthlete athlete
+                        , score = score
+                        , seed = model.randomSeed
+                        }
+            in
+            { model
+                | status = Playing words newPassed newGame
+                , randomSeed = newSeed
+            }
+
+        _ ->
+            model
+
+
+newRound : PlayingScore -> Athlete -> Announcement -> Model -> Model
+newRound score athlete ann model =
+    case model.status of
+        Playing words passed _ ->
+            let
+                newPassed =
+                    passed
+                        |> Passed.pushAnnouncement ann
+
+                ( newGame, newSeed ) =
+                    Game.newRound
+                        { athlete = oppositeAthlete athlete
                         , score = score
                         , seed = model.randomSeed
                         }
@@ -698,13 +725,13 @@ ticker model =
                 RoundEnd _ _ ann ->
                     tickerEl (tickerAnnouncement ann) passed
 
-                NewRound _ _ ann ->
-                    tickerEl (tickerAnnouncement ann) passed
-
                 Tally _ _ ann ->
                     tickerEl (tickerAnnouncement ann) passed
 
                 Assessment _ _ ann ->
+                    tickerEl (tickerAnnouncement ann) passed
+
+                NewRound _ _ ann ->
                     tickerEl (tickerAnnouncement ann) passed
 
                 End _ _ ann ->

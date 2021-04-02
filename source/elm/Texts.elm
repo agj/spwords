@@ -8,6 +8,7 @@ module Texts exposing
     , interjection
     , loading
     , names
+    , newRound
     , notAWord
     , ready
     , roundEnd
@@ -218,6 +219,12 @@ tie { points, seed } =
     in
     comments.assessment.tie
         |> emuRandomString seed setStyles vars
+
+
+newRound : Random.Seed -> ( Paragraph, Random.Seed )
+newRound seed =
+    comments.newRound
+        |> emuRandomString seed identity Dict.empty
 
 
 
