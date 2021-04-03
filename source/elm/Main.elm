@@ -518,21 +518,25 @@ checkInput : Model -> Model
 checkInput model =
     case model.status of
         Playing words _ (Hotseat (Play _ _ txt cnts)) ->
-            case Constraints.check txt cnts words of
-                Constraints.InputCorrect ->
-                    inputCorrect model
+            if String.length txt > 0 then
+                case Constraints.check txt cnts words of
+                    Constraints.InputCorrect ->
+                        inputCorrect model
 
-                Constraints.InputInitialWrong ->
-                    inputWrong Texts.initialWrong model
+                    Constraints.InputInitialWrong ->
+                        inputWrong Texts.initialWrong model
 
-                Constraints.InputIncorporatesWrong ->
-                    inputWrong Texts.incorporatesWrong model
+                    Constraints.InputIncorporatesWrong ->
+                        inputWrong Texts.incorporatesWrong model
 
-                Constraints.InputAlreadyPlayed ->
-                    inputWrong Texts.alreadyPlayed model
+                    Constraints.InputAlreadyPlayed ->
+                        inputWrong Texts.alreadyPlayed model
 
-                Constraints.InputNotAWord ->
-                    inputWrong Texts.notAWord model
+                    Constraints.InputNotAWord ->
+                        inputWrong Texts.notAWord model
+
+            else
+                model
 
         Playing words passed (Single (Play score athlete txt cnts)) ->
             Debug.todo "Single mode not implemented."
