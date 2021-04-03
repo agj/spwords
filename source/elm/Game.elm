@@ -24,6 +24,7 @@ import Random
 import Score exposing (PlayingScore, Points, Score)
 import Texts
 import Utils
+import Words exposing (Words)
 
 
 type Game
@@ -158,9 +159,31 @@ startPlay { score, athlete, constraints } =
     Hotseat (Play score athlete "" constraints)
 
 
-athleteInput : { input : String, previousInput : String, score : PlayingScore, athlete : Athlete, constraints : Constraints } -> Game
-athleteInput { input, previousInput, score, athlete, constraints } =
-    Hotseat (Play score athlete (previousInput ++ input) constraints)
+athleteInput : { input : String, words : Words, score : PlayingScore, athlete : Athlete, constraints : Constraints, seed : Random.Seed } -> ( Game, Random.Seed )
+athleteInput { input, words, score, athlete, constraints, seed } =
+    case Constraints.checkCandidate input constraints words of
+        Constraints.CandidateCorrect ->
+            ( Hotseat (Play score athlete input constraints)
+            , seed
+            )
+
+        Constraints.CandidateInitialWrong ->
+            playWrong
+                { messageFn = Texts.initialWrong
+                , score = score
+                , athlete = athlete
+                , constraints = constraints
+                , seed = seed
+                }
+
+        Constraints.CandidateNotAWord ->
+            playWrong
+                { messageFn = Texts.notAWord
+                , score = score
+                , athlete = athlete
+                , constraints = constraints
+                , seed = seed
+                }
 
 
 playCorrect : { constraints : Constraints, score : PlayingScore, athlete : Athlete, seed : Random.Seed } -> ( Game, Random.Seed )

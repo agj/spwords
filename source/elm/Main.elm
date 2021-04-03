@@ -380,23 +380,41 @@ startPlay score athlete cnts ann model =
 
 athleteInput : String -> String -> PlayingScore -> Athlete -> Constraints -> Model -> Model
 athleteInput input previousInput score athlete cnts model =
-    checkPartialInput <|
-        case model.status of
-            Playing words passed _ ->
-                let
-                    newGame =
-                        Game.athleteInput
-                            { input = input
-                            , previousInput = previousInput
-                            , score = score
-                            , athlete = athlete
-                            , constraints = cnts
-                            }
-                in
-                { model | status = Playing words passed newGame }
+    case model.status of
+        Playing words passed _ ->
+            let
+                newInput =
+                    previousInput ++ input
 
-            _ ->
-                model
+                ( newGame, newSeed ) =
+                    Game.athleteInput
+                        { input = newInput
+                        , score = score
+                        , athlete = athlete
+                        , constraints = cnts
+                        , words = words
+                        , seed = model.randomSeed
+                        }
+
+                newPassed =
+                    case newGame of
+                        Hotseat (Play _ _ _ _) ->
+                            passed
+
+                        Single _ ->
+                            Debug.todo "Single mode not implemented."
+
+                        _ ->
+                            passed
+                                |> Passed.push (Message.WrongAthleteInput athlete newInput)
+            in
+            { model
+                | status = Playing words newPassed newGame
+                , randomSeed = newSeed
+            }
+
+        _ ->
+            model
 
 
 inputCorrect : String -> Constraints -> PlayingScore -> Athlete -> Model -> Model
@@ -543,27 +561,21 @@ scoreAthleteStatus generator score athlete ann model =
 
 
 -- INPUT CHECKING
-
-
-checkPartialInput : Model -> Model
-checkPartialInput model =
-    case model.status of
-        Playing words _ (Hotseat (Play score athlete input cnts)) ->
-            case Constraints.checkCandidate input cnts words of
-                Constraints.CandidateCorrect ->
-                    model
-
-                Constraints.CandidateInitialWrong ->
-                    inputWrong Texts.initialWrong input cnts score athlete model
-
-                Constraints.CandidateNotAWord ->
-                    inputWrong Texts.notAWord input cnts score athlete model
-
-        Playing words passed (Single (Play score athlete input cnts)) ->
-            Debug.todo "Single mode not implemented."
-
-        _ ->
-            model
+-- checkPartialInput : Model -> Model
+-- checkPartialInput model =
+--     case model.status of
+--         Playing words _ (Hotseat (Play score athlete input cnts)) ->
+--             case Constraints.checkCandidate input cnts words of
+--                 Constraints.CandidateCorrect ->
+--                     model
+--                 Constraints.CandidateInitialWrong ->
+--                     inputWrong Texts.initialWrong input cnts score athlete model
+--                 Constraints.CandidateNotAWord ->
+--                     inputWrong Texts.notAWord input cnts score athlete model
+--         Playing words passed (Single (Play score athlete input cnts)) ->
+--             Debug.todo "Single mode not implemented."
+--         _ ->
+--             model
 
 
 checkInput : Model -> Model
