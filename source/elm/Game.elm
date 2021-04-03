@@ -13,6 +13,7 @@ module Game exposing
     , startPlay
     , startRound
     , tally
+    , tick
     )
 
 import Announcement exposing (Announcement)
@@ -98,6 +99,52 @@ getActiveAthlete game =
 
         Single _ ->
             Debug.todo "Single mode not implemented"
+
+
+
+-- MODIFICATION
+
+
+tick : Game -> Game
+tick game =
+    case game of
+        Hotseat turn ->
+            case turn of
+                GameStart ann ->
+                    Hotseat (GameStart (ann |> Announcement.tick))
+
+                Rules ann ->
+                    Hotseat (Rules (ann |> Announcement.tick))
+
+                RoundStart score athlete cnts ann ->
+                    Hotseat (RoundStart score athlete cnts (ann |> Announcement.tick))
+
+                PlayCorrect score athlete cnts ann ->
+                    Hotseat (PlayCorrect score athlete cnts (ann |> Announcement.tick))
+
+                PlayWrong score athlete cnts ann ->
+                    Hotseat (PlayWrong score athlete cnts (ann |> Announcement.tick))
+
+                RoundEnd score athlete ann ->
+                    Hotseat (RoundEnd score athlete (ann |> Announcement.tick))
+
+                Tally score athlete ann ->
+                    Hotseat (Tally score athlete (ann |> Announcement.tick))
+
+                Assessment score athlete ann ->
+                    Hotseat (Assessment score athlete (ann |> Announcement.tick))
+
+                NewRound score athlete ann ->
+                    Hotseat (NewRound score athlete (ann |> Announcement.tick))
+
+                End athlete points ann ->
+                    Hotseat (End athlete points (ann |> Announcement.tick))
+
+                Play _ _ _ _ ->
+                    game
+
+        Single turn ->
+            Debug.todo "Single mode not implemented."
 
 
 

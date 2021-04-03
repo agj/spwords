@@ -194,43 +194,8 @@ tickStatus model =
             Ready words passed ann ->
                 { model | status = Ready words passed (Announcement.tick ann) }
 
-            Playing words passed (Hotseat turn) ->
-                case turn of
-                    GameStart ann ->
-                        { model | status = Playing words passed (Hotseat (GameStart (ann |> Announcement.tick))) }
-
-                    Rules ann ->
-                        { model | status = Playing words passed (Hotseat (Rules (ann |> Announcement.tick))) }
-
-                    RoundStart score athlete cnts ann ->
-                        { model | status = Playing words passed (Hotseat (RoundStart score athlete cnts (ann |> Announcement.tick))) }
-
-                    PlayCorrect score athlete cnts ann ->
-                        { model | status = Playing words passed (Hotseat (PlayCorrect score athlete cnts (ann |> Announcement.tick))) }
-
-                    PlayWrong score athlete cnts ann ->
-                        { model | status = Playing words passed (Hotseat (PlayWrong score athlete cnts (ann |> Announcement.tick))) }
-
-                    RoundEnd score athlete ann ->
-                        { model | status = Playing words passed (Hotseat (RoundEnd score athlete (ann |> Announcement.tick))) }
-
-                    Tally score athlete ann ->
-                        { model | status = Playing words passed (Hotseat (Tally score athlete (ann |> Announcement.tick))) }
-
-                    Assessment score athlete ann ->
-                        { model | status = Playing words passed (Hotseat (Assessment score athlete (ann |> Announcement.tick))) }
-
-                    NewRound score athlete ann ->
-                        { model | status = Playing words passed (Hotseat (NewRound score athlete (ann |> Announcement.tick))) }
-
-                    End athlete points ann ->
-                        { model | status = Playing words passed (Hotseat (End athlete points (ann |> Announcement.tick))) }
-
-                    Play _ _ _ _ ->
-                        model
-
-            Playing words passed (Single turn) ->
-                Debug.todo "Single mode not implemented."
+            Playing words passed game ->
+                { model | status = Playing words passed (Game.tick game) }
 
             _ ->
                 model
