@@ -425,7 +425,7 @@ athleteInputDone input score athlete cnts model =
                         |> Maybe.withDefault ( game, model.randomSeed )
 
                 newPassed =
-                    updatePassed game athlete input passed
+                    updatePassed newGame athlete input passed
             in
             { model
                 | status = Playing words newPassed newGame
@@ -436,6 +436,7 @@ athleteInputDone input score athlete cnts model =
             model
 
 
+updatePassed : Game -> Athlete -> String -> Passed -> Passed
 updatePassed game athlete input passed =
     case game of
         Hotseat (PlayCorrect _ _ _ _) ->
