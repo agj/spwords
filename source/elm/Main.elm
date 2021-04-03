@@ -405,13 +405,7 @@ inputCorrect model =
         Playing words passed (Hotseat (Play score athlete newWord cnts)) ->
             let
                 newCnts =
-                    Constraints.rally
-                        { initial = Constraints.getInitial cnts
-                        , incorporates = Utils.stringLast newWord |> Maybe.withDefault '?'
-                        , played =
-                            Constraints.getPlayed cnts
-                                |> (::) newWord
-                        }
+                    cnts |> Constraints.pushPlayed newWord
 
                 newPassed =
                     passed

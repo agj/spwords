@@ -7,8 +7,11 @@ module Constraints exposing
     , getIncorporates
     , getInitial
     , getPlayed
+    , pushPlayed
     , rally
     , serve
+    , setIncorporates
+    , setInitial
     )
 
 import Utils
@@ -84,6 +87,57 @@ getPlayed constraints =
 
         RallyConstraints { played } ->
             played
+
+
+
+-- MODIFICATION
+
+
+setInitial : Char -> Constraints -> Constraints
+setInitial initial constraints =
+    case constraints of
+        ServeConstraints _ ->
+            ServeConstraints initial
+
+        RallyConstraints ral ->
+            RallyConstraints { ral | initial = initial }
+
+
+setIncorporates : Char -> Constraints -> Constraints
+setIncorporates incorporates constraints =
+    case constraints of
+        ServeConstraints ini ->
+            RallyConstraints
+                { initial = ini
+                , incorporates = incorporates
+                , played = []
+                }
+
+        RallyConstraints ral ->
+            RallyConstraints { ral | incorporates = incorporates }
+
+
+pushPlayed : String -> Constraints -> Constraints
+pushPlayed word constraints =
+    case Utils.stringLast word of
+        Just char ->
+            case constraints of
+                ServeConstraints ini ->
+                    RallyConstraints
+                        { initial = ini
+                        , incorporates = char
+                        , played = [ word ]
+                        }
+
+                RallyConstraints ral ->
+                    RallyConstraints
+                        { ral
+                            | incorporates = char
+                            , played = word :: ral.played
+                        }
+
+        Nothing ->
+            constraints
 
 
 
