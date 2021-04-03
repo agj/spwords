@@ -70,6 +70,19 @@ getAnnouncement game =
             Debug.todo "Single mode not implemented."
 
 
+getActiveAthlete : Game -> Maybe Athlete
+getActiveAthlete game =
+    case game of
+        Hotseat (Play _ athlete _ _) ->
+            Just athlete
+
+        Hotseat _ ->
+            Nothing
+
+        Single _ ->
+            Debug.todo "Single mode not implemented"
+
+
 
 -- GAME TURN GENERATION
 

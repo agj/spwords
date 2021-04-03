@@ -959,8 +959,8 @@ isEnter text =
 getActiveAthlete : Status -> Maybe Athlete
 getActiveAthlete status =
     case status of
-        Playing _ _ (Hotseat (Play _ athlete _ _)) ->
-            Just athlete
+        Playing _ _ game ->
+            Game.getActiveAthlete game
 
         _ ->
             Nothing
