@@ -791,11 +791,11 @@ tickerPlay athlete txt =
 tickerPassed : Passed -> List (Element Msg)
 tickerPassed passed =
     Passed.toList passed
-        |> List.map tickerText
+        |> List.map tickerMessage
 
 
-tickerText : Message -> Element Msg
-tickerText tt =
+tickerMessage : Message -> Element Msg
+tickerMessage tt =
     case tt of
         Message.InterruptedAnnouncement txt ticks ->
             fromDocParagraph (Doc.Util.paragraphAppend "—" (Doc.Util.paragraphLeft ticks txt))
@@ -804,11 +804,26 @@ tickerText tt =
             fromDocParagraph txt
 
         Message.CorrectAthleteInput athlete txt ->
-            el
-                [ Font.color (athleteColor athlete)
+            let
+                txtUpper =
+                    String.toUpper txt
+
+                color =
+                    athleteColor athlete
+            in
+            row
+                [ Font.color color
                 , Font.bold
                 ]
-                (text (String.toUpper txt ++ "✔"))
+                [ text (String.dropRight 1 txtUpper)
+                , el
+                    [ Font.color Palette.dark
+                    , Background.color color
+                    ]
+                    (text (String.right 1 txtUpper))
+                , el [ Font.regular ]
+                    (text "✔")
+                ]
 
         Message.WrongAthleteInput athlete txt ->
             el
