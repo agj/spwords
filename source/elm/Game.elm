@@ -1,4 +1,19 @@
-module Game exposing (..)
+module Game exposing
+    ( Game(..)
+    , Turn(..)
+    , assessment
+    , athleteInput
+    , endRound
+    , getActiveAthlete
+    , getAnnouncement
+    , newRound
+    , playCorrect
+    , showRules
+    , startGame
+    , startPlay
+    , startRound
+    , tally
+    )
 
 import Announcement exposing (Announcement)
 import Athlete exposing (..)
@@ -19,7 +34,7 @@ type Turn
     | Rules Announcement
     | RoundStart PlayingScore Athlete Constraints Announcement
     | Play PlayingScore Athlete String Constraints
-    | PlayCorrect Score Athlete Constraints Announcement
+    | PlayCorrect PlayingScore Athlete Constraints Announcement
     | PlayWrong Score Athlete Constraints Announcement
     | RoundEnd Score Athlete Announcement
     | Tally PlayingScore Athlete Announcement
@@ -144,6 +159,27 @@ startPlay { score, athlete, constraints } =
 athleteInput : { input : String, previousInput : String, score : PlayingScore, athlete : Athlete, constraints : Constraints } -> Game
 athleteInput { input, previousInput, score, athlete, constraints } =
     Hotseat (Play score athlete (previousInput ++ input) constraints)
+
+
+playCorrect : { constraints : Constraints, score : PlayingScore, athlete : Athlete, seed : Random.Seed } -> ( Game, Random.Seed )
+playCorrect { constraints, score, athlete, seed } =
+    let
+        newCnts =
+            Constraints.rally
+                { initial = Constraints.getInitial constraints
+                , incorporates =
+                    Constraints.getIncorporates constraints
+                        |> Maybe.withDefault '?'
+                , played = Constraints.getPlayed constraints
+                }
+
+        ( message, newSeed ) =
+            Texts.interjection seed
+
+        newGame =
+            Hotseat (PlayCorrect score athlete newCnts (message |> Announcement.create))
+    in
+    ( newGame, newSeed )
 
 
 endRound : { winner : Athlete, score : Score, seed : Random.Seed } -> ( Game, Random.Seed )

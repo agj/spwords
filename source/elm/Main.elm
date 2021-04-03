@@ -269,13 +269,8 @@ pressedEnter model =
                 RoundStart _ _ _ _ ->
                     model
 
-                PlayCorrect score _ _ _ ->
-                    case score of
-                        PlayingScore _ ->
-                            model
-
-                        WinnerScore _ _ ->
-                            model
+                PlayCorrect _ _ _ _ ->
+                    model
 
                 PlayWrong _ _ _ _ ->
                     model
@@ -308,12 +303,7 @@ nextStatus model =
                     checkInput model
 
                 PlayCorrect score athlete cnts ann ->
-                    case score of
-                        PlayingScore playingScore ->
-                            startPlay playingScore (oppositeAthlete athlete) cnts ann model
-
-                        WinnerScore winner loserScore ->
-                            model
+                    startPlay score (oppositeAthlete athlete) cnts ann model
 
                 PlayWrong score athlete _ ann ->
                     endRound score athlete ann model
@@ -407,6 +397,84 @@ athleteInput input previousInput score athlete cnts model =
 
             _ ->
                 model
+
+
+inputCorrect : Model -> Model
+inputCorrect model =
+    case model.status of
+        Playing words passed (Hotseat (Play score athlete newWord cnts)) ->
+            let
+                newCnts =
+                    Constraints.rally
+                        { initial = Constraints.getInitial cnts
+                        , incorporates = Utils.stringLast newWord |> Maybe.withDefault '?'
+                        , played =
+                            Constraints.getPlayed cnts
+                                |> (::) newWord
+                        }
+
+                newPassed =
+                    passed
+                        |> Passed.push (Message.CorrectAthleteInput athlete newWord)
+
+                ( newGame, newSeed ) =
+                    Game.playCorrect
+                        { constraints = newCnts
+                        , score = score
+                        , athlete = athlete
+                        , seed = model.randomSeed
+                        }
+            in
+            { model
+                | status = Playing words newPassed newGame
+                , randomSeed = newSeed
+            }
+
+        Playing words passed (Single (Play score athlete txt cnts)) ->
+            Debug.todo "Single mode not implemented."
+
+        _ ->
+            model
+
+
+inputWrong : (Texts.MistakeArguments -> ( Paragraph, Random.Seed )) -> Model -> Model
+inputWrong messageFn model =
+    case model.status of
+        Playing words passed (Hotseat (Play score athlete txt cnts)) ->
+            let
+                newScore =
+                    Score.increaseScore (oppositeAthlete athlete) score
+
+                newPassed =
+                    passed
+                        |> Passed.push (Message.WrongAthleteInput athlete txt)
+
+                ( message, newSeed ) =
+                    messageFn
+                        { initial = cnts |> Constraints.getInitial
+                        , incorporates = cnts |> Constraints.getIncorporates
+                        , seed = model.randomSeed
+                        }
+
+                newGame =
+                    Hotseat
+                        (PlayWrong
+                            newScore
+                            athlete
+                            cnts
+                            (message |> Announcement.create)
+                        )
+            in
+            { model
+                | status = Playing words newPassed newGame
+                , randomSeed = newSeed
+            }
+
+        Playing words passed (Single (Play score athlete txt cnts)) ->
+            Debug.todo "Single mode not implemented."
+
+        _ ->
+            model
 
 
 endRound : Score -> Athlete -> Announcement -> Model -> Model
@@ -537,82 +605,6 @@ checkInput model =
 
             else
                 model
-
-        Playing words passed (Single (Play score athlete txt cnts)) ->
-            Debug.todo "Single mode not implemented."
-
-        _ ->
-            model
-
-
-inputCorrect : Model -> Model
-inputCorrect model =
-    case model.status of
-        Playing words passed (Hotseat (Play score athlete newWord cnts)) ->
-            let
-                newCnts =
-                    Constraints.rally
-                        { initial = Constraints.getInitial cnts
-                        , incorporates = Utils.stringLast newWord |> Maybe.withDefault '?'
-                        , played =
-                            Constraints.getPlayed cnts
-                                |> (::) newWord
-                        }
-
-                newPassed =
-                    passed
-                        |> Passed.push (Message.CorrectAthleteInput athlete newWord)
-
-                ( message, newSeed ) =
-                    Texts.interjection model.randomSeed
-
-                newGame =
-                    Hotseat (PlayCorrect (PlayingScore score) athlete newCnts (message |> Announcement.create))
-            in
-            { model
-                | status = Playing words newPassed newGame
-                , randomSeed = newSeed
-            }
-
-        Playing words passed (Single (Play score athlete txt cnts)) ->
-            Debug.todo "Single mode not implemented."
-
-        _ ->
-            model
-
-
-inputWrong : (Texts.MistakeArguments -> ( Paragraph, Random.Seed )) -> Model -> Model
-inputWrong messageFn model =
-    case model.status of
-        Playing words passed (Hotseat (Play score athlete txt cnts)) ->
-            let
-                newScore =
-                    Score.increaseScore (oppositeAthlete athlete) score
-
-                newPassed =
-                    passed
-                        |> Passed.push (Message.WrongAthleteInput athlete txt)
-
-                ( message, newSeed ) =
-                    messageFn
-                        { initial = cnts |> Constraints.getInitial
-                        , incorporates = cnts |> Constraints.getIncorporates
-                        , seed = model.randomSeed
-                        }
-
-                newGame =
-                    Hotseat
-                        (PlayWrong
-                            newScore
-                            athlete
-                            cnts
-                            (message |> Announcement.create)
-                        )
-            in
-            { model
-                | status = Playing words newPassed newGame
-                , randomSeed = newSeed
-            }
 
         Playing words passed (Single (Play score athlete txt cnts)) ->
             Debug.todo "Single mode not implemented."
