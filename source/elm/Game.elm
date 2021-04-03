@@ -8,6 +8,7 @@ module Game exposing
     , getAnnouncement
     , newRound
     , playCorrect
+    , playWrong
     , showRules
     , startGame
     , startPlay
@@ -18,6 +19,7 @@ module Game exposing
 import Announcement exposing (Announcement)
 import Athlete exposing (..)
 import Constraints exposing (Constraints)
+import Doc.Paragraph exposing (Paragraph)
 import Random
 import Score exposing (PlayingScore, Points, Score)
 import Texts
@@ -178,6 +180,31 @@ playCorrect { constraints, score, athlete, seed } =
 
         newGame =
             Hotseat (PlayCorrect score athlete newCnts (message |> Announcement.create))
+    in
+    ( newGame, newSeed )
+
+
+playWrong : { messageFn : Texts.MistakeArguments -> ( Paragraph, Random.Seed ), score : PlayingScore, athlete : Athlete, constraints : Constraints, seed : Random.Seed } -> ( Game, Random.Seed )
+playWrong { messageFn, score, athlete, constraints, seed } =
+    let
+        newScore =
+            Score.increaseScore (Utils.oppositeAthlete athlete) score
+
+        ( message, newSeed ) =
+            messageFn
+                { initial = constraints |> Constraints.getInitial
+                , incorporates = constraints |> Constraints.getIncorporates
+                , seed = seed
+                }
+
+        newGame =
+            Hotseat
+                (PlayWrong
+                    newScore
+                    athlete
+                    constraints
+                    (message |> Announcement.create)
+                )
     in
     ( newGame, newSeed )
 

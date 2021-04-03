@@ -399,10 +399,10 @@ athleteInput input previousInput score athlete cnts model =
                 model
 
 
-inputCorrect : Model -> Model
-inputCorrect model =
+inputCorrect : String -> Constraints -> PlayingScore -> Athlete -> Model -> Model
+inputCorrect newWord cnts score athlete model =
     case model.status of
-        Playing words passed (Hotseat (Play score athlete newWord cnts)) ->
+        Playing words passed (Hotseat _) ->
             let
                 newCnts =
                     cnts |> Constraints.pushPlayed newWord
@@ -424,47 +424,37 @@ inputCorrect model =
                 , randomSeed = newSeed
             }
 
-        Playing words passed (Single (Play score athlete txt cnts)) ->
+        Playing words passed (Single _) ->
             Debug.todo "Single mode not implemented."
 
         _ ->
             model
 
 
-inputWrong : (Texts.MistakeArguments -> ( Paragraph, Random.Seed )) -> Model -> Model
-inputWrong messageFn model =
+inputWrong : (Texts.MistakeArguments -> ( Paragraph, Random.Seed )) -> String -> Constraints -> PlayingScore -> Athlete -> Model -> Model
+inputWrong messageFn input cnts score athlete model =
     case model.status of
-        Playing words passed (Hotseat (Play score athlete txt cnts)) ->
+        Playing words passed (Hotseat _) ->
             let
-                newScore =
-                    Score.increaseScore (oppositeAthlete athlete) score
-
                 newPassed =
                     passed
-                        |> Passed.push (Message.WrongAthleteInput athlete txt)
+                        |> Passed.push (Message.WrongAthleteInput athlete input)
 
-                ( message, newSeed ) =
-                    messageFn
-                        { initial = cnts |> Constraints.getInitial
-                        , incorporates = cnts |> Constraints.getIncorporates
+                ( newGame, newSeed ) =
+                    Game.playWrong
+                        { messageFn = messageFn
+                        , score = score
+                        , athlete = athlete
+                        , constraints = cnts
                         , seed = model.randomSeed
                         }
-
-                newGame =
-                    Hotseat
-                        (PlayWrong
-                            newScore
-                            athlete
-                            cnts
-                            (message |> Announcement.create)
-                        )
             in
             { model
                 | status = Playing words newPassed newGame
                 , randomSeed = newSeed
             }
 
-        Playing words passed (Single (Play score athlete txt cnts)) ->
+        Playing words passed (Single _) ->
             Debug.todo "Single mode not implemented."
 
         _ ->
@@ -558,18 +548,18 @@ scoreAthleteStatus generator score athlete ann model =
 checkPartialInput : Model -> Model
 checkPartialInput model =
     case model.status of
-        Playing words _ (Hotseat (Play _ _ txt cnts)) ->
-            case Constraints.checkCandidate txt cnts words of
+        Playing words _ (Hotseat (Play score athlete input cnts)) ->
+            case Constraints.checkCandidate input cnts words of
                 Constraints.CandidateCorrect ->
                     model
 
                 Constraints.CandidateInitialWrong ->
-                    inputWrong Texts.initialWrong model
+                    inputWrong Texts.initialWrong input cnts score athlete model
 
                 Constraints.CandidateNotAWord ->
-                    inputWrong Texts.notAWord model
+                    inputWrong Texts.notAWord input cnts score athlete model
 
-        Playing words passed (Single (Play score athlete txt cnts)) ->
+        Playing words passed (Single (Play score athlete input cnts)) ->
             Debug.todo "Single mode not implemented."
 
         _ ->
@@ -579,23 +569,23 @@ checkPartialInput model =
 checkInput : Model -> Model
 checkInput model =
     case model.status of
-        Playing words _ (Hotseat (Play _ _ txt cnts)) ->
-            if String.length txt > 0 then
-                case Constraints.check txt cnts words of
+        Playing words _ (Hotseat (Play score athlete input cnts)) ->
+            if String.length input > 0 then
+                case Constraints.check input cnts words of
                     Constraints.InputCorrect ->
-                        inputCorrect model
+                        inputCorrect input cnts score athlete model
 
                     Constraints.InputInitialWrong ->
-                        inputWrong Texts.initialWrong model
+                        inputWrong Texts.initialWrong input cnts score athlete model
 
                     Constraints.InputIncorporatesWrong ->
-                        inputWrong Texts.incorporatesWrong model
+                        inputWrong Texts.incorporatesWrong input cnts score athlete model
 
                     Constraints.InputAlreadyPlayed ->
-                        inputWrong Texts.alreadyPlayed model
+                        inputWrong Texts.alreadyPlayed input cnts score athlete model
 
                     Constraints.InputNotAWord ->
-                        inputWrong Texts.notAWord model
+                        inputWrong Texts.notAWord input cnts score athlete model
 
             else
                 model
