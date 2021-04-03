@@ -3,12 +3,11 @@ module Game exposing
     , Turn(..)
     , assessment
     , athleteInput
+    , athleteInputDone
     , endRound
     , getActiveAthlete
     , getAnnouncement
     , newRound
-    , playCorrect
-    , playWrong
     , showRules
     , startGame
     , startPlay
@@ -161,6 +160,16 @@ startPlay { score, athlete, constraints } =
 
 athleteInput : { input : String, words : Words, score : PlayingScore, athlete : Athlete, constraints : Constraints, seed : Random.Seed } -> ( Game, Random.Seed )
 athleteInput { input, words, score, athlete, constraints, seed } =
+    let
+        playWrongWith messageFn =
+            playWrong
+                { messageFn = messageFn
+                , score = score
+                , athlete = athlete
+                , constraints = constraints
+                , seed = seed
+                }
+    in
     case Constraints.checkCandidate input constraints words of
         Constraints.CandidateCorrect ->
             ( Hotseat (Play score athlete input constraints)
@@ -168,68 +177,56 @@ athleteInput { input, words, score, athlete, constraints, seed } =
             )
 
         Constraints.CandidateInitialWrong ->
-            playWrong
-                { messageFn = Texts.initialWrong
-                , score = score
-                , athlete = athlete
-                , constraints = constraints
-                , seed = seed
-                }
+            playWrongWith Texts.initialWrong
 
         Constraints.CandidateNotAWord ->
-            playWrong
-                { messageFn = Texts.notAWord
-                , score = score
-                , athlete = athlete
-                , constraints = constraints
-                , seed = seed
-                }
+            playWrongWith Texts.notAWord
 
 
-playCorrect : { constraints : Constraints, score : PlayingScore, athlete : Athlete, seed : Random.Seed } -> ( Game, Random.Seed )
-playCorrect { constraints, score, athlete, seed } =
+athleteInputDone : { input : String, words : Words, constraints : Constraints, score : PlayingScore, athlete : Athlete, seed : Random.Seed } -> Maybe ( Game, Random.Seed )
+athleteInputDone { input, words, constraints, score, athlete, seed } =
     let
-        newCnts =
-            Constraints.rally
-                { initial = Constraints.getInitial constraints
-                , incorporates =
-                    Constraints.getIncorporates constraints
-                        |> Maybe.withDefault '?'
-                , played = Constraints.getPlayed constraints
-                }
-
-        ( message, newSeed ) =
-            Texts.interjection seed
-
-        newGame =
-            Hotseat (PlayCorrect score athlete newCnts (message |> Announcement.create))
-    in
-    ( newGame, newSeed )
-
-
-playWrong : { messageFn : Texts.MistakeArguments -> ( Paragraph, Random.Seed ), score : PlayingScore, athlete : Athlete, constraints : Constraints, seed : Random.Seed } -> ( Game, Random.Seed )
-playWrong { messageFn, score, athlete, constraints, seed } =
-    let
-        newScore =
-            Score.increaseScore (Utils.oppositeAthlete athlete) score
-
-        ( message, newSeed ) =
-            messageFn
-                { initial = constraints |> Constraints.getInitial
-                , incorporates = constraints |> Constraints.getIncorporates
-                , seed = seed
-                }
-
-        newGame =
-            Hotseat
-                (PlayWrong
-                    newScore
-                    athlete
-                    constraints
-                    (message |> Announcement.create)
+        playWrongWith messageFn =
+            Just
+                (playWrong
+                    { messageFn = messageFn
+                    , score = score
+                    , athlete = athlete
+                    , constraints = constraints
+                    , seed = seed
+                    }
                 )
     in
-    ( newGame, newSeed )
+    if String.length input > 0 then
+        case Constraints.check input constraints words of
+            Constraints.InputCorrect ->
+                let
+                    newCnts =
+                        constraints |> Constraints.pushPlayed input
+                in
+                Just
+                    (playCorrect
+                        { constraints = newCnts
+                        , score = score
+                        , athlete = athlete
+                        , seed = seed
+                        }
+                    )
+
+            Constraints.InputInitialWrong ->
+                playWrongWith Texts.initialWrong
+
+            Constraints.InputIncorporatesWrong ->
+                playWrongWith Texts.incorporatesWrong
+
+            Constraints.InputAlreadyPlayed ->
+                playWrongWith Texts.alreadyPlayed
+
+            Constraints.InputNotAWord ->
+                playWrongWith Texts.notAWord
+
+    else
+        Nothing
 
 
 endRound : { winner : Athlete, score : Score, seed : Random.Seed } -> ( Game, Random.Seed )
@@ -312,6 +309,52 @@ newRound { athlete, score, seed } =
 
 
 -- INTERNAL
+
+
+playCorrect : { constraints : Constraints, score : PlayingScore, athlete : Athlete, seed : Random.Seed } -> ( Game, Random.Seed )
+playCorrect { constraints, score, athlete, seed } =
+    let
+        newCnts =
+            Constraints.rally
+                { initial = Constraints.getInitial constraints
+                , incorporates =
+                    Constraints.getIncorporates constraints
+                        |> Maybe.withDefault '?'
+                , played = Constraints.getPlayed constraints
+                }
+
+        ( message, newSeed ) =
+            Texts.interjection seed
+
+        newGame =
+            Hotseat (PlayCorrect score athlete newCnts (message |> Announcement.create))
+    in
+    ( newGame, newSeed )
+
+
+playWrong : { messageFn : Texts.MistakeArguments -> ( Paragraph, Random.Seed ), score : PlayingScore, athlete : Athlete, constraints : Constraints, seed : Random.Seed } -> ( Game, Random.Seed )
+playWrong { messageFn, score, athlete, constraints, seed } =
+    let
+        newScore =
+            Score.increaseScore (Utils.oppositeAthlete athlete) score
+
+        ( message, newSeed ) =
+            messageFn
+                { initial = constraints |> Constraints.getInitial
+                , incorporates = constraints |> Constraints.getIncorporates
+                , seed = seed
+                }
+
+        newGame =
+            Hotseat
+                (PlayWrong
+                    newScore
+                    athlete
+                    constraints
+                    (message |> Announcement.create)
+                )
+    in
+    ( newGame, newSeed )
 
 
 randomLetter : Random.Seed -> String -> ( Char, Random.Seed )
