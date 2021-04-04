@@ -1,18 +1,11 @@
 module Game exposing
     ( Game(..)
     , Turn(..)
-    , assessment
     , athleteInput
-    , athleteInputDone
-    , endRound
     , getActiveAthlete
     , getAnnouncement
-    , newRound
-    , showRules
+    , skip
     , startGame
-    , startPlay
-    , startRound
-    , tally
     , tick
     )
 
@@ -20,9 +13,10 @@ import Athlete exposing (..)
 import Constraints exposing (Constraints)
 import Doc.Paragraph exposing (Paragraph)
 import Random
-import Score exposing (PlayingScore, Points, Score)
+import Score exposing (PlayingScore, Points, Score(..))
 import Texts
 import Ticker.Announcement as Announcement exposing (Announcement)
+import Ticker.Message as Message exposing (Message)
 import Utils
 import Words exposing (Words)
 
@@ -105,43 +99,83 @@ getActiveAthlete game =
 -- MODIFICATION
 
 
-tick : Game -> Game
-tick game =
+tick : Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
+tick seed words game =
+    checkAnnouncementDone seed words <|
+        case game of
+            Hotseat turn ->
+                case turn of
+                    GameStart ann ->
+                        Hotseat (GameStart (ann |> Announcement.tick))
+
+                    Rules ann ->
+                        Hotseat (Rules (ann |> Announcement.tick))
+
+                    RoundStart score athlete cnts ann ->
+                        Hotseat (RoundStart score athlete cnts (ann |> Announcement.tick))
+
+                    PlayCorrect score athlete cnts ann ->
+                        Hotseat (PlayCorrect score athlete cnts (ann |> Announcement.tick))
+
+                    PlayWrong score athlete cnts ann ->
+                        Hotseat (PlayWrong score athlete cnts (ann |> Announcement.tick))
+
+                    RoundEnd score athlete ann ->
+                        Hotseat (RoundEnd score athlete (ann |> Announcement.tick))
+
+                    Tally score athlete ann ->
+                        Hotseat (Tally score athlete (ann |> Announcement.tick))
+
+                    Assessment score athlete ann ->
+                        Hotseat (Assessment score athlete (ann |> Announcement.tick))
+
+                    NewRound score athlete ann ->
+                        Hotseat (NewRound score athlete (ann |> Announcement.tick))
+
+                    End athlete points ann ->
+                        Hotseat (End athlete points (ann |> Announcement.tick))
+
+                    Play _ _ _ _ ->
+                        game
+
+            Single turn ->
+                Debug.todo "Single mode not implemented."
+
+
+skip : Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
+skip seed words game =
+    let
+        ignore =
+            ( game, seed, Nothing )
+    in
     case game of
         Hotseat turn ->
             case turn of
-                GameStart ann ->
-                    Hotseat (GameStart (ann |> Announcement.tick))
+                RoundStart _ _ _ _ ->
+                    ignore
 
-                Rules ann ->
-                    Hotseat (Rules (ann |> Announcement.tick))
+                PlayCorrect _ _ _ _ ->
+                    ignore
 
-                RoundStart score athlete cnts ann ->
-                    Hotseat (RoundStart score athlete cnts (ann |> Announcement.tick))
-
-                PlayCorrect score athlete cnts ann ->
-                    Hotseat (PlayCorrect score athlete cnts (ann |> Announcement.tick))
-
-                PlayWrong score athlete cnts ann ->
-                    Hotseat (PlayWrong score athlete cnts (ann |> Announcement.tick))
-
-                RoundEnd score athlete ann ->
-                    Hotseat (RoundEnd score athlete (ann |> Announcement.tick))
-
-                Tally score athlete ann ->
-                    Hotseat (Tally score athlete (ann |> Announcement.tick))
-
-                Assessment score athlete ann ->
-                    Hotseat (Assessment score athlete (ann |> Announcement.tick))
-
-                NewRound score athlete ann ->
-                    Hotseat (NewRound score athlete (ann |> Announcement.tick))
-
-                End athlete points ann ->
-                    Hotseat (End athlete points (ann |> Announcement.tick))
+                PlayWrong _ _ _ _ ->
+                    ignore
 
                 Play _ _ _ _ ->
-                    game
+                    ignore
+
+                _ ->
+                    let
+                        ( newGame, newSeed ) =
+                            nextStatus seed words game
+
+                        message =
+                            getAnnouncement game
+                                |> Maybe.map Announcement.toMessage
+                    in
+                    ( newGame
+                    , newSeed
+                    , message
+                    )
 
         Single turn ->
             Debug.todo "Single mode not implemented."
@@ -356,6 +390,119 @@ newRound { athlete, score, seed } =
 
 
 -- INTERNAL
+
+
+checkAnnouncementDone : Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
+checkAnnouncementDone seed words game =
+    case getAnnouncement game of
+        Just ann ->
+            if Announcement.isFinished ann then
+                let
+                    ( newGame, newSeed ) =
+                        nextStatus seed words game
+                in
+                ( newGame
+                , newSeed
+                , Just (Announcement.toMessage ann)
+                )
+
+            else
+                ( game, seed, Nothing )
+
+        Nothing ->
+            ( game, seed, Nothing )
+
+
+nextStatus : Random.Seed -> Words -> Game -> ( Game, Random.Seed )
+nextStatus seed words game =
+    case game of
+        Hotseat turn ->
+            case turn of
+                GameStart _ ->
+                    ( showRules, seed )
+
+                Rules _ ->
+                    startRound
+                        { score = Score.emptyPlayingScore
+                        , athlete = AthleteB
+                        , seed = seed
+                        }
+
+                RoundStart score athlete cnts _ ->
+                    ( startPlay
+                        { score = score
+                        , athlete = athlete
+                        , constraints = cnts
+                        }
+                    , seed
+                    )
+
+                Play score athlete input cnts ->
+                    athleteInputDone
+                        { input = input
+                        , words = words
+                        , score = score
+                        , athlete = athlete
+                        , constraints = cnts
+                        , seed = seed
+                        }
+                        |> Maybe.withDefault
+                            ( game, seed )
+
+                PlayCorrect score athlete cnts _ ->
+                    ( startPlay
+                        { score = score
+                        , athlete = Utils.oppositeAthlete athlete
+                        , constraints = cnts
+                        }
+                    , seed
+                    )
+
+                PlayWrong score athlete _ _ ->
+                    endRound
+                        { winner = Utils.oppositeAthlete athlete
+                        , score = score
+                        , seed = seed
+                        }
+
+                RoundEnd score athlete ann ->
+                    case score of
+                        PlayingScore playingScore ->
+                            tally
+                                { score = playingScore
+                                , athlete = athlete
+                                , seed = seed
+                                }
+
+                        WinnerScore winner loserScore ->
+                            ( game, seed )
+
+                Tally score athlete _ ->
+                    assessment
+                        { score = score
+                        , athlete = athlete
+                        , seed = seed
+                        }
+
+                Assessment score athlete _ ->
+                    newRound
+                        { score = score
+                        , athlete = Utils.oppositeAthlete athlete
+                        , seed = seed
+                        }
+
+                NewRound score athlete _ ->
+                    startRound
+                        { score = score
+                        , athlete = athlete
+                        , seed = seed
+                        }
+
+                End winner loserPoints _ ->
+                    ( game, seed )
+
+        Single turn ->
+            Debug.todo "Single mode not implemented."
 
 
 playCorrect : { constraints : Constraints, score : PlayingScore, athlete : Athlete, seed : Random.Seed } -> ( Game, Random.Seed )

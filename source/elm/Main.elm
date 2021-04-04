@@ -125,11 +125,10 @@ update msg model =
 
             else
                 case model.status of
-                    Playing _ _ (Hotseat (Play score athlete previousInput cnts)) ->
-                        ( athleteInput input previousInput score athlete cnts model
-                        , Cmd.none
-                        )
-
+                    -- Playing _ _ (Hotseat (Play score athlete previousInput cnts)) ->
+                    --     ( athleteInput input previousInput score athlete cnts model
+                    --     , Cmd.none
+                    --     )
                     Playing _ _ (Single (Play _ _ _ _)) ->
                         Debug.todo "Single mode not implemented."
 
@@ -186,320 +185,292 @@ gotWords result model =
 
 tickStatus : Model -> Model
 tickStatus model =
-    checkAnnouncementDone <|
-        case model.status of
-            Loading ann ->
-                { model | status = Loading (Announcement.tick ann) }
-
-            Ready words passed ann ->
-                { model | status = Ready words passed (Announcement.tick ann) }
-
-            Playing words passed game ->
-                { model | status = Playing words passed (Game.tick game) }
-
-            _ ->
-                model
-
-
-checkAnnouncementDone : Model -> Model
-checkAnnouncementDone model =
     case model.status of
-        Ready _ _ _ ->
-            model
+        Loading ann ->
+            { model | status = Loading (Announcement.tick ann) }
 
-        Playing _ _ game ->
-            case Game.getAnnouncement game of
-                Just ann ->
-                    if Announcement.isFinished ann then
-                        nextStatus model
+        Ready words passed ann ->
+            { model | status = Ready words passed (Announcement.tick ann) }
 
-                    else
-                        model
+        Playing words passed game ->
+            let
+                ( newGame, newSeed, messageM ) =
+                    Game.tick model.randomSeed words game
 
-                Nothing ->
-                    model
+                newPassed =
+                    case messageM of
+                        Just message ->
+                            passed |> Passed.push message
+
+                        Nothing ->
+                            passed
+            in
+            { model
+                | status = Playing words newPassed newGame
+                , randomSeed = newSeed
+            }
 
         _ ->
             model
+
+
+
+-- checkAnnouncementDone : Model -> Model
+-- checkAnnouncementDone model =
+--     case model.status of
+--         Ready _ _ _ ->
+--             model
+--         Playing _ _ game ->
+--             case Game.getAnnouncement game of
+--                 Just ann ->
+--                     if Announcement.isFinished ann then
+--                         nextStatus model
+--                     else
+--                         model
+--                 Nothing ->
+--                     model
+--         _ ->
+--             model
 
 
 pressedEnter : Model -> Model
 pressedEnter model =
     case model.status of
-        Ready _ _ _ ->
-            nextStatus model
-
-        Playing _ _ (Hotseat turn) ->
-            case turn of
-                RoundStart _ _ _ _ ->
-                    model
-
-                PlayCorrect _ _ _ _ ->
-                    model
-
-                PlayWrong _ _ _ _ ->
-                    model
-
-                _ ->
-                    nextStatus model
-
-        _ ->
-            model
-
-
-nextStatus : Model -> Model
-nextStatus model =
-    case model.status of
         Ready words passed ann ->
             { model | status = Playing words (Passed.pushAnnouncement ann passed) Game.startGame }
 
-        Playing words passed (Hotseat turn) ->
-            case turn of
-                GameStart ann ->
-                    { model | status = Playing words (Passed.pushAnnouncement ann passed) Game.showRules }
-
-                Rules ann ->
-                    startRound Score.emptyPlayingScore AthleteA ann model
-
-                RoundStart score athlete cnts ann ->
-                    startPlay score athlete cnts ann model
-
-                Play score athlete input cnts ->
-                    athleteInputDone input score athlete cnts model
-
-                PlayCorrect score athlete cnts ann ->
-                    startPlay score (oppositeAthlete athlete) cnts ann model
-
-                PlayWrong score athlete _ ann ->
-                    endRound score athlete ann model
-
-                RoundEnd score athlete ann ->
-                    case score of
-                        PlayingScore playingScore ->
-                            tally playingScore athlete ann model
-
-                        WinnerScore winner loserScore ->
-                            model
-
-                Tally score athlete ann ->
-                    assessment score athlete ann model
-
-                Assessment score athlete ann ->
-                    newRound score athlete ann model
-
-                NewRound score athlete ann ->
-                    startRound score athlete ann model
-
-                End winner loserPoints ann ->
-                    model
-
-        Playing words passed (Single turn) ->
-            Debug.todo "Single mode not implemented."
-
-        _ ->
-            model
-
-
-
--- STATUS GENERATION
-
-
-startRound : PlayingScore -> Athlete -> Announcement -> Model -> Model
-startRound score athlete ann model =
-    case model.status of
-        Playing words passed _ ->
-            let
-                ( newGame, newSeed ) =
-                    Game.startRound
-                        { score = score
-                        , athlete = oppositeAthlete athlete
-                        , seed = model.randomSeed
-                        }
-            in
-            { model
-                | status = Playing words (Passed.pushAnnouncement ann passed) newGame
-                , randomSeed = newSeed
-            }
-
-        _ ->
-            model
-
-
-startPlay : PlayingScore -> Athlete -> Constraints -> Announcement -> Model -> Model
-startPlay score athlete cnts ann model =
-    case model.status of
-        Playing words passed _ ->
-            let
-                newGame =
-                    Game.startPlay
-                        { score = score
-                        , athlete = athlete
-                        , constraints = cnts
-                        }
-            in
-            { model | status = Playing words (Passed.pushAnnouncement ann passed) newGame }
-
-        _ ->
-            model
-
-
-athleteInput : String -> String -> PlayingScore -> Athlete -> Constraints -> Model -> Model
-athleteInput input previousInput score athlete cnts model =
-    case model.status of
-        Playing words passed _ ->
-            let
-                newInput =
-                    previousInput ++ input
-
-                ( newGame, newSeed ) =
-                    Game.athleteInput
-                        { input = newInput
-                        , score = score
-                        , athlete = athlete
-                        , constraints = cnts
-                        , words = words
-                        , seed = model.randomSeed
-                        }
-
-                newPassed =
-                    updatePassed newGame athlete newInput passed
-            in
-            { model
-                | status = Playing words newPassed newGame
-                , randomSeed = newSeed
-            }
-
-        _ ->
-            model
-
-
-athleteInputDone : String -> PlayingScore -> Athlete -> Constraints -> Model -> Model
-athleteInputDone input score athlete cnts model =
-    case model.status of
         Playing words passed game ->
             let
-                ( newGame, newSeed ) =
-                    Game.athleteInputDone
-                        { input = input
-                        , score = score
-                        , athlete = athlete
-                        , constraints = cnts
-                        , words = words
-                        , seed = model.randomSeed
-                        }
-                        |> Maybe.withDefault ( game, model.randomSeed )
+                ( newGame, newSeed, messageM ) =
+                    Game.skip model.randomSeed words game
 
                 newPassed =
-                    updatePassed newGame athlete input passed
+                    case messageM of
+                        Just message ->
+                            passed |> Passed.push message
+
+                        Nothing ->
+                            passed
             in
             { model
                 | status = Playing words newPassed newGame
                 , randomSeed = newSeed
             }
 
-        _ ->
-            model
-
-
-updatePassed : Game -> Athlete -> String -> Passed -> Passed
-updatePassed game athlete input passed =
-    case game of
-        Hotseat (PlayCorrect _ _ _ _) ->
-            passed
-                |> Passed.push (Message.CorrectAthleteInput athlete input)
-
-        Hotseat (PlayWrong _ _ _ _) ->
-            passed
-                |> Passed.push (Message.WrongAthleteInput athlete input)
-
-        Single _ ->
-            Debug.todo "Single mode not implemented."
-
-        _ ->
-            passed
-
-
-endRound : Score -> Athlete -> Announcement -> Model -> Model
-endRound score athlete ann model =
-    case model.status of
-        Playing words passed _ ->
-            let
-                newPassed =
-                    passed
-                        |> Passed.pushAnnouncement ann
-
-                ( newGame, newSeed ) =
-                    Game.endRound
-                        { winner = oppositeAthlete athlete
-                        , score = score
-                        , seed = model.randomSeed
-                        }
-            in
-            { model
-                | status = Playing words newPassed newGame
-                , randomSeed = newSeed
-            }
-
-        _ ->
-            model
-
-
-tally : PlayingScore -> Athlete -> Announcement -> Model -> Model
-tally score athlete ann model =
-    scoreAthleteStatus
-        Game.tally
-        score
-        athlete
-        ann
-        model
-
-
-assessment : PlayingScore -> Athlete -> Announcement -> Model -> Model
-assessment score athlete ann model =
-    scoreAthleteStatus
-        Game.assessment
-        score
-        athlete
-        ann
-        model
-
-
-newRound : PlayingScore -> Athlete -> Announcement -> Model -> Model
-newRound score athlete ann model =
-    scoreAthleteStatus
-        Game.newRound
-        score
-        (oppositeAthlete athlete)
-        ann
-        model
-
-
-scoreAthleteStatus : ({ score : PlayingScore, athlete : Athlete, seed : Random.Seed } -> ( Game, Random.Seed )) -> PlayingScore -> Athlete -> Announcement -> Model -> Model
-scoreAthleteStatus generator score athlete ann model =
-    case model.status of
-        Playing words passed _ ->
-            let
-                newPassed =
-                    passed
-                        |> Passed.pushAnnouncement ann
-
-                ( newGame, newSeed ) =
-                    generator
-                        { athlete = athlete
-                        , score = score
-                        , seed = model.randomSeed
-                        }
-            in
-            { model
-                | status = Playing words newPassed newGame
-                , randomSeed = newSeed
-            }
-
+        -- Playing _ _ (Hotseat turn) ->
+        --     case turn of
+        --         RoundStart _ _ _ _ ->
+        --             model
+        --         PlayCorrect _ _ _ _ ->
+        --             model
+        --         PlayWrong _ _ _ _ ->
+        --             model
+        --         _ ->
+        --             nextStatus model
         _ ->
             model
 
 
 
+-- nextStatus : Model -> Model
+-- nextStatus model =
+--     case model.status of
+--         Ready words passed ann ->
+--             { model | status = Playing words (Passed.pushAnnouncement ann passed) Game.startGame }
+--         Playing words passed (Hotseat turn) ->
+--             case turn of
+--                 GameStart ann ->
+--                     { model | status = Playing words (Passed.pushAnnouncement ann passed) Game.showRules }
+--                 Rules ann ->
+--                     startRound Score.emptyPlayingScore AthleteA ann model
+--                 RoundStart score athlete cnts ann ->
+--                     startPlay score athlete cnts ann model
+--                 Play score athlete input cnts ->
+--                     athleteInputDone input score athlete cnts model
+--                 PlayCorrect score athlete cnts ann ->
+--                     startPlay score (oppositeAthlete athlete) cnts ann model
+--                 PlayWrong score athlete _ ann ->
+--                     endRound score athlete ann model
+--                 RoundEnd score athlete ann ->
+--                     case score of
+--                         PlayingScore playingScore ->
+--                             tally playingScore athlete ann model
+--                         WinnerScore winner loserScore ->
+--                             model
+--                 Tally score athlete ann ->
+--                     assessment score athlete ann model
+--                 Assessment score athlete ann ->
+--                     newRound score athlete ann model
+--                 NewRound score athlete ann ->
+--                     startRound score athlete ann model
+--                 End winner loserPoints ann ->
+--                     model
+--         Playing words passed (Single turn) ->
+--             Debug.todo "Single mode not implemented."
+--         _ ->
+--             model
+-- STATUS GENERATION
+-- startRound : PlayingScore -> Athlete -> Announcement -> Model -> Model
+-- startRound score athlete ann model =
+--     case model.status of
+--         Playing words passed _ ->
+--             let
+--                 ( newGame, newSeed ) =
+--                     Game.startRound
+--                         { score = score
+--                         , athlete = oppositeAthlete athlete
+--                         , seed = model.randomSeed
+--                         }
+--             in
+--             { model
+--                 | status = Playing words (Passed.pushAnnouncement ann passed) newGame
+--                 , randomSeed = newSeed
+--             }
+--         _ ->
+--             model
+-- startPlay : PlayingScore -> Athlete -> Constraints -> Announcement -> Model -> Model
+-- startPlay score athlete cnts ann model =
+--     case model.status of
+--         Playing words passed _ ->
+--             let
+--                 newGame =
+--                     Game.startPlay
+--                         { score = score
+--                         , athlete = athlete
+--                         , constraints = cnts
+--                         }
+--             in
+--             { model | status = Playing words (Passed.pushAnnouncement ann passed) newGame }
+--         _ ->
+--             model
+-- athleteInput : String -> String -> PlayingScore -> Athlete -> Constraints -> Model -> Model
+-- athleteInput input previousInput score athlete cnts model =
+--     case model.status of
+--         Playing words passed _ ->
+--             let
+--                 newInput =
+--                     previousInput ++ input
+--                 ( newGame, newSeed ) =
+--                     Game.athleteInput
+--                         { input = newInput
+--                         , score = score
+--                         , athlete = athlete
+--                         , constraints = cnts
+--                         , words = words
+--                         , seed = model.randomSeed
+--                         }
+--                 newPassed =
+--                     updatePassed newGame athlete newInput passed
+--             in
+--             { model
+--                 | status = Playing words newPassed newGame
+--                 , randomSeed = newSeed
+--             }
+--         _ ->
+--             model
+-- athleteInputDone : String -> PlayingScore -> Athlete -> Constraints -> Model -> Model
+-- athleteInputDone input score athlete cnts model =
+--     case model.status of
+--         Playing words passed game ->
+--             let
+--                 ( newGame, newSeed ) =
+--                     Game.athleteInputDone
+--                         { input = input
+--                         , score = score
+--                         , athlete = athlete
+--                         , constraints = cnts
+--                         , words = words
+--                         , seed = model.randomSeed
+--                         }
+--                         |> Maybe.withDefault ( game, model.randomSeed )
+--                 newPassed =
+--                     updatePassed newGame athlete input passed
+--             in
+--             { model
+--                 | status = Playing words newPassed newGame
+--                 , randomSeed = newSeed
+--             }
+--         _ ->
+--             model
+-- updatePassed : Game -> Athlete -> String -> Passed -> Passed
+-- updatePassed game athlete input passed =
+--     case game of
+--         Hotseat (PlayCorrect _ _ _ _) ->
+--             passed
+--                 |> Passed.push (Message.CorrectAthleteInput athlete input)
+--         Hotseat (PlayWrong _ _ _ _) ->
+--             passed
+--                 |> Passed.push (Message.WrongAthleteInput athlete input)
+--         Single _ ->
+--             Debug.todo "Single mode not implemented."
+--         _ ->
+--             passed
+-- endRound : Score -> Athlete -> Announcement -> Model -> Model
+-- endRound score athlete ann model =
+--     case model.status of
+--         Playing words passed _ ->
+--             let
+--                 newPassed =
+--                     passed
+--                         |> Passed.pushAnnouncement ann
+--                 ( newGame, newSeed ) =
+--                     Game.endRound
+--                         { winner = oppositeAthlete athlete
+--                         , score = score
+--                         , seed = model.randomSeed
+--                         }
+--             in
+--             { model
+--                 | status = Playing words newPassed newGame
+--                 , randomSeed = newSeed
+--             }
+--         _ ->
+--             model
+-- tally : PlayingScore -> Athlete -> Announcement -> Model -> Model
+-- tally score athlete ann model =
+--     scoreAthleteStatus
+--         Game.tally
+--         score
+--         athlete
+--         ann
+--         model
+-- assessment : PlayingScore -> Athlete -> Announcement -> Model -> Model
+-- assessment score athlete ann model =
+--     scoreAthleteStatus
+--         Game.assessment
+--         score
+--         athlete
+--         ann
+--         model
+-- newRound : PlayingScore -> Athlete -> Announcement -> Model -> Model
+-- newRound score athlete ann model =
+--     scoreAthleteStatus
+--         Game.newRound
+--         score
+--         (oppositeAthlete athlete)
+--         ann
+--         model
+-- scoreAthleteStatus : ({ score : PlayingScore, athlete : Athlete, seed : Random.Seed } -> ( Game, Random.Seed )) -> PlayingScore -> Athlete -> Announcement -> Model -> Model
+-- scoreAthleteStatus generator score athlete ann model =
+--     case model.status of
+--         Playing words passed _ ->
+--             let
+--                 newPassed =
+--                     passed
+--                         |> Passed.pushAnnouncement ann
+--                 ( newGame, newSeed ) =
+--                     generator
+--                         { athlete = athlete
+--                         , score = score
+--                         , seed = model.randomSeed
+--                         }
+--             in
+--             { model
+--                 | status = Playing words newPassed newGame
+--                 , randomSeed = newSeed
+--             }
+--         _ ->
+--             model
 -- VIEW
 
 
