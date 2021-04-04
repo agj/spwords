@@ -17,7 +17,7 @@ import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
-import Game exposing (Game(..), Turn(..))
+import Game exposing (Game)
 import Html exposing (Html)
 import Http
 import Levers
@@ -25,6 +25,7 @@ import Palette
 import Random
 import Score exposing (..)
 import Texts
+import Ticker.Active as Active exposing (Active)
 import Ticker.Announcement as Announcement exposing (Announcement)
 import Ticker.Message as Message exposing (Message)
 import Ticker.Passed as Passed exposing (Passed)
@@ -368,62 +369,32 @@ ticker model =
         Ready _ passed ann ->
             tickerEl (tickerAnnouncement ann) passed
 
-        Playing _ passed (Hotseat turn) ->
-            case turn of
-                GameStart ann ->
-                    tickerEl (tickerAnnouncement ann) passed
-
-                Rules ann ->
-                    tickerEl (tickerAnnouncement ann) passed
-
-                RoundStart _ _ _ ann ->
-                    tickerEl (tickerAnnouncement ann) passed
-
-                Play _ athlete text _ ->
-                    tickerEl (tickerPlay athlete text) passed
-
-                PlayCorrect _ _ _ ann ->
-                    tickerEl (tickerAnnouncement ann) passed
-
-                PlayWrong _ _ _ ann ->
-                    tickerEl (tickerAnnouncement ann) passed
-
-                RoundEnd _ _ ann ->
-                    tickerEl (tickerAnnouncement ann) passed
-
-                Tally _ _ ann ->
-                    tickerEl (tickerAnnouncement ann) passed
-
-                Assessment _ _ ann ->
-                    tickerEl (tickerAnnouncement ann) passed
-
-                NewRound _ _ ann ->
-                    tickerEl (tickerAnnouncement ann) passed
-
-                End _ _ ann ->
-                    tickerEl (tickerAnnouncement ann) passed
-
-        Playing _ passed (Single turn) ->
-            Debug.todo "Single mode not implemented."
+        Playing _ passed game ->
+            tickerEl (tickerActive (Game.getActive game)) passed
 
         WordsLoadError err ->
             none
+
+
+tickerActive : Active -> Element Msg
+tickerActive active =
+    case active of
+        Active.AthleteInput athlete input ->
+            el
+                [ Font.color (athleteColor athlete)
+                , Font.underline
+                , Font.bold
+                ]
+                (text (String.toUpper input))
+
+        Active.Announcement ann ->
+            tickerAnnouncement ann
 
 
 tickerAnnouncement : Announcement -> Element Msg
 tickerAnnouncement ann =
     Announcement.getCurrent ann
         |> fromDocParagraph
-
-
-tickerPlay : Athlete -> String -> Element Msg
-tickerPlay athlete txt =
-    el
-        [ Font.color (athleteColor athlete)
-        , Font.underline
-        , Font.bold
-        ]
-        (text (String.toUpper txt))
 
 
 tickerPassed : Passed -> List (Element Msg)

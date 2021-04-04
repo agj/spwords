@@ -1,8 +1,7 @@
 module Game exposing
-    ( Game(..)
-    , Turn(..)
+    ( Game
+    , getActive
     , getActiveAthlete
-    , getAnnouncement
     , skip
     , startGame
     , tick
@@ -15,6 +14,7 @@ import Doc.Paragraph exposing (Paragraph)
 import Random
 import Score exposing (PlayingScore, Points, Score(..))
 import Texts
+import Ticker.Active as Active exposing (Active)
 import Ticker.Announcement as Announcement exposing (Announcement)
 import Ticker.Message as Message exposing (Message)
 import Utils
@@ -53,43 +53,43 @@ startGame =
         )
 
 
-getAnnouncement : Game -> Maybe Announcement
-getAnnouncement game =
+getActive : Game -> Active
+getActive game =
     case game of
         Hotseat turn ->
             case turn of
                 GameStart ann ->
-                    Just ann
+                    Active.fromAnnouncement ann
 
                 Rules ann ->
-                    Just ann
+                    Active.fromAnnouncement ann
 
                 RoundStart _ _ _ ann ->
-                    Just ann
+                    Active.fromAnnouncement ann
 
                 PlayCorrect _ _ _ ann ->
-                    Just ann
+                    Active.fromAnnouncement ann
 
                 PlayWrong _ _ _ ann ->
-                    Just ann
+                    Active.fromAnnouncement ann
 
                 RoundEnd _ _ ann ->
-                    Just ann
+                    Active.fromAnnouncement ann
 
                 Tally _ _ ann ->
-                    Just ann
+                    Active.fromAnnouncement ann
 
                 Assessment _ _ ann ->
-                    Just ann
+                    Active.fromAnnouncement ann
 
                 NewRound _ _ ann ->
-                    Just ann
+                    Active.fromAnnouncement ann
 
                 End _ _ ann ->
-                    Just ann
+                    Active.fromAnnouncement ann
 
-                Play _ _ _ _ ->
-                    Nothing
+                Play _ athlete input _ ->
+                    Active.athleteInput athlete input
 
         Single turn ->
             Debug.todo "Single mode not implemented."
@@ -426,6 +426,48 @@ newRound { athlete, score, seed } =
 
 
 -- OTHER
+
+
+getAnnouncement : Game -> Maybe Announcement
+getAnnouncement game =
+    case game of
+        Hotseat turn ->
+            case turn of
+                GameStart ann ->
+                    Just ann
+
+                Rules ann ->
+                    Just ann
+
+                RoundStart _ _ _ ann ->
+                    Just ann
+
+                PlayCorrect _ _ _ ann ->
+                    Just ann
+
+                PlayWrong _ _ _ ann ->
+                    Just ann
+
+                RoundEnd _ _ ann ->
+                    Just ann
+
+                Tally _ _ ann ->
+                    Just ann
+
+                Assessment _ _ ann ->
+                    Just ann
+
+                NewRound _ _ ann ->
+                    Just ann
+
+                End _ _ ann ->
+                    Just ann
+
+                Play _ _ _ _ ->
+                    Nothing
+
+        Single turn ->
+            Debug.todo "Single mode not implemented."
 
 
 checkAnnouncementDone : Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
