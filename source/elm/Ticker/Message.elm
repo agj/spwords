@@ -1,4 +1,4 @@
-module Message exposing (..)
+module Ticker.Message exposing (..)
 
 import Athlete exposing (..)
 import Doc.Paragraph exposing (Paragraph)

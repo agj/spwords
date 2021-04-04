@@ -16,13 +16,13 @@ module Game exposing
     , tick
     )
 
-import Announcement exposing (Announcement)
 import Athlete exposing (..)
 import Constraints exposing (Constraints)
 import Doc.Paragraph exposing (Paragraph)
 import Random
 import Score exposing (PlayingScore, Points, Score)
 import Texts
+import Ticker.Announcement as Announcement exposing (Announcement)
 import Utils
 import Words exposing (Words)
 

@@ -1,6 +1,5 @@
 module Main exposing (..)
 
-import Announcement exposing (Announcement)
 import Athlete exposing (..)
 import Browser
 import Browser.Events
@@ -22,12 +21,13 @@ import Game exposing (Game(..), Turn(..))
 import Html exposing (Html)
 import Http
 import Levers
-import Message exposing (Message)
 import Palette
-import Passed exposing (Passed)
 import Random
 import Score exposing (..)
 import Texts
+import Ticker.Announcement as Announcement exposing (Announcement)
+import Ticker.Message as Message exposing (Message)
+import Ticker.Passed as Passed exposing (Passed)
 import Time
 import Utils exposing (..)
 import Viewport exposing (Viewport)

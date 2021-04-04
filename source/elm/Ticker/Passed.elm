@@ -1,4 +1,4 @@
-module Passed exposing
+module Ticker.Passed exposing
     ( Passed
     , empty
     , push
@@ -6,8 +6,8 @@ module Passed exposing
     , toList
     )
 
-import Announcement exposing (Announcement)
-import Message exposing (Message)
+import Ticker.Announcement as Announcement exposing (Announcement)
+import Ticker.Message as Message exposing (Message)
 
 
 type Passed

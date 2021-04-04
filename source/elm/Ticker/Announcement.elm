@@ -1,4 +1,4 @@
-module Announcement exposing
+module Ticker.Announcement exposing
     ( Announcement
     , create
     , getCurrent
@@ -9,7 +9,7 @@ module Announcement exposing
 
 import Doc.Paragraph as Paragraph exposing (Paragraph)
 import Doc.Util
-import Message exposing (Message)
+import Ticker.Message as Message exposing (Message)
 
 
 type Announcement
