@@ -1,12 +1,12 @@
 module Game exposing
     ( Game(..)
     , Turn(..)
-    , athleteInput
     , getActiveAthlete
     , getAnnouncement
     , skip
     , startGame
     , tick
+    , userInput
     )
 
 import Athlete exposing (..)
@@ -38,6 +38,19 @@ type Turn
     | Assessment PlayingScore Athlete Announcement
     | NewRound PlayingScore Athlete Announcement
     | End Athlete Points Announcement
+
+
+startGame : Game
+startGame =
+    Hotseat
+        (GameStart
+            (Texts.gameStart
+                { athleteA = "left"
+                , athleteB = "right"
+                }
+                |> Announcement.create
+            )
+        )
 
 
 getAnnouncement : Game -> Maybe Announcement
@@ -160,42 +173,58 @@ skip seed words game =
                 PlayWrong _ _ _ _ ->
                     ignore
 
-                Play _ _ _ _ ->
-                    ignore
-
                 _ ->
-                    let
-                        ( newGame, newSeed ) =
-                            nextStatus seed words game
-
-                        message =
-                            getAnnouncement game
-                                |> Maybe.map Announcement.toMessage
-                    in
-                    ( newGame
-                    , newSeed
-                    , message
-                    )
+                    nextStatus seed words game
 
         Single turn ->
             Debug.todo "Single mode not implemented."
 
 
+userInput : String -> Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
+userInput input seed words game =
+    case game of
+        Hotseat (Play score athlete previousInput cnts) ->
+            let
+                newInput =
+                    previousInput ++ input
 
+                ( newGame, newSeed ) =
+                    athleteInput
+                        { input = newInput
+                        , score = score
+                        , athlete = athlete
+                        , constraints = cnts
+                        , words = words
+                        , seed = seed
+                        }
+
+                message =
+                    case newGame of
+                        Hotseat (PlayCorrect _ _ _ _) ->
+                            Just (Message.CorrectAthleteInput athlete newInput)
+
+                        Hotseat (PlayWrong _ _ _ _) ->
+                            Just (Message.WrongAthleteInput athlete newInput)
+
+                        Single _ ->
+                            Debug.todo "Single mode not implemented."
+
+                        _ ->
+                            Nothing
+            in
+            ( newGame, newSeed, message )
+
+        Hotseat _ ->
+            ( game, seed, Nothing )
+
+        Single _ ->
+            Debug.todo "Single mode not implemented."
+
+
+
+--------------- INTERNAL ---------------
+--
 -- GAME TURN GENERATION
-
-
-startGame : Game
-startGame =
-    Hotseat
-        (GameStart
-            (Texts.gameStart
-                { athleteA = "left"
-                , athleteB = "right"
-                }
-                |> Announcement.create
-            )
-        )
 
 
 showRules : Game
@@ -264,19 +293,20 @@ athleteInput { input, words, score, athlete, constraints, seed } =
             playWrongWith Texts.notAWord
 
 
-athleteInputDone : { input : String, words : Words, constraints : Constraints, score : PlayingScore, athlete : Athlete, seed : Random.Seed } -> Maybe ( Game, Random.Seed )
+athleteInputDone : { input : String, words : Words, constraints : Constraints, score : PlayingScore, athlete : Athlete, seed : Random.Seed } -> ( Game, Random.Seed, Maybe Message )
 athleteInputDone { input, words, constraints, score, athlete, seed } =
     let
         playWrongWith messageFn =
-            Just
-                (playWrong
-                    { messageFn = messageFn
-                    , score = score
-                    , athlete = athlete
-                    , constraints = constraints
-                    , seed = seed
-                    }
-                )
+            playWrong
+                { messageFn = messageFn
+                , score = score
+                , athlete = athlete
+                , constraints = constraints
+                , seed = seed
+                }
+
+        addMessage messageConstructor ( g, s ) =
+            ( g, s, Just (messageConstructor athlete input) )
     in
     if String.length input > 0 then
         case Constraints.check input constraints words of
@@ -285,29 +315,35 @@ athleteInputDone { input, words, constraints, score, athlete, seed } =
                     newCnts =
                         constraints |> Constraints.pushPlayed input
                 in
-                Just
-                    (playCorrect
-                        { constraints = newCnts
-                        , score = score
-                        , athlete = athlete
-                        , seed = seed
-                        }
-                    )
+                playCorrect
+                    { constraints = newCnts
+                    , score = score
+                    , athlete = athlete
+                    , seed = seed
+                    }
+                    |> addMessage Message.CorrectAthleteInput
 
             Constraints.InputInitialWrong ->
                 playWrongWith Texts.initialWrong
+                    |> addMessage Message.WrongAthleteInput
 
             Constraints.InputIncorporatesWrong ->
                 playWrongWith Texts.incorporatesWrong
+                    |> addMessage Message.WrongAthleteInput
 
             Constraints.InputAlreadyPlayed ->
                 playWrongWith Texts.alreadyPlayed
+                    |> addMessage Message.WrongAthleteInput
 
             Constraints.InputNotAWord ->
                 playWrongWith Texts.notAWord
+                    |> addMessage Message.WrongAthleteInput
 
     else
-        Nothing
+        ( Hotseat (Play score athlete input constraints)
+        , seed
+        , Nothing
+        )
 
 
 endRound : { winner : Athlete, score : Score, seed : Random.Seed } -> ( Game, Random.Seed )
@@ -389,7 +425,7 @@ newRound { athlete, score, seed } =
 
 
 
--- INTERNAL
+-- OTHER
 
 
 checkAnnouncementDone : Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
@@ -397,14 +433,7 @@ checkAnnouncementDone seed words game =
     case getAnnouncement game of
         Just ann ->
             if Announcement.isFinished ann then
-                let
-                    ( newGame, newSeed ) =
-                        nextStatus seed words game
-                in
-                ( newGame
-                , newSeed
-                , Just (Announcement.toMessage ann)
-                )
+                nextStatus seed words game
 
             else
                 ( game, seed, Nothing )
@@ -413,22 +442,28 @@ checkAnnouncementDone seed words game =
             ( game, seed, Nothing )
 
 
-nextStatus : Random.Seed -> Words -> Game -> ( Game, Random.Seed )
+nextStatus : Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
 nextStatus seed words game =
+    let
+        addMessage ann ( g, s ) =
+            ( g, s, Just (Announcement.toMessage ann) )
+    in
     case game of
         Hotseat turn ->
             case turn of
-                GameStart _ ->
+                GameStart ann ->
                     ( showRules, seed )
+                        |> addMessage ann
 
-                Rules _ ->
+                Rules ann ->
                     startRound
                         { score = Score.emptyPlayingScore
                         , athlete = AthleteB
                         , seed = seed
                         }
+                        |> addMessage ann
 
-                RoundStart score athlete cnts _ ->
+                RoundStart score athlete cnts ann ->
                     ( startPlay
                         { score = score
                         , athlete = athlete
@@ -436,6 +471,7 @@ nextStatus seed words game =
                         }
                     , seed
                     )
+                        |> addMessage ann
 
                 Play score athlete input cnts ->
                     athleteInputDone
@@ -446,10 +482,8 @@ nextStatus seed words game =
                         , constraints = cnts
                         , seed = seed
                         }
-                        |> Maybe.withDefault
-                            ( game, seed )
 
-                PlayCorrect score athlete cnts _ ->
+                PlayCorrect score athlete cnts ann ->
                     ( startPlay
                         { score = score
                         , athlete = Utils.oppositeAthlete athlete
@@ -457,13 +491,15 @@ nextStatus seed words game =
                         }
                     , seed
                     )
+                        |> addMessage ann
 
-                PlayWrong score athlete _ _ ->
+                PlayWrong score athlete _ ann ->
                     endRound
                         { winner = Utils.oppositeAthlete athlete
                         , score = score
                         , seed = seed
                         }
+                        |> addMessage ann
 
                 RoundEnd score athlete ann ->
                     case score of
@@ -473,33 +509,37 @@ nextStatus seed words game =
                                 , athlete = athlete
                                 , seed = seed
                                 }
+                                |> addMessage ann
 
                         WinnerScore winner loserScore ->
-                            ( game, seed )
+                            ( game, seed, Nothing )
 
-                Tally score athlete _ ->
+                Tally score athlete ann ->
                     assessment
                         { score = score
                         , athlete = athlete
                         , seed = seed
                         }
+                        |> addMessage ann
 
-                Assessment score athlete _ ->
+                Assessment score athlete ann ->
                     newRound
                         { score = score
                         , athlete = Utils.oppositeAthlete athlete
                         , seed = seed
                         }
+                        |> addMessage ann
 
-                NewRound score athlete _ ->
+                NewRound score athlete ann ->
                     startRound
                         { score = score
                         , athlete = athlete
                         , seed = seed
                         }
+                        |> addMessage ann
 
-                End winner loserPoints _ ->
-                    ( game, seed )
+                End winner loserPoints ann ->
+                    ( game, seed, Nothing )
 
         Single turn ->
             Debug.todo "Single mode not implemented."
