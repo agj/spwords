@@ -3,11 +3,11 @@ import { promisify } from "util";
 import childProcess from "child_process";
 const exec = promisify(childProcess.exec);
 
-import cfg from "./source/js/config.js";
+import cfg from "./source/ts/config";
 
 // Elm compilation
 
-const doElm = (debug) =>
+const doElm = (debug: boolean) =>
   exec(
     `npx elm make ` +
       `${cfg.elmDir}Main.elm ` +

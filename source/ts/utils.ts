@@ -1,5 +1,5 @@
 import R from "ramda";
-import("dot-into").install();
+import("dot-into").then((di) => di.install());
 
 const log = R.tap(console.log);
 const prepend = R.curry((prep, text) => prep + text);
