@@ -1,35 +1,32 @@
 import gulp from "gulp";
-import { promisify } from "util";
-import childProcess from "child_process";
-const exec = promisify(childProcess.exec);
-
 import cfg from "./source/ts/config";
+import { run } from "./source/ts/utils";
 
 // Elm compilation
 
 const doElm = (debug: boolean) =>
-  exec(
-    `npx elm make ` +
-      `${cfg.elmDir}Main.elm ` +
-      `--output="${cfg.outputDir}js/script.js" ` +
-      (debug ? "--debug" : "")
-  );
+  run(`npx elm make ${cfg.elmDir}Main.elm`, {
+    output: `${cfg.outputDir}js/script.js`,
+    debug,
+  });
 
 const buildElm = () => doElm(false);
 
 const debugElm = () => doElm(true);
 
 const developElm = () =>
-  exec(
-    `npx elm-live ` +
-      `${cfg.elmDir}Main.elm ` +
-      `--path-to-elm="./node_modules/.bin/elm" ` +
-      `--dir="output/" ` +
-      `--open ` +
-      `--hot ` +
-      `-- ` +
-      `--output="${cfg.outputDir}js/script.js" ` //+
-    //`--debug`
+  run(
+    `npx elm-live ${cfg.elmDir}Main.elm `,
+    {
+      "path-to-elm": "./node_modules/.bin/elm",
+      dir: "output/",
+      open: true,
+      hot: true,
+    },
+    {
+      output: `${cfg.outputDir}js/script.js`,
+      debug: false,
+    }
   );
 
 const watchElm = () =>
@@ -44,11 +41,11 @@ const watchCopy = () => gulp.watch(`${cfg.copyDir}**`, copy);
 
 // Formatting
 
-const formatElm = () => exec(`npx elm-format ${cfg.elmDir} --yes`);
+const formatElm = () => run(`npx elm-format ${cfg.elmDir}`, { yes: true });
 
 const watchFormatElm = () => gulp.watch(`${cfg.elmDir}**/*.elm`, formatElm);
 
-const formatOther = () => exec(`npx prettier . --write`);
+const formatOther = () => run("npx prettier .", { write: true });
 
 const watchFormatOther = () =>
   gulp.watch(
@@ -61,19 +58,19 @@ const watchFormatOther = () =>
 
 // Combined tasks
 
-const build = gulp.parallel(copy, buildElm);
+export const build = gulp.parallel(copy, buildElm);
 
-const debug = gulp.parallel(copy, debugElm);
+export const debug = gulp.parallel(copy, debugElm);
 
-const watch = gulp.parallel(watchCopy, watchElm);
+export const watch = gulp.parallel(watchCopy, watchElm);
 
-const format = gulp.parallel(formatElm, formatOther);
+export const format = gulp.parallel(formatElm, formatOther);
 
 const watchFormat = gulp.parallel(watchFormatElm, watchFormatOther);
 
-const develop = gulp.series(
+export const develop = gulp.series(
   format,
   gulp.parallel(watchCopy, watchFormat, developElm)
 );
 
-export { build as default, develop, build, debug, watch, format };
+export default build;
