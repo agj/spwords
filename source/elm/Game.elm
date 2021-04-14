@@ -31,16 +31,16 @@ type Game
 
 type Turn
     = GameStart Queue
-    | Rules Announcement
-    | RoundStart PlayingScore Athlete Constraints Announcement
+    | Rules Queue
+    | RoundStart PlayingScore Athlete Constraints Queue
     | Play PlayingScore Athlete String Constraints
-    | PlayCorrect PlayingScore Athlete Constraints Announcement
-    | PlayWrong Score Athlete Constraints Announcement
-    | RoundEnd Score Athlete Announcement
-    | Tally PlayingScore Athlete Announcement
-    | Assessment PlayingScore Athlete Announcement
-    | NewRound PlayingScore Athlete Announcement
-    | End Athlete Points Announcement
+    | PlayCorrect PlayingScore Athlete Constraints Queue
+    | PlayWrong Score Athlete Constraints Queue
+    | RoundEnd Score Athlete Queue
+    | Tally PlayingScore Athlete Queue
+    | Assessment PlayingScore Athlete Queue
+    | NewRound PlayingScore Athlete Queue
+    | End Athlete Points Queue
 
 
 startGame : Game
@@ -67,32 +67,32 @@ getActive game =
                 GameStart queue ->
                     Active.fromQueue queue
 
-                Rules ann ->
-                    Active.fromAnnouncement ann
+                Rules queue ->
+                    Active.fromQueue queue
 
-                RoundStart _ _ _ ann ->
-                    Active.fromAnnouncement ann
+                RoundStart _ _ _ queue ->
+                    Active.fromQueue queue
 
-                PlayCorrect _ _ _ ann ->
-                    Active.fromAnnouncement ann
+                PlayCorrect _ _ _ queue ->
+                    Active.fromQueue queue
 
-                PlayWrong _ _ _ ann ->
-                    Active.fromAnnouncement ann
+                PlayWrong _ _ _ queue ->
+                    Active.fromQueue queue
 
-                RoundEnd _ _ ann ->
-                    Active.fromAnnouncement ann
+                RoundEnd _ _ queue ->
+                    Active.fromQueue queue
 
-                Tally _ _ ann ->
-                    Active.fromAnnouncement ann
+                Tally _ _ queue ->
+                    Active.fromQueue queue
 
-                Assessment _ _ ann ->
-                    Active.fromAnnouncement ann
+                Assessment _ _ queue ->
+                    Active.fromQueue queue
 
-                NewRound _ _ ann ->
-                    Active.fromAnnouncement ann
+                NewRound _ _ queue ->
+                    Active.fromQueue queue
 
-                End _ _ ann ->
-                    Active.fromAnnouncement ann
+                End _ _ queue ->
+                    Active.fromQueue queue
 
                 Play _ athlete input _ ->
                     Active.athleteInput athlete input
@@ -127,32 +127,32 @@ tick seed words game =
                     GameStart queue ->
                         Hotseat (GameStart (queue |> Queue.tick))
 
-                    Rules ann ->
-                        Hotseat (Rules (ann |> Announcement.tick))
+                    Rules queue ->
+                        Hotseat (Rules (queue |> Queue.tick))
 
-                    RoundStart score athlete cnts ann ->
-                        Hotseat (RoundStart score athlete cnts (ann |> Announcement.tick))
+                    RoundStart score athlete cnts queue ->
+                        Hotseat (RoundStart score athlete cnts (queue |> Queue.tick))
 
-                    PlayCorrect score athlete cnts ann ->
-                        Hotseat (PlayCorrect score athlete cnts (ann |> Announcement.tick))
+                    PlayCorrect score athlete cnts queue ->
+                        Hotseat (PlayCorrect score athlete cnts (queue |> Queue.tick))
 
-                    PlayWrong score athlete cnts ann ->
-                        Hotseat (PlayWrong score athlete cnts (ann |> Announcement.tick))
+                    PlayWrong score athlete cnts queue ->
+                        Hotseat (PlayWrong score athlete cnts (queue |> Queue.tick))
 
-                    RoundEnd score athlete ann ->
-                        Hotseat (RoundEnd score athlete (ann |> Announcement.tick))
+                    RoundEnd score athlete queue ->
+                        Hotseat (RoundEnd score athlete (queue |> Queue.tick))
 
-                    Tally score athlete ann ->
-                        Hotseat (Tally score athlete (ann |> Announcement.tick))
+                    Tally score athlete queue ->
+                        Hotseat (Tally score athlete (queue |> Queue.tick))
 
-                    Assessment score athlete ann ->
-                        Hotseat (Assessment score athlete (ann |> Announcement.tick))
+                    Assessment score athlete queue ->
+                        Hotseat (Assessment score athlete (queue |> Queue.tick))
 
-                    NewRound score athlete ann ->
-                        Hotseat (NewRound score athlete (ann |> Announcement.tick))
+                    NewRound score athlete queue ->
+                        Hotseat (NewRound score athlete (queue |> Queue.tick))
 
-                    End athlete points ann ->
-                        Hotseat (End athlete points (ann |> Announcement.tick))
+                    End athlete points queue ->
+                        Hotseat (End athlete points (queue |> Queue.tick))
 
                     Play _ _ _ _ ->
                         game
@@ -243,7 +243,7 @@ userInput input seed words game =
 
 showRules : Game
 showRules =
-    Hotseat (Rules (Texts.rules |> Announcement.create))
+    Hotseat (Rules (Queue.singleton (Texts.rules |> Announcement.create)))
 
 
 startRound : { athlete : Athlete, score : PlayingScore, seed : Random.Seed } -> ( Game, Random.Seed )
@@ -271,7 +271,7 @@ startRound { athlete, score, seed } =
             score
             athlete
             (Constraints.serve initial)
-            (Announcement.create message)
+            (Queue.singleton (Announcement.create message))
         )
     , newSeed
     )
@@ -372,7 +372,7 @@ endRound { winner, score, seed } =
                 }
 
         newGame =
-            Hotseat (RoundEnd score winner (message |> Announcement.create))
+            Hotseat (RoundEnd score winner (Queue.singleton (message |> Announcement.create)))
     in
     ( newGame, newSeed )
 
@@ -390,7 +390,7 @@ tally { score, athlete, seed } =
                 }
 
         newGame =
-            Hotseat (Tally score athlete (message |> Announcement.create))
+            Hotseat (Tally score athlete (Queue.singleton (message |> Announcement.create)))
     in
     ( newGame, newSeed )
 
@@ -421,7 +421,7 @@ assessment { score, athlete, seed } =
                             }
 
         newGame =
-            Hotseat (Assessment score athlete (message |> Announcement.create))
+            Hotseat (Assessment score athlete (Queue.singleton (message |> Announcement.create)))
     in
     ( newGame, newSeed )
 
@@ -433,7 +433,7 @@ newRound { athlete, score, seed } =
             Texts.newRound seed
 
         newGame =
-            Hotseat (NewRound score athlete (message |> Announcement.create))
+            Hotseat (NewRound score athlete (Queue.singleton (message |> Announcement.create)))
     in
     ( newGame, newSeed )
 
@@ -442,40 +442,40 @@ newRound { athlete, score, seed } =
 -- OTHER
 
 
-getAnnouncement : Game -> Maybe Announcement
-getAnnouncement game =
+getQueue : Game -> Maybe Queue
+getQueue game =
     case game of
         Hotseat turn ->
             case turn of
                 GameStart queue ->
-                    Just (Queue.peek queue)
+                    Just queue
 
-                Rules ann ->
-                    Just ann
+                Rules queue ->
+                    Just queue
 
-                RoundStart _ _ _ ann ->
-                    Just ann
+                RoundStart _ _ _ queue ->
+                    Just queue
 
-                PlayCorrect _ _ _ ann ->
-                    Just ann
+                PlayCorrect _ _ _ queue ->
+                    Just queue
 
-                PlayWrong _ _ _ ann ->
-                    Just ann
+                PlayWrong _ _ _ queue ->
+                    Just queue
 
-                RoundEnd _ _ ann ->
-                    Just ann
+                RoundEnd _ _ queue ->
+                    Just queue
 
-                Tally _ _ ann ->
-                    Just ann
+                Tally _ _ queue ->
+                    Just queue
 
-                Assessment _ _ ann ->
-                    Just ann
+                Assessment _ _ queue ->
+                    Just queue
 
-                NewRound _ _ ann ->
-                    Just ann
+                NewRound _ _ queue ->
+                    Just queue
 
-                End _ _ ann ->
-                    Just ann
+                End _ _ queue ->
+                    Just queue
 
                 Play _ _ _ _ ->
                     Nothing
@@ -486,37 +486,61 @@ getAnnouncement game =
 
 checkAnnouncementDone : Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
 checkAnnouncementDone seed words game =
-    case getAnnouncement game of
-        Just ann ->
+    let
+        check queue gameCreator =
+            let
+                ( ann, poppedQueueM ) =
+                    Queue.pop queue
+            in
             if Announcement.isFinished ann then
-                case advanceQueue game of
+                case poppedQueueM of
                     Nothing ->
                         nextStatus seed words game
 
-                    Just newGame ->
-                        ( newGame, seed, Just (Announcement.toMessage ann) )
+                    Just newQueue ->
+                        ( gameCreator newQueue, seed, Just (Announcement.toMessage ann) )
 
             else
                 ( game, seed, Nothing )
-
-        Nothing ->
-            ( game, seed, Nothing )
-
-
-advanceQueue : Game -> Maybe Game
-advanceQueue game =
+    in
     case game of
-        Hotseat (GameStart queue) ->
-            case Queue.pop queue of
-                ( _, Nothing ) ->
-                    Nothing
+        Hotseat turn ->
+            case turn of
+                GameStart queue ->
+                    check queue (\newQueue -> Hotseat (GameStart newQueue))
 
-                ( _, Just newQueue ) ->
-                    Hotseat (GameStart newQueue)
-                        |> Just
+                Rules queue ->
+                    check queue (\newQueue -> Hotseat (Rules newQueue))
 
-        _ ->
-            Nothing
+                RoundStart score athlete cnts queue ->
+                    check queue (\newQueue -> Hotseat (RoundStart score athlete cnts newQueue))
+
+                PlayCorrect score athlete cnts queue ->
+                    check queue (\newQueue -> Hotseat (PlayCorrect score athlete cnts newQueue))
+
+                PlayWrong score athlete cnts queue ->
+                    check queue (\newQueue -> Hotseat (PlayWrong score athlete cnts newQueue))
+
+                RoundEnd score athlete queue ->
+                    check queue (\newQueue -> Hotseat (RoundEnd score athlete newQueue))
+
+                Tally score athlete queue ->
+                    check queue (\newQueue -> Hotseat (Tally score athlete newQueue))
+
+                Assessment score athlete queue ->
+                    check queue (\newQueue -> Hotseat (Assessment score athlete newQueue))
+
+                NewRound score athlete queue ->
+                    check queue (\newQueue -> Hotseat (NewRound score athlete newQueue))
+
+                End athlete points queue ->
+                    check queue (\newQueue -> Hotseat (End athlete points newQueue))
+
+                Play _ _ _ _ ->
+                    ( game, seed, Nothing )
+
+        Single _ ->
+            Debug.todo "Single mode not implemented yet."
 
 
 nextStatus : Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
@@ -532,15 +556,15 @@ nextStatus seed words game =
                     ( showRules, seed )
                         |> addMessage (Queue.peek queue)
 
-                Rules ann ->
+                Rules queue ->
                     startRound
                         { score = Score.emptyPlayingScore
                         , athlete = AthleteB
                         , seed = seed
                         }
-                        |> addMessage ann
+                        |> addMessage (Queue.peek queue)
 
-                RoundStart score athlete cnts ann ->
+                RoundStart score athlete cnts queue ->
                     ( startPlay
                         { score = score
                         , athlete = athlete
@@ -548,7 +572,7 @@ nextStatus seed words game =
                         }
                     , seed
                     )
-                        |> addMessage ann
+                        |> addMessage (Queue.peek queue)
 
                 Play score athlete input cnts ->
                     athleteInputDone
@@ -560,7 +584,7 @@ nextStatus seed words game =
                         , seed = seed
                         }
 
-                PlayCorrect score athlete cnts ann ->
+                PlayCorrect score athlete cnts queue ->
                     ( startPlay
                         { score = score
                         , athlete = Utils.oppositeAthlete athlete
@@ -568,17 +592,17 @@ nextStatus seed words game =
                         }
                     , seed
                     )
-                        |> addMessage ann
+                        |> addMessage (Queue.peek queue)
 
-                PlayWrong score athlete _ ann ->
+                PlayWrong score athlete _ queue ->
                     endRound
                         { winner = Utils.oppositeAthlete athlete
                         , score = score
                         , seed = seed
                         }
-                        |> addMessage ann
+                        |> addMessage (Queue.peek queue)
 
-                RoundEnd score athlete ann ->
+                RoundEnd score athlete queue ->
                     case score of
                         PlayingScore playingScore ->
                             tally
@@ -586,36 +610,36 @@ nextStatus seed words game =
                                 , athlete = athlete
                                 , seed = seed
                                 }
-                                |> addMessage ann
+                                |> addMessage (Queue.peek queue)
 
                         WinnerScore winner loserScore ->
                             ( game, seed, Nothing )
 
-                Tally score athlete ann ->
+                Tally score athlete queue ->
                     assessment
                         { score = score
                         , athlete = athlete
                         , seed = seed
                         }
-                        |> addMessage ann
+                        |> addMessage (Queue.peek queue)
 
-                Assessment score athlete ann ->
+                Assessment score athlete queue ->
                     newRound
                         { score = score
                         , athlete = Utils.oppositeAthlete athlete
                         , seed = seed
                         }
-                        |> addMessage ann
+                        |> addMessage (Queue.peek queue)
 
-                NewRound score athlete ann ->
+                NewRound score athlete queue ->
                     startRound
                         { score = score
                         , athlete = athlete
                         , seed = seed
                         }
-                        |> addMessage ann
+                        |> addMessage (Queue.peek queue)
 
-                End winner loserPoints ann ->
+                End winner loserPoints queue ->
                     ( game, seed, Nothing )
 
         Single turn ->
@@ -638,7 +662,13 @@ playCorrect { constraints, score, athlete, seed } =
             Texts.interjection seed
 
         newGame =
-            Hotseat (PlayCorrect score athlete newCnts (message |> Announcement.create))
+            Hotseat
+                (PlayCorrect
+                    score
+                    athlete
+                    newCnts
+                    (Queue.singleton (message |> Announcement.create))
+                )
     in
     ( newGame, newSeed )
 
@@ -662,7 +692,7 @@ playWrong { messageFn, score, athlete, constraints, seed } =
                     newScore
                     athlete
                     constraints
-                    (message |> Announcement.create)
+                    (Queue.singleton (message |> Announcement.create))
                 )
     in
     ( newGame, newSeed )
