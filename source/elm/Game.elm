@@ -39,7 +39,6 @@ type Turn
     | RoundEnd Score Athlete Queue
     | Tally PlayingScore Athlete Queue
     | Assessment PlayingScore Athlete Queue
-    | NewRound PlayingScore Athlete Queue
     | End Athlete Points Queue
 
 
@@ -85,9 +84,6 @@ getActive game =
                     Active.fromQueue queue
 
                 Assessment _ _ queue ->
-                    Active.fromQueue queue
-
-                NewRound _ _ queue ->
                     Active.fromQueue queue
 
                 End _ _ queue ->
@@ -147,9 +143,6 @@ tick seed words game =
                     Assessment score athlete queue ->
                         Hotseat (Assessment score athlete (queue |> Queue.tick))
 
-                    NewRound score athlete queue ->
-                        Hotseat (NewRound score athlete (queue |> Queue.tick))
-
                     End athlete points queue ->
                         Hotseat (End athlete points (queue |> Queue.tick))
 
@@ -206,9 +199,6 @@ skip seed words game =
 
                             Assessment score athlete queue ->
                                 check queue (\newQueue -> Hotseat (Assessment score athlete newQueue))
-
-                            NewRound score athlete queue ->
-                                check queue (\newQueue -> Hotseat (NewRound score athlete newQueue))
 
                             End athlete points queue ->
                                 check queue (\newQueue -> Hotseat (End athlete points newQueue))
@@ -284,27 +274,47 @@ startRound { athlete, score, seed } =
         ( initial, seed1 ) =
             randomLetter seed Texts.alphabet
 
-        ( message, newSeed ) =
-            Texts.roundStart
-                { turnAthlete = athlete
-                , seed = seed1
-                , turn =
-                    case athlete of
-                        AthleteA ->
-                            "left"
+        ( ann, anns, newSeed ) =
+            let
+                ( startMsg, seed2 ) =
+                    Texts.roundStart
+                        { turnAthlete = athlete
+                        , seed = seed1
+                        , turn =
+                            case athlete of
+                                AthleteA ->
+                                    "left"
 
-                        AthleteB ->
-                            "right"
-                , initial = initial
-                }
+                                AthleteB ->
+                                    "right"
+                        , initial = initial
+                        }
+            in
+            case score of
+                ( Score.Love, Score.Love ) ->
+                    ( startMsg |> Announcement.createUnskippable
+                    , []
+                    , seed2
+                    )
+
+                _ ->
+                    let
+                        ( endPreviousMsg, seed3 ) =
+                            Texts.newRound seed2
+                    in
+                    ( endPreviousMsg |> Announcement.create
+                    , [ startMsg |> Announcement.createUnskippable ]
+                    , seed3
+                    )
+
+        newGame =
+            RoundStart
+                score
+                athlete
+                (Constraints.serve initial)
+                (Queue.fromList ann anns)
     in
-    ( Hotseat
-        (RoundStart
-            score
-            athlete
-            (Constraints.serve initial)
-            (Queue.singleton (Announcement.createUnskippable message))
-        )
+    ( Hotseat newGame
     , newSeed
     )
 
@@ -458,18 +468,6 @@ assessment { score, athlete, seed } =
     ( newGame, newSeed )
 
 
-newRound : { athlete : Athlete, score : PlayingScore, seed : Random.Seed } -> ( Game, Random.Seed )
-newRound { athlete, score, seed } =
-    let
-        ( message, newSeed ) =
-            Texts.newRound seed
-
-        newGame =
-            Hotseat (NewRound score athlete (Queue.singleton (message |> Announcement.create)))
-    in
-    ( newGame, newSeed )
-
-
 
 -- OTHER
 
@@ -501,9 +499,6 @@ getQueue game =
                     Just queue
 
                 Assessment _ _ queue ->
-                    Just queue
-
-                NewRound _ _ queue ->
                     Just queue
 
                 End _ _ queue ->
@@ -561,9 +556,6 @@ checkAnnouncementDone seed words game =
 
                 Assessment score athlete queue ->
                     check queue (\newQueue -> Hotseat (Assessment score athlete newQueue))
-
-                NewRound score athlete queue ->
-                    check queue (\newQueue -> Hotseat (NewRound score athlete newQueue))
 
                 End athlete points queue ->
                     check queue (\newQueue -> Hotseat (End athlete points newQueue))
@@ -656,17 +648,9 @@ nextStatus seed words game =
                         |> addMessage (Queue.peek queue)
 
                 Assessment score athlete queue ->
-                    newRound
-                        { score = score
-                        , athlete = Utils.oppositeAthlete athlete
-                        , seed = seed
-                        }
-                        |> addMessage (Queue.peek queue)
-
-                NewRound score athlete queue ->
                     startRound
                         { score = score
-                        , athlete = athlete
+                        , athlete = Utils.oppositeAthlete athlete
                         , seed = seed
                         }
                         |> addMessage (Queue.peek queue)
