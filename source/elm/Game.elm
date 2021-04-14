@@ -37,7 +37,6 @@ type Turn
     | PlayCorrect PlayingScore Athlete Constraints Queue
     | PlayWrong Score Athlete Constraints Queue
     | RoundEnd Score Athlete Queue
-    | Tally PlayingScore Athlete Queue
     | Assessment PlayingScore Athlete Queue
     | End Athlete Points Queue
 
@@ -78,9 +77,6 @@ getActive game =
                     Active.fromQueue queue
 
                 RoundEnd _ _ queue ->
-                    Active.fromQueue queue
-
-                Tally _ _ queue ->
                     Active.fromQueue queue
 
                 Assessment _ _ queue ->
@@ -137,9 +133,6 @@ tick seed words game =
                     RoundEnd score athlete queue ->
                         Hotseat (RoundEnd score athlete (queue |> Queue.tick))
 
-                    Tally score athlete queue ->
-                        Hotseat (Tally score athlete (queue |> Queue.tick))
-
                     Assessment score athlete queue ->
                         Hotseat (Assessment score athlete (queue |> Queue.tick))
 
@@ -193,9 +186,6 @@ skip seed words game =
 
                             RoundEnd score athlete queue ->
                                 check queue (\newQueue -> Hotseat (RoundEnd score athlete newQueue))
-
-                            Tally score athlete queue ->
-                                check queue (\newQueue -> Hotseat (Tally score athlete newQueue))
 
                             Assessment score athlete queue ->
                                 check queue (\newQueue -> Hotseat (Assessment score athlete newQueue))
@@ -419,10 +409,10 @@ endRound { winner, score, seed } =
     ( newGame, newSeed )
 
 
-tally : { score : PlayingScore, athlete : Athlete, seed : Random.Seed } -> ( Game, Random.Seed )
-tally { score, athlete, seed } =
+assessment : { score : PlayingScore, athlete : Athlete, seed : Random.Seed } -> ( Game, Random.Seed )
+assessment { score, athlete, seed } =
     let
-        ( message, newSeed ) =
+        ( tallyMsg, seed1 ) =
             Texts.tally
                 { athleteA = "left"
                 , athleteB = "right"
@@ -431,22 +421,13 @@ tally { score, athlete, seed } =
                 , seed = seed
                 }
 
-        newGame =
-            Hotseat (Tally score athlete (Queue.singleton (message |> Announcement.create)))
-    in
-    ( newGame, newSeed )
-
-
-assessment : { score : PlayingScore, athlete : Athlete, seed : Random.Seed } -> ( Game, Random.Seed )
-assessment { score, athlete, seed } =
-    let
-        ( message, newSeed ) =
+        ( comparisonMsg, newSeed ) =
             case score of
                 ( pointsA, pointsB ) ->
                     if pointsA == pointsB then
                         Texts.tie
                             { points = pointsA
-                            , seed = seed
+                            , seed = seed1
                             }
 
                     else
@@ -459,11 +440,16 @@ assessment { score, athlete, seed } =
                                     AthleteB
                             , athleteA = "left"
                             , athleteB = "right"
-                            , seed = seed
+                            , seed = seed1
                             }
 
+        ( ann, anns ) =
+            ( tallyMsg |> Announcement.create
+            , [ comparisonMsg |> Announcement.create ]
+            )
+
         newGame =
-            Hotseat (Assessment score athlete (Queue.singleton (message |> Announcement.create)))
+            Hotseat (Assessment score athlete (Queue.fromList ann anns))
     in
     ( newGame, newSeed )
 
@@ -493,9 +479,6 @@ getQueue game =
                     Just queue
 
                 RoundEnd _ _ queue ->
-                    Just queue
-
-                Tally _ _ queue ->
                     Just queue
 
                 Assessment _ _ queue ->
@@ -550,9 +533,6 @@ checkAnnouncementDone seed words game =
 
                 RoundEnd score athlete queue ->
                     check queue (\newQueue -> Hotseat (RoundEnd score athlete newQueue))
-
-                Tally score athlete queue ->
-                    check queue (\newQueue -> Hotseat (Tally score athlete newQueue))
 
                 Assessment score athlete queue ->
                     check queue (\newQueue -> Hotseat (Assessment score athlete newQueue))
@@ -629,7 +609,7 @@ nextStatus seed words game =
                 RoundEnd score athlete queue ->
                     case score of
                         PlayingScore playingScore ->
-                            tally
+                            assessment
                                 { score = playingScore
                                 , athlete = athlete
                                 , seed = seed
@@ -638,14 +618,6 @@ nextStatus seed words game =
 
                         WinnerScore winner loserScore ->
                             ( game, seed, Nothing )
-
-                Tally score athlete queue ->
-                    assessment
-                        { score = score
-                        , athlete = athlete
-                        , seed = seed
-                        }
-                        |> addMessage (Queue.peek queue)
 
                 Assessment score athlete queue ->
                     startRound
