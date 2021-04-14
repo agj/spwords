@@ -1,7 +1,7 @@
 module Utils exposing (..)
 
 import Athlete exposing (..)
-import Element exposing (Color)
+import Element
 
 
 fraction : Float -> Int -> Int
