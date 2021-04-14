@@ -10,13 +10,16 @@ module Game exposing
 
 import Athlete exposing (..)
 import Constraints exposing (Constraints)
+import Doc.Format
 import Doc.Paragraph exposing (Paragraph)
+import Doc.Text
 import Random
 import Score exposing (PlayingScore, Points, Score(..))
 import Texts
 import Ticker.Active as Active exposing (Active)
 import Ticker.Announcement as Announcement exposing (Announcement)
 import Ticker.Message as Message exposing (Message)
+import Ticker.Queue as Queue exposing (Queue)
 import Utils
 import Words exposing (Words)
 
@@ -27,7 +30,7 @@ type Game
 
 
 type Turn
-    = GameStart Announcement
+    = GameStart Queue
     | Rules Announcement
     | RoundStart PlayingScore Athlete Constraints Announcement
     | Play PlayingScore Athlete String Constraints
@@ -44,11 +47,14 @@ startGame : Game
 startGame =
     Hotseat
         (GameStart
-            (Texts.gameStart
-                { athleteA = "left"
-                , athleteB = "right"
-                }
-                |> Announcement.create
+            (Queue.fromList
+                (Texts.gameStart
+                    { athleteA = "left"
+                    , athleteB = "right"
+                    }
+                    |> Announcement.create
+                )
+                [ Doc.Paragraph.create [ Doc.Text.create Doc.Format.empty "Test!" ] |> Announcement.create ]
             )
         )
 
@@ -58,8 +64,8 @@ getActive game =
     case game of
         Hotseat turn ->
             case turn of
-                GameStart ann ->
-                    Active.fromAnnouncement ann
+                GameStart queue ->
+                    Active.fromQueue queue
 
                 Rules ann ->
                     Active.fromAnnouncement ann
@@ -118,8 +124,8 @@ tick seed words game =
         case game of
             Hotseat turn ->
                 case turn of
-                    GameStart ann ->
-                        Hotseat (GameStart (ann |> Announcement.tick))
+                    GameStart queue ->
+                        Hotseat (GameStart (queue |> Queue.tick))
 
                     Rules ann ->
                         Hotseat (Rules (ann |> Announcement.tick))
@@ -172,6 +178,14 @@ skip seed words game =
 
                 PlayWrong _ _ _ _ ->
                     ignore
+
+                GameStart queue ->
+                    case Queue.pop queue of
+                        ( ann, Just newQueue ) ->
+                            ( Hotseat (GameStart newQueue), seed, Just (Announcement.toMessage ann) )
+
+                        ( _, Nothing ) ->
+                            nextStatus seed words game
 
                 _ ->
                     nextStatus seed words game
@@ -433,8 +447,8 @@ getAnnouncement game =
     case game of
         Hotseat turn ->
             case turn of
-                GameStart ann ->
-                    Just ann
+                GameStart queue ->
+                    Just (Queue.peek queue)
 
                 Rules ann ->
                     Just ann
@@ -475,13 +489,34 @@ checkAnnouncementDone seed words game =
     case getAnnouncement game of
         Just ann ->
             if Announcement.isFinished ann then
-                nextStatus seed words game
+                case advanceQueue game of
+                    Nothing ->
+                        nextStatus seed words game
+
+                    Just newGame ->
+                        ( newGame, seed, Just (Announcement.toMessage ann) )
 
             else
                 ( game, seed, Nothing )
 
         Nothing ->
             ( game, seed, Nothing )
+
+
+advanceQueue : Game -> Maybe Game
+advanceQueue game =
+    case game of
+        Hotseat (GameStart queue) ->
+            case Queue.pop queue of
+                ( _, Nothing ) ->
+                    Nothing
+
+                ( _, Just newQueue ) ->
+                    Hotseat (GameStart newQueue)
+                        |> Just
+
+        _ ->
+            Nothing
 
 
 nextStatus : Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
@@ -493,9 +528,9 @@ nextStatus seed words game =
     case game of
         Hotseat turn ->
             case turn of
-                GameStart ann ->
+                GameStart queue ->
                     ( showRules, seed )
-                        |> addMessage ann
+                        |> addMessage (Queue.peek queue)
 
                 Rules ann ->
                     startRound
