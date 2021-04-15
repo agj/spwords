@@ -10,6 +10,7 @@ module Game exposing
     )
 
 import Athlete exposing (..)
+import ComputerThought exposing (ComputerThought)
 import Constraints exposing (Constraints)
 import Doc.Format
 import Doc.Paragraph exposing (Paragraph)
@@ -29,6 +30,7 @@ type Game
     = GameStart GameMode Queue
     | RoundStart GameMode PlayingScore Athlete Constraints Queue
     | Play GameMode PlayingScore Athlete String Constraints
+    | ComputerPlay PlayingScore ComputerThought Constraints
     | PlayCorrect GameMode PlayingScore Athlete Constraints Queue
     | PlayWrong GameMode Score Athlete Constraints Queue
     | RoundEnd GameMode Score Athlete Queue
@@ -83,12 +85,18 @@ getActive game =
         Play _ _ athlete input _ ->
             Active.athleteInput athlete input
 
+        ComputerPlay _ thought _ ->
+            Active.athleteInput AthleteB (ComputerThought.getInput thought)
+
 
 getActiveAthlete : Game -> Maybe Athlete
 getActiveAthlete game =
     case game of
         Play _ _ athlete _ _ ->
             Just athlete
+
+        ComputerPlay _ _ _ ->
+            Just AthleteB
 
         _ ->
             Nothing
@@ -126,6 +134,9 @@ tick seed words game =
             Play _ _ _ _ _ ->
                 game
 
+            ComputerPlay score thought cnts ->
+                ComputerPlay score (ComputerThought.tick thought) cnts
+
 
 skip : Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
 skip seed words game =
@@ -140,14 +151,14 @@ skip seed words game =
             in
             if Announcement.isSkippable ann then
                 case newQueueM of
-                    Nothing ->
-                        nextStatus seed words game
-
                     Just newQueue ->
                         ( createGame newQueue
                         , seed
                         , Just (Announcement.toMessage ann)
                         )
+
+                    Nothing ->
+                        nextStatus seed words game
 
             else
                 ignore
@@ -174,11 +185,11 @@ skip seed words game =
         End mode athlete points queue ->
             check queue (\newQueue -> End mode athlete points newQueue)
 
-        Play HotseatMode _ _ _ _ ->
+        Play _ _ _ _ _ ->
             nextStatus seed words game
 
-        Play SingleMode _ _ _ _ ->
-            Debug.todo "Single mode not implemented yet."
+        ComputerPlay _ _ _ ->
+            ignore
 
 
 userInput : String -> Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
@@ -262,9 +273,19 @@ startRound { athlete, score, mode, seed } =
     )
 
 
-startPlay : { score : PlayingScore, athlete : Athlete, constraints : Constraints, mode : GameMode } -> Game
-startPlay { score, athlete, mode, constraints } =
-    Play mode score athlete "" constraints
+startPlay : { score : PlayingScore, athlete : Athlete, constraints : Constraints, words : Words, mode : GameMode } -> Game
+startPlay { score, athlete, mode, constraints, words } =
+    case mode of
+        HotseatMode ->
+            Play mode score athlete "" constraints
+
+        SingleMode ->
+            case athlete of
+                AthleteA ->
+                    Play mode score athlete "" constraints
+
+                AthleteB ->
+                    ComputerPlay score (ComputerThought.create words constraints) constraints
 
 
 athleteInput : { input : String, words : Words, score : PlayingScore, athlete : Athlete, constraints : Constraints, mode : GameMode, seed : Random.Seed } -> ( Game, Random.Seed )
@@ -461,10 +482,16 @@ getQueue game =
         Play _ _ _ _ _ ->
             Nothing
 
+        ComputerPlay _ _ _ ->
+            Nothing
+
 
 checkAnnouncementDone : Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
 checkAnnouncementDone seed words game =
     let
+        ignore =
+            ( game, seed, Nothing )
+
         check queue gameCreator =
             let
                 ( ann, poppedQueueM ) =
@@ -479,7 +506,7 @@ checkAnnouncementDone seed words game =
                         ( gameCreator newQueue, seed, Just (Announcement.toMessage ann) )
 
             else
-                ( game, seed, Nothing )
+                ignore
     in
     case game of
         GameStart mode queue ->
@@ -504,7 +531,14 @@ checkAnnouncementDone seed words game =
             check queue (\newQueue -> End mode athlete points newQueue)
 
         Play _ _ _ _ _ ->
-            ( game, seed, Nothing )
+            ignore
+
+        ComputerPlay _ thought _ ->
+            if ComputerThought.isFinished thought then
+                nextStatus seed words game
+
+            else
+                ignore
 
 
 nextStatus : Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
@@ -528,6 +562,7 @@ nextStatus seed words game =
                 { score = score
                 , athlete = athlete
                 , constraints = cnts
+                , words = words
                 , mode = mode
                 }
             , seed
@@ -535,26 +570,33 @@ nextStatus seed words game =
                 |> addMessage queue
 
         Play mode score athlete input cnts ->
-            case mode of
-                HotseatMode ->
-                    athleteInputDone
-                        { input = input
-                        , words = words
-                        , score = score
-                        , athlete = athlete
-                        , constraints = cnts
-                        , mode = mode
-                        , seed = seed
-                        }
+            athleteInputDone
+                { input = input
+                , words = words
+                , score = score
+                , athlete = athlete
+                , constraints = cnts
+                , mode = mode
+                , seed = seed
+                }
 
-                SingleMode ->
-                    Debug.todo "Single mode not implemented."
+        ComputerPlay score thought cnts ->
+            athleteInputDone
+                { input = ComputerThought.getInput thought
+                , words = words
+                , score = score
+                , athlete = AthleteB
+                , constraints = cnts
+                , mode = SingleMode
+                , seed = seed
+                }
 
         PlayCorrect mode score athlete cnts queue ->
             ( startPlay
                 { score = score
                 , athlete = Utils.oppositeAthlete athlete
                 , constraints = cnts
+                , words = words
                 , mode = mode
                 }
             , seed
