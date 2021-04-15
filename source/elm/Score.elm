@@ -18,6 +18,11 @@ type Points
     | Two
 
 
+winPoints : Int
+winPoints =
+    3
+
+
 emptyPlayingScore : PlayingScore
 emptyPlayingScore =
     ( Love, Love )

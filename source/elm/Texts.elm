@@ -254,7 +254,7 @@ gameEnd { winner, athleteA, athleteB, loserPoints } =
             Dict.fromList <|
                 [ ( "winner", winnerName )
                 , ( "loser", loserName )
-                , ( "winnerPoints", "3" )
+                , ( "winnerPoints", Score.winPoints |> String.fromInt )
                 , ( "loserPoints", loserPoints |> Score.intFromPoints |> String.fromInt )
                 ]
     in
