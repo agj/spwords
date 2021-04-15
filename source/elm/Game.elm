@@ -273,19 +273,29 @@ startRound { athlete, score, mode, seed } =
     )
 
 
-startPlay : { score : PlayingScore, athlete : Athlete, constraints : Constraints, words : Words, mode : GameMode } -> Game
-startPlay { score, athlete, mode, constraints, words } =
+startPlay : { score : PlayingScore, athlete : Athlete, constraints : Constraints, words : Words, mode : GameMode, seed : Random.Seed } -> ( Game, Random.Seed )
+startPlay { score, athlete, mode, constraints, words, seed } =
     case mode of
         HotseatMode ->
-            Play mode score athlete "" constraints
+            ( Play mode score athlete "" constraints
+            , seed
+            )
 
         SingleMode ->
             case athlete of
                 AthleteA ->
-                    Play mode score athlete "" constraints
+                    ( Play mode score athlete "" constraints
+                    , seed
+                    )
 
                 AthleteB ->
-                    ComputerPlay score (ComputerThought.create words constraints) constraints
+                    let
+                        ( thought, newSeed ) =
+                            ComputerThought.create words constraints seed
+                    in
+                    ( ComputerPlay score thought constraints
+                    , newSeed
+                    )
 
 
 athleteInput : { input : String, words : Words, score : PlayingScore, athlete : Athlete, constraints : Constraints, mode : GameMode, seed : Random.Seed } -> ( Game, Random.Seed )
@@ -527,15 +537,14 @@ nextStatus seed words game =
                 |> addMessage queue
 
         RoundStart mode score athlete cnts queue ->
-            ( startPlay
+            startPlay
                 { score = score
                 , athlete = athlete
                 , constraints = cnts
                 , words = words
                 , mode = mode
+                , seed = seed
                 }
-            , seed
-            )
                 |> addMessage queue
 
         Play mode score athlete input cnts ->
@@ -561,15 +570,14 @@ nextStatus seed words game =
                 }
 
         PlayCorrect mode score athlete cnts queue ->
-            ( startPlay
+            startPlay
                 { score = score
                 , athlete = Utils.oppositeAthlete athlete
                 , constraints = cnts
                 , words = words
                 , mode = mode
+                , seed = seed
                 }
-            , seed
-            )
                 |> addMessage queue
 
         PlayWrong mode score athlete _ queue ->
