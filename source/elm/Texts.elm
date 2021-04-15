@@ -443,24 +443,6 @@ randomString seed strings =
         |> Tuple.mapFirst (Maybe.withDefault "")
 
 
-randomItem : Random.Seed -> List a -> ( Maybe a, Random.Seed )
-randomItem seed list =
-    Random.step (itemGenerator list) seed
-
-
-itemGenerator : List a -> Random.Generator (Maybe a)
-itemGenerator list =
-    Random.int 0 (List.length list - 1)
-        |> Random.map (indexToItem list)
-
-
-indexToItem : List a -> Int -> Maybe a
-indexToItem list index =
-    list
-        |> List.drop index
-        |> List.head
-
-
 type alias MistakeArguments =
     { initial : Char
     , incorporates : Maybe Char

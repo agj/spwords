@@ -2,6 +2,7 @@ module Utils exposing (..)
 
 import Athlete exposing (..)
 import Element
+import Random
 
 
 fraction : Float -> Int -> Int
@@ -80,3 +81,25 @@ oppositeAthlete athlete =
 
         AthleteB ->
             AthleteA
+
+
+
+-- RANDOM
+
+
+randomItem : Random.Seed -> List a -> ( Maybe a, Random.Seed )
+randomItem seed list =
+    Random.step (itemGenerator list) seed
+
+
+itemGenerator : List a -> Random.Generator (Maybe a)
+itemGenerator list =
+    Random.int 0 (List.length list - 1)
+        |> Random.map (indexToItem list)
+
+
+indexToItem : List a -> Int -> Maybe a
+indexToItem list index =
+    list
+        |> List.drop index
+        |> List.head

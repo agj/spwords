@@ -2,10 +2,12 @@ module Words exposing
     ( Words
     , candidate
     , exists
+    , get
     , parse
     )
 
-import Debug
+import Random
+import Utils
 
 
 type Words
@@ -41,3 +43,31 @@ candidate text (Words words) =
             String.length text
     in
     words |> List.any (\w -> String.left len w == text)
+
+
+get : Random.Seed -> Char -> Maybe Char -> Words -> ( String, Random.Seed )
+get seed initial incorporatesM (Words words) =
+    let
+        initialPredicate word =
+            case String.uncons word of
+                Just ( l, rest ) ->
+                    l == initial
+
+                Nothing ->
+                    False
+
+        incorporatesPredicate word =
+            case incorporatesM of
+                Nothing ->
+                    True
+
+                Just incorporates ->
+                    String.any ((==) incorporates) word
+
+        filteredWords =
+            words
+                |> List.filter initialPredicate
+                |> List.filter incorporatesPredicate
+    in
+    Utils.randomItem seed filteredWords
+        |> Tuple.mapFirst (Maybe.withDefault "?")

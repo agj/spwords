@@ -32,17 +32,20 @@ type alias NextLetter =
 create : Words -> Constraints -> Random.Seed -> ( ComputerThought, Random.Seed )
 create words cnts seed =
     let
-        word =
-            getWord words cnts
+        ( word, seed1 ) =
+            Words.get seed
+                (Constraints.getInitial cnts)
+                (Constraints.getIncorporates cnts)
+                words
 
-        ( seed1, outSeed ) =
-            Random.step Random.independentSeed seed
+        ( seed2, outSeed ) =
+            Random.step Random.independentSeed seed1
 
         ( nextLetter, newSeed ) =
-            getNextLetter word 0 seed1
+            getNextLetter word 0 seed2
     in
     ( ComputerThought
-        { word = "test"
+        { word = word
         , input = ""
         , ticks = 0
         , nextLetter = nextLetter
@@ -77,11 +80,6 @@ getInput (ComputerThought ct) =
 
 
 -- INTERNAL
-
-
-getWord : Words -> Constraints -> String
-getWord words cnts =
-    "test"
 
 
 getNextLetter : String -> Int -> Random.Seed -> ( NextLetter, Random.Seed )
