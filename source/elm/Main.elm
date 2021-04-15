@@ -15,6 +15,7 @@ import Doc.Util
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
+import Element.Cursor as Cursor
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
@@ -315,6 +316,7 @@ ticker model =
                 , Background.color Palette.transparent
                 , Border.color Palette.transparent
                 , focused [ Border.glow Palette.transparent 0 ]
+                , Cursor.default
                 ]
                 { text = ""
                 , onChange = Inputted
@@ -349,6 +351,7 @@ ticker model =
                 [ centerY
                 , width fill
                 , above title
+                , Cursor.default
                 ]
                 [ el
                     [ clip
@@ -383,6 +386,8 @@ title =
     row
         [ Font.size Palette.textSizeLarge
         , alignRight
+        , Cursor.default
+        , moveDown (1.7 * toFloat Palette.textSizeLarge)
         ]
         [ "*SPWORDS* BY AGJ. HOTSEAT MODE. (PLAY SINGLE)."
             |> Doc.EmuDecode.fromEmu
