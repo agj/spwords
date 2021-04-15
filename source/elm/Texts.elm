@@ -2,6 +2,7 @@ module Texts exposing
     ( MistakeArguments
     , alphabet
     , alreadyPlayed
+    , gameEnd
     , gameStart
     , incorporatesWrong
     , initialWrong
@@ -29,7 +30,7 @@ import Doc.Format as Format exposing (Format)
 import Doc.Paragraph as Paragraph exposing (Paragraph)
 import Doc.Text as Text exposing (Text)
 import Random
-import Score exposing (Points)
+import Score exposing (Points, Score)
 import Utils exposing (..)
 
 
@@ -225,6 +226,40 @@ newRound : Random.Seed -> ( Paragraph, Random.Seed )
 newRound seed =
     comments.newRound
         |> emuRandomString seed identity Dict.empty
+
+
+gameEnd : { winner : Athlete, athleteA : String, athleteB : String, loserPoints : Points } -> Paragraph
+gameEnd { winner, athleteA, athleteB, loserPoints } =
+    let
+        setStyles txt =
+            case Text.content txt of
+                "winner" ->
+                    txt |> Text.mapFormat (Format.setAthlete (Just winner))
+
+                "loser" ->
+                    txt |> Text.mapFormat (Format.setAthlete (Just (oppositeAthlete winner)))
+
+                _ ->
+                    txt |> Text.mapFormat (Format.setBold True)
+
+        ( winnerName, loserName ) =
+            case winner of
+                AthleteA ->
+                    ( athleteA, athleteB )
+
+                AthleteB ->
+                    ( athleteB, athleteA )
+
+        vars =
+            Dict.fromList <|
+                [ ( "winner", winnerName )
+                , ( "loser", loserName )
+                , ( "winnerPoints", "3" )
+                , ( "loserPoints", loserPoints |> Score.intFromPoints |> String.fromInt )
+                ]
+    in
+    comments.gameEnd
+        |> emu setStyles vars
 
 
 

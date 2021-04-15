@@ -415,6 +415,21 @@ assessment { score, athlete, mode, seed } =
     ( newGame, newSeed )
 
 
+endGame : { winner : Athlete, loserPoints : Points, mode : GameMode } -> Game
+endGame { winner, loserPoints, mode } =
+    let
+        message =
+            Texts.gameEnd
+                { winner = winner
+                , loserPoints = loserPoints
+                , athleteA = "left"
+                , athleteB = "right"
+                }
+                |> Announcement.createUnskippable
+    in
+    End mode winner loserPoints (Queue.singleton message)
+
+
 
 -- OTHER
 
@@ -495,8 +510,8 @@ checkAnnouncementDone seed words game =
 nextStatus : Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
 nextStatus seed words game =
     let
-        addMessage ann ( g, s ) =
-            ( g, s, Just (Announcement.toMessage ann) )
+        addMessage queue ( g, s ) =
+            ( g, s, Just (queue |> Queue.peek |> Announcement.toMessage) )
     in
     case game of
         GameStart mode queue ->
@@ -506,7 +521,7 @@ nextStatus seed words game =
                 , mode = mode
                 , seed = seed
                 }
-                |> addMessage (Queue.peek queue)
+                |> addMessage queue
 
         RoundStart mode score athlete cnts queue ->
             ( startPlay
@@ -517,7 +532,7 @@ nextStatus seed words game =
                 }
             , seed
             )
-                |> addMessage (Queue.peek queue)
+                |> addMessage queue
 
         Play mode score athlete input cnts ->
             case mode of
@@ -544,7 +559,7 @@ nextStatus seed words game =
                 }
             , seed
             )
-                |> addMessage (Queue.peek queue)
+                |> addMessage queue
 
         PlayWrong mode score athlete _ queue ->
             endRound
@@ -553,7 +568,7 @@ nextStatus seed words game =
                 , mode = mode
                 , seed = seed
                 }
-                |> addMessage (Queue.peek queue)
+                |> addMessage queue
 
         RoundEnd mode score athlete queue ->
             case score of
@@ -564,10 +579,17 @@ nextStatus seed words game =
                         , mode = mode
                         , seed = seed
                         }
-                        |> addMessage (Queue.peek queue)
+                        |> addMessage queue
 
-                WinnerScore winner loserScore ->
-                    ( game, seed, Nothing )
+                WinnerScore winner loserPoints ->
+                    ( endGame
+                        { winner = winner
+                        , loserPoints = loserPoints
+                        , mode = mode
+                        }
+                    , seed
+                    )
+                        |> addMessage queue
 
         Assessment mode score athlete queue ->
             startRound
@@ -576,7 +598,7 @@ nextStatus seed words game =
                 , mode = mode
                 , seed = seed
                 }
-                |> addMessage (Queue.peek queue)
+                |> addMessage queue
 
         End mode winner loserPoints queue ->
             ( game, seed, Nothing )
