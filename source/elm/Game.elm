@@ -1,5 +1,6 @@
 module Game exposing
     ( Game
+    , GameMode(..)
     , getActive
     , getActiveAthlete
     , skip
@@ -29,6 +30,11 @@ type Game
     | Single Turn
 
 
+type GameMode
+    = HotseatMode
+    | SingleMode
+
+
 type Turn
     = GameStart Queue
     | RoundStart PlayingScore Athlete Constraints Queue
@@ -40,20 +46,25 @@ type Turn
     | End Athlete Points Queue
 
 
-startGame : Game
-startGame =
-    Hotseat
-        (GameStart
-            (Queue.fromList
-                (Texts.gameStart
-                    { athleteA = "left"
-                    , athleteB = "right"
-                    }
-                    |> Announcement.create
+startGame : GameMode -> Game
+startGame mode =
+    case mode of
+        HotseatMode ->
+            Hotseat
+                (GameStart
+                    (Queue.fromList
+                        (Texts.gameStart
+                            { athleteA = "left"
+                            , athleteB = "right"
+                            }
+                            |> Announcement.create
+                        )
+                        [ Texts.rules |> Announcement.create ]
+                    )
                 )
-                [ Texts.rules |> Announcement.create ]
-            )
-        )
+
+        SingleMode ->
+            Debug.todo "Single mode not implemented yet."
 
 
 getActive : Game -> Active

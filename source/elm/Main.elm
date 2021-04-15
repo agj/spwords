@@ -17,7 +17,7 @@ import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
-import Game exposing (Game)
+import Game exposing (Game, GameMode(..))
 import Html exposing (Html)
 import Http
 import Levers
@@ -232,7 +232,7 @@ pressedEnter : Model -> Model
 pressedEnter model =
     case model.status of
         Ready words passed ann ->
-            { model | status = Playing words (Passed.pushAnnouncement ann passed) Game.startGame }
+            { model | status = Playing words (Passed.pushAnnouncement ann passed) (Game.startGame HotseatMode) }
 
         Playing words passed game ->
             let
