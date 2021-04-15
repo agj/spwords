@@ -31,7 +31,6 @@ type Game
 
 type Turn
     = GameStart Queue
-    | Rules Queue
     | RoundStart PlayingScore Athlete Constraints Queue
     | Play PlayingScore Athlete String Constraints
     | PlayCorrect PlayingScore Athlete Constraints Queue
@@ -45,13 +44,14 @@ startGame : Game
 startGame =
     Hotseat
         (GameStart
-            (Queue.singleton
+            (Queue.fromList
                 (Texts.gameStart
                     { athleteA = "left"
                     , athleteB = "right"
                     }
                     |> Announcement.create
                 )
+                [ Texts.rules |> Announcement.create ]
             )
         )
 
@@ -62,9 +62,6 @@ getActive game =
         Hotseat turn ->
             case turn of
                 GameStart queue ->
-                    Active.fromQueue queue
-
-                Rules queue ->
                     Active.fromQueue queue
 
                 RoundStart _ _ _ queue ->
@@ -118,9 +115,6 @@ tick seed words game =
                     GameStart queue ->
                         Hotseat (GameStart (queue |> Queue.tick))
 
-                    Rules queue ->
-                        Hotseat (Rules (queue |> Queue.tick))
-
                     RoundStart score athlete cnts queue ->
                         Hotseat (RoundStart score athlete cnts (queue |> Queue.tick))
 
@@ -171,9 +165,6 @@ skip seed words game =
                         case turn of
                             GameStart queue ->
                                 check queue (\newQueue -> Hotseat (GameStart newQueue))
-
-                            Rules queue ->
-                                check queue (\newQueue -> Hotseat (Rules newQueue))
 
                             RoundStart score athlete cnts queue ->
                                 check queue (\newQueue -> Hotseat (RoundStart score athlete cnts newQueue))
@@ -251,11 +242,6 @@ userInput input seed words game =
 --------------- INTERNAL ---------------
 --
 -- GAME TURN GENERATION
-
-
-showRules : Game
-showRules =
-    Hotseat (Rules (Queue.singleton (Texts.rules |> Announcement.create)))
 
 
 startRound : { athlete : Athlete, score : PlayingScore, seed : Random.Seed } -> ( Game, Random.Seed )
@@ -455,9 +441,6 @@ getQueue game =
                 GameStart queue ->
                     Just queue
 
-                Rules queue ->
-                    Just queue
-
                 RoundStart _ _ _ queue ->
                     Just queue
 
@@ -508,9 +491,6 @@ checkAnnouncementDone seed words game =
                 GameStart queue ->
                     check queue (\newQueue -> Hotseat (GameStart newQueue))
 
-                Rules queue ->
-                    check queue (\newQueue -> Hotseat (Rules newQueue))
-
                 RoundStart score athlete cnts queue ->
                     check queue (\newQueue -> Hotseat (RoundStart score athlete cnts newQueue))
 
@@ -546,10 +526,6 @@ nextStatus seed words game =
         Hotseat turn ->
             case turn of
                 GameStart queue ->
-                    ( showRules, seed )
-                        |> addMessage (Queue.peek queue)
-
-                Rules queue ->
                     startRound
                         { score = Score.emptyPlayingScore
                         , athlete = AthleteB
