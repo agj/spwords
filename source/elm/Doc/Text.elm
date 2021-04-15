@@ -8,6 +8,7 @@ module Doc.Text exposing
     , mapContent
     , mapFormat
     , setContent
+    , setFormat
     )
 
 import Doc.Format as Format exposing (Format)

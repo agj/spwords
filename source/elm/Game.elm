@@ -455,37 +455,6 @@ endGame { winner, loserPoints, mode } =
 -- OTHER
 
 
-getQueue : Game -> Maybe Queue
-getQueue game =
-    case game of
-        GameStart _ queue ->
-            Just queue
-
-        RoundStart _ _ _ _ queue ->
-            Just queue
-
-        PlayCorrect _ _ _ _ queue ->
-            Just queue
-
-        PlayWrong _ _ _ _ queue ->
-            Just queue
-
-        RoundEnd _ _ _ queue ->
-            Just queue
-
-        Assessment _ _ _ queue ->
-            Just queue
-
-        End _ _ _ queue ->
-            Just queue
-
-        Play _ _ _ _ _ ->
-            Nothing
-
-        ComputerPlay _ _ _ ->
-            Nothing
-
-
 checkAnnouncementDone : Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
 checkAnnouncementDone seed words game =
     let
