@@ -223,6 +223,7 @@ userInput input seed words game =
                         , athlete = athlete
                         , constraints = cnts
                         , words = words
+                        , mode = HotseatMode
                         , seed = seed
                         }
 
@@ -255,8 +256,8 @@ userInput input seed words game =
 -- GAME TURN GENERATION
 
 
-startRound : { athlete : Athlete, score : PlayingScore, seed : Random.Seed } -> ( Game, Random.Seed )
-startRound { athlete, score, seed } =
+startRound : { athlete : Athlete, score : PlayingScore, mode : GameMode, seed : Random.Seed } -> ( Game, Random.Seed )
+startRound { athlete, score, mode, seed } =
     let
         ( initial, seed1 ) =
             randomLetter seed Texts.alphabet
@@ -290,13 +291,13 @@ startRound { athlete, score, seed } =
     )
 
 
-startPlay : { score : PlayingScore, athlete : Athlete, constraints : Constraints } -> Game
-startPlay { score, athlete, constraints } =
+startPlay : { score : PlayingScore, athlete : Athlete, constraints : Constraints, mode : GameMode } -> Game
+startPlay { score, athlete, mode, constraints } =
     Hotseat (Play score athlete "" constraints)
 
 
-athleteInput : { input : String, words : Words, score : PlayingScore, athlete : Athlete, constraints : Constraints, seed : Random.Seed } -> ( Game, Random.Seed )
-athleteInput { input, words, score, athlete, constraints, seed } =
+athleteInput : { input : String, words : Words, score : PlayingScore, athlete : Athlete, constraints : Constraints, mode : GameMode, seed : Random.Seed } -> ( Game, Random.Seed )
+athleteInput { input, words, score, athlete, constraints, mode, seed } =
     let
         playWrongWith messageFn =
             playWrong
@@ -304,6 +305,7 @@ athleteInput { input, words, score, athlete, constraints, seed } =
                 , score = score
                 , athlete = athlete
                 , constraints = constraints
+                , mode = HotseatMode
                 , seed = seed
                 }
     in
@@ -320,8 +322,8 @@ athleteInput { input, words, score, athlete, constraints, seed } =
             playWrongWith Texts.notAWord
 
 
-athleteInputDone : { input : String, words : Words, constraints : Constraints, score : PlayingScore, athlete : Athlete, seed : Random.Seed } -> ( Game, Random.Seed, Maybe Message )
-athleteInputDone { input, words, constraints, score, athlete, seed } =
+athleteInputDone : { input : String, words : Words, constraints : Constraints, score : PlayingScore, athlete : Athlete, mode : GameMode, seed : Random.Seed } -> ( Game, Random.Seed, Maybe Message )
+athleteInputDone { input, words, constraints, score, athlete, mode, seed } =
     let
         playWrongWith messageFn =
             playWrong
@@ -329,6 +331,7 @@ athleteInputDone { input, words, constraints, score, athlete, seed } =
                 , score = score
                 , athlete = athlete
                 , constraints = constraints
+                , mode = HotseatMode
                 , seed = seed
                 }
 
@@ -346,6 +349,7 @@ athleteInputDone { input, words, constraints, score, athlete, seed } =
                     { constraints = newCnts
                     , score = score
                     , athlete = athlete
+                    , mode = HotseatMode
                     , seed = seed
                     }
                     |> addMessage Message.CorrectAthleteInput
@@ -373,8 +377,8 @@ athleteInputDone { input, words, constraints, score, athlete, seed } =
         )
 
 
-endRound : { winner : Athlete, score : Score, seed : Random.Seed } -> ( Game, Random.Seed )
-endRound { winner, score, seed } =
+endRound : { winner : Athlete, score : Score, mode : GameMode, seed : Random.Seed } -> ( Game, Random.Seed )
+endRound { winner, score, mode, seed } =
     let
         ( message, newSeed ) =
             Texts.roundEnd
@@ -390,8 +394,8 @@ endRound { winner, score, seed } =
     ( newGame, newSeed )
 
 
-assessment : { score : PlayingScore, athlete : Athlete, seed : Random.Seed } -> ( Game, Random.Seed )
-assessment { score, athlete, seed } =
+assessment : { score : PlayingScore, athlete : Athlete, mode : GameMode, seed : Random.Seed } -> ( Game, Random.Seed )
+assessment { score, athlete, mode, seed } =
     let
         ( tallyMsg, seed1 ) =
             Texts.tally
@@ -540,6 +544,7 @@ nextStatus seed words game =
                     startRound
                         { score = Score.emptyPlayingScore
                         , athlete = AthleteB
+                        , mode = HotseatMode
                         , seed = seed
                         }
                         |> addMessage (Queue.peek queue)
@@ -549,6 +554,7 @@ nextStatus seed words game =
                         { score = score
                         , athlete = athlete
                         , constraints = cnts
+                        , mode = HotseatMode
                         }
                     , seed
                     )
@@ -561,6 +567,7 @@ nextStatus seed words game =
                         , score = score
                         , athlete = athlete
                         , constraints = cnts
+                        , mode = HotseatMode
                         , seed = seed
                         }
 
@@ -569,6 +576,7 @@ nextStatus seed words game =
                         { score = score
                         , athlete = Utils.oppositeAthlete athlete
                         , constraints = cnts
+                        , mode = HotseatMode
                         }
                     , seed
                     )
@@ -578,6 +586,7 @@ nextStatus seed words game =
                     endRound
                         { winner = Utils.oppositeAthlete athlete
                         , score = score
+                        , mode = HotseatMode
                         , seed = seed
                         }
                         |> addMessage (Queue.peek queue)
@@ -588,6 +597,7 @@ nextStatus seed words game =
                             assessment
                                 { score = playingScore
                                 , athlete = athlete
+                                , mode = HotseatMode
                                 , seed = seed
                                 }
                                 |> addMessage (Queue.peek queue)
@@ -599,6 +609,7 @@ nextStatus seed words game =
                     startRound
                         { score = score
                         , athlete = Utils.oppositeAthlete athlete
+                        , mode = HotseatMode
                         , seed = seed
                         }
                         |> addMessage (Queue.peek queue)
@@ -610,8 +621,8 @@ nextStatus seed words game =
             Debug.todo "Single mode not implemented."
 
 
-playCorrect : { constraints : Constraints, score : PlayingScore, athlete : Athlete, seed : Random.Seed } -> ( Game, Random.Seed )
-playCorrect { constraints, score, athlete, seed } =
+playCorrect : { constraints : Constraints, score : PlayingScore, athlete : Athlete, mode : GameMode, seed : Random.Seed } -> ( Game, Random.Seed )
+playCorrect { constraints, score, athlete, mode, seed } =
     let
         newCnts =
             Constraints.rally
@@ -637,8 +648,8 @@ playCorrect { constraints, score, athlete, seed } =
     ( newGame, newSeed )
 
 
-playWrong : { messageFn : Texts.MistakeArguments -> ( Paragraph, Random.Seed ), score : PlayingScore, athlete : Athlete, constraints : Constraints, seed : Random.Seed } -> ( Game, Random.Seed )
-playWrong { messageFn, score, athlete, constraints, seed } =
+playWrong : { messageFn : Texts.MistakeArguments -> ( Paragraph, Random.Seed ), score : PlayingScore, mode : GameMode, athlete : Athlete, constraints : Constraints, seed : Random.Seed } -> ( Game, Random.Seed )
+playWrong { messageFn, score, athlete, constraints, mode, seed } =
     let
         newScore =
             Score.increaseScore (Utils.oppositeAthlete athlete) score
