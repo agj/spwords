@@ -15,7 +15,7 @@ import Doc.Paragraph exposing (Paragraph)
 import Doc.Text
 import Random
 import Score exposing (PlayingScore, Points, Score(..))
-import Texts
+import Texts exposing (newRound)
 import Ticker.Active as Active exposing (Active)
 import Ticker.Announcement as Announcement exposing (Announcement)
 import Ticker.Message as Message exposing (Message)
@@ -264,45 +264,29 @@ startRound { athlete, score, seed } =
         ( initial, seed1 ) =
             randomLetter seed Texts.alphabet
 
-        ( ann, anns, newSeed ) =
-            let
-                ( startMsg, seed2 ) =
-                    Texts.roundStart
-                        { turnAthlete = athlete
-                        , seed = seed1
-                        , turn =
-                            case athlete of
-                                AthleteA ->
-                                    "left"
+        ( roundStartMsg, newSeed ) =
+            Texts.roundStart
+                { turnAthlete = athlete
+                , seed = seed1
+                , turn =
+                    case athlete of
+                        AthleteA ->
+                            "left"
 
-                                AthleteB ->
-                                    "right"
-                        , initial = initial
-                        }
-            in
-            case score of
-                ( Score.Love, Score.Love ) ->
-                    ( startMsg |> Announcement.createUnskippable
-                    , []
-                    , seed2
-                    )
+                        AthleteB ->
+                            "right"
+                , initial = initial
+                }
 
-                _ ->
-                    let
-                        ( endPreviousMsg, seed3 ) =
-                            Texts.newRound seed2
-                    in
-                    ( endPreviousMsg |> Announcement.create
-                    , [ startMsg |> Announcement.createUnskippable ]
-                    , seed3
-                    )
+        ann =
+            roundStartMsg |> Announcement.createUnskippable
 
         newGame =
             RoundStart
                 score
                 athlete
                 (Constraints.serve initial)
-                (Queue.fromList ann anns)
+                (Queue.singleton ann)
     in
     ( Hotseat newGame
     , newSeed
@@ -421,7 +405,7 @@ assessment { score, athlete, seed } =
                 , seed = seed
                 }
 
-        ( comparisonMsg, newSeed ) =
+        ( comparisonMsg, seed2 ) =
             case score of
                 ( pointsA, pointsB ) ->
                     if pointsA == pointsB then
@@ -443,9 +427,14 @@ assessment { score, athlete, seed } =
                             , seed = seed1
                             }
 
+        ( newRoundMsg, newSeed ) =
+            Texts.newRound seed2
+
         ( ann, anns ) =
             ( tallyMsg |> Announcement.create
-            , [ comparisonMsg |> Announcement.create ]
+            , [ comparisonMsg |> Announcement.create
+              , newRoundMsg |> Announcement.create
+              ]
             )
 
         newGame =
