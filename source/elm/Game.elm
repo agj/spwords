@@ -195,37 +195,37 @@ skip seed words game =
 userInput : String -> Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
 userInput input seed words game =
     case game of
-        Play HotseatMode score athlete previousInput cnts ->
+        Play mode score athlete previousInput cnts ->
             let
                 newInput =
                     previousInput ++ input
 
-                ( newGame, newSeed ) =
-                    athleteInput
-                        { input = newInput
-                        , score = score
-                        , athlete = athlete
-                        , constraints = cnts
-                        , words = words
-                        , mode = HotseatMode
-                        , seed = seed
-                        }
-
-                message =
-                    case newGame of
-                        PlayCorrect _ _ _ _ _ ->
-                            Just (Message.CorrectAthleteInput athlete newInput)
-
-                        PlayWrong _ _ _ _ _ ->
-                            Just (Message.WrongAthleteInput athlete newInput)
-
-                        _ ->
-                            Nothing
+                playWrongWith messageFn =
+                    let
+                        ( g, s ) =
+                            playWrong
+                                { messageFn = messageFn
+                                , score = score
+                                , athlete = athlete
+                                , constraints = cnts
+                                , mode = mode
+                                , seed = seed
+                                }
+                    in
+                    ( g, s, Just (Message.WrongAthleteInput athlete newInput) )
             in
-            ( newGame, newSeed, message )
+            case Constraints.checkCandidate newInput cnts words of
+                Constraints.CandidateCorrect ->
+                    ( Play mode score athlete newInput cnts
+                    , seed
+                    , Nothing
+                    )
 
-        Play SingleMode _ _ _ _ ->
-            Debug.todo "Single mode not implemented."
+                Constraints.CandidateInitialWrong ->
+                    playWrongWith Texts.initialWrong
+
+                Constraints.CandidateNotAWord ->
+                    playWrongWith Texts.notAWord
 
         _ ->
             ( game, seed, Nothing )
@@ -298,32 +298,6 @@ startPlay { score, athlete, mode, constraints, words, seed } =
                     )
 
 
-athleteInput : { input : String, words : Words, score : PlayingScore, athlete : Athlete, constraints : Constraints, mode : GameMode, seed : Random.Seed } -> ( Game, Random.Seed )
-athleteInput { input, words, score, athlete, constraints, mode, seed } =
-    let
-        playWrongWith messageFn =
-            playWrong
-                { messageFn = messageFn
-                , score = score
-                , athlete = athlete
-                , constraints = constraints
-                , mode = mode
-                , seed = seed
-                }
-    in
-    case Constraints.checkCandidate input constraints words of
-        Constraints.CandidateCorrect ->
-            ( Play mode score athlete input constraints
-            , seed
-            )
-
-        Constraints.CandidateInitialWrong ->
-            playWrongWith Texts.initialWrong
-
-        Constraints.CandidateNotAWord ->
-            playWrongWith Texts.notAWord
-
-
 checkComputerCandidate : Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
 checkComputerCandidate seed words game =
     let
@@ -368,19 +342,23 @@ athleteInputDone : { input : String, words : Words, constraints : Constraints, s
 athleteInputDone { input, words, constraints, score, athlete, mode, seed } =
     let
         playWrongWith messageFn =
-            playWrong
-                { messageFn = messageFn
-                , score = score
-                , athlete = athlete
-                , constraints = constraints
-                , mode = mode
-                , seed = seed
-                }
+            let
+                ( g, s ) =
+                    playWrong
+                        { messageFn = messageFn
+                        , score = score
+                        , athlete = athlete
+                        , constraints = constraints
+                        , mode = mode
+                        , seed = seed
+                        }
+            in
+            ( g, s, Just (Message.WrongAthleteInput athlete input) )
 
         addMessage messageConstructor ( g, s ) =
             ( g, s, Just (messageConstructor athlete input) )
     in
-    if String.length input > 0 || isComputerAthlete SingleMode AthleteB then
+    if String.length input > 0 || isComputerAthlete mode athlete then
         case Constraints.check input constraints words of
             Constraints.InputCorrect ->
                 let
@@ -398,19 +376,15 @@ athleteInputDone { input, words, constraints, score, athlete, mode, seed } =
 
             Constraints.InputInitialWrong ->
                 playWrongWith Texts.initialWrong
-                    |> addMessage Message.WrongAthleteInput
 
             Constraints.InputIncorporatesWrong ->
                 playWrongWith Texts.incorporatesWrong
-                    |> addMessage Message.WrongAthleteInput
 
             Constraints.InputAlreadyPlayed ->
                 playWrongWith Texts.alreadyPlayed
-                    |> addMessage Message.WrongAthleteInput
 
             Constraints.InputNotAWord ->
                 playWrongWith Texts.notAWord
-                    |> addMessage Message.WrongAthleteInput
 
     else
         ( Play mode score athlete input constraints
