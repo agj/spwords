@@ -108,7 +108,7 @@ getActiveAthlete game =
 
 tick : Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
 tick seed words game =
-    checkAnnouncementDone seed words <|
+    checkDone seed words <|
         case game of
             GameStart mode queue ->
                 GameStart mode (queue |> Queue.tick)
@@ -455,8 +455,8 @@ endGame { winner, loserPoints, mode } =
 -- OTHER
 
 
-checkAnnouncementDone : Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
-checkAnnouncementDone seed words game =
+checkDone : Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
+checkDone seed words game =
     let
         ignore =
             ( game, seed, Nothing )
