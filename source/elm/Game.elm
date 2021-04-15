@@ -131,11 +131,11 @@ tick seed words game =
             End mode athlete points queue ->
                 End mode athlete points (queue |> Queue.tick)
 
-            Play _ _ _ _ _ ->
-                game
-
             ComputerPlay score thought cnts ->
                 ComputerPlay score (ComputerThought.tick thought) cnts
+
+            Play _ _ _ _ _ ->
+                game
 
 
 skip : Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
@@ -324,6 +324,46 @@ athleteInput { input, words, score, athlete, constraints, mode, seed } =
             playWrongWith Texts.notAWord
 
 
+checkComputerCandidate : Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
+checkComputerCandidate seed words game =
+    let
+        ignore =
+            ( game, seed, Nothing )
+    in
+    case game of
+        ComputerPlay score thought cnts ->
+            let
+                input =
+                    ComputerThought.getInput thought
+
+                playWrongWith messageFn =
+                    let
+                        ( g, s ) =
+                            playWrong
+                                { messageFn = messageFn
+                                , score = score
+                                , athlete = AthleteB
+                                , constraints = cnts
+                                , mode = SingleMode
+                                , seed = seed
+                                }
+                    in
+                    ( g, s, Just (Message.WrongAthleteInput AthleteB input) )
+            in
+            case Constraints.checkCandidate input cnts words of
+                Constraints.CandidateCorrect ->
+                    ignore
+
+                Constraints.CandidateInitialWrong ->
+                    playWrongWith Texts.initialWrong
+
+                Constraints.CandidateNotAWord ->
+                    playWrongWith Texts.notAWord
+
+        _ ->
+            ignore
+
+
 athleteInputDone : { input : String, words : Words, constraints : Constraints, score : PlayingScore, athlete : Athlete, mode : GameMode, seed : Random.Seed } -> ( Game, Random.Seed, Maybe Message )
 athleteInputDone { input, words, constraints, score, athlete, mode, seed } =
     let
@@ -340,7 +380,7 @@ athleteInputDone { input, words, constraints, score, athlete, mode, seed } =
         addMessage messageConstructor ( g, s ) =
             ( g, s, Just (messageConstructor athlete input) )
     in
-    if String.length input > 0 then
+    if String.length input > 0 || isComputerAthlete SingleMode AthleteB then
         case Constraints.check input constraints words of
             Constraints.InputCorrect ->
                 let
@@ -509,15 +549,15 @@ checkDone seed words game =
         End mode athlete points queue ->
             check queue (\newQueue -> End mode athlete points newQueue)
 
-        Play _ _ _ _ _ ->
-            ignore
-
         ComputerPlay _ thought _ ->
             if ComputerThought.isFinished thought then
                 nextStatus seed words game
 
             else
-                ignore
+                checkComputerCandidate seed words game
+
+        Play _ _ _ _ _ ->
+            ignore
 
 
 nextStatus : Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
@@ -688,3 +728,8 @@ indexToLetter : String -> Int -> Char
 indexToLetter alpha n =
     Utils.stringCharAt n alpha
         |> Maybe.withDefault '?'
+
+
+isComputerAthlete : GameMode -> Athlete -> Bool
+isComputerAthlete mode athlete =
+    mode == SingleMode && athlete == AthleteB
