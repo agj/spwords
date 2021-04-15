@@ -91,7 +91,7 @@ getNextLetter word index seed =
 
         ( ticks, newSeed ) =
             if index == 0 then
-                Random.step startLetterDelayGenerator seed
+                Random.step initialDelayGenerator seed
 
             else
                 Random.step letterDelayGenerator seed
@@ -123,5 +123,5 @@ letterDelayGenerator =
     Random.int Levers.computerLetterDelay.min Levers.computerLetterDelay.max
 
 
-startLetterDelayGenerator =
+initialDelayGenerator =
     Random.int Levers.computerWordDelay.min Levers.computerWordDelay.max
