@@ -26,8 +26,14 @@ import Words exposing (Words)
 
 
 type Game
-    = Hotseat Turn
-    | Single Turn
+    = GameStart GameMode Queue
+    | RoundStart GameMode PlayingScore Athlete Constraints Queue
+    | Play GameMode PlayingScore Athlete String Constraints
+    | PlayCorrect GameMode PlayingScore Athlete Constraints Queue
+    | PlayWrong GameMode Score Athlete Constraints Queue
+    | RoundEnd GameMode Score Athlete Queue
+    | Assessment GameMode PlayingScore Athlete Queue
+    | End GameMode Athlete Points Queue
 
 
 type GameMode
@@ -35,82 +41,57 @@ type GameMode
     | SingleMode
 
 
-type Turn
-    = GameStart Queue
-    | RoundStart PlayingScore Athlete Constraints Queue
-    | Play PlayingScore Athlete String Constraints
-    | PlayCorrect PlayingScore Athlete Constraints Queue
-    | PlayWrong Score Athlete Constraints Queue
-    | RoundEnd Score Athlete Queue
-    | Assessment PlayingScore Athlete Queue
-    | End Athlete Points Queue
-
-
 startGame : GameMode -> Game
 startGame mode =
-    case mode of
-        HotseatMode ->
-            Hotseat
-                (GameStart
-                    (Queue.fromList
-                        (Texts.gameStart
-                            { athleteA = "left"
-                            , athleteB = "right"
-                            }
-                            |> Announcement.create
-                        )
-                        [ Texts.rules |> Announcement.create ]
-                    )
-                )
-
-        SingleMode ->
-            Debug.todo "Single mode not implemented yet."
+    GameStart
+        mode
+        (Queue.fromList
+            (Texts.gameStart
+                { athleteA = "left"
+                , athleteB = "right"
+                }
+                |> Announcement.create
+            )
+            [ Texts.rules |> Announcement.create ]
+        )
 
 
 getActive : Game -> Active
 getActive game =
     case game of
-        Hotseat turn ->
-            case turn of
-                GameStart queue ->
-                    Active.fromQueue queue
+        GameStart _ queue ->
+            Active.fromQueue queue
 
-                RoundStart _ _ _ queue ->
-                    Active.fromQueue queue
+        RoundStart _ _ _ _ queue ->
+            Active.fromQueue queue
 
-                PlayCorrect _ _ _ queue ->
-                    Active.fromQueue queue
+        PlayCorrect _ _ _ _ queue ->
+            Active.fromQueue queue
 
-                PlayWrong _ _ _ queue ->
-                    Active.fromQueue queue
+        PlayWrong _ _ _ _ queue ->
+            Active.fromQueue queue
 
-                RoundEnd _ _ queue ->
-                    Active.fromQueue queue
+        RoundEnd _ _ _ queue ->
+            Active.fromQueue queue
 
-                Assessment _ _ queue ->
-                    Active.fromQueue queue
+        Assessment _ _ _ queue ->
+            Active.fromQueue queue
 
-                End _ _ queue ->
-                    Active.fromQueue queue
+        End _ _ _ queue ->
+            Active.fromQueue queue
 
-                Play _ athlete input _ ->
-                    Active.athleteInput athlete input
-
-        Single turn ->
-            Debug.todo "Single mode not implemented."
+        Play _ _ athlete input _ ->
+            Active.athleteInput athlete input
 
 
 getActiveAthlete : Game -> Maybe Athlete
 getActiveAthlete game =
     case game of
-        Hotseat (Play _ athlete _ _) ->
+        Play _ _ athlete _ _ ->
             Just athlete
 
-        Hotseat _ ->
+        _ ->
             Nothing
-
-        Single _ ->
-            Debug.todo "Single mode not implemented"
 
 
 
@@ -121,34 +102,29 @@ tick : Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
 tick seed words game =
     checkAnnouncementDone seed words <|
         case game of
-            Hotseat turn ->
-                case turn of
-                    GameStart queue ->
-                        Hotseat (GameStart (queue |> Queue.tick))
+            GameStart mode queue ->
+                GameStart mode (queue |> Queue.tick)
 
-                    RoundStart score athlete cnts queue ->
-                        Hotseat (RoundStart score athlete cnts (queue |> Queue.tick))
+            RoundStart mode score athlete cnts queue ->
+                RoundStart mode score athlete cnts (queue |> Queue.tick)
 
-                    PlayCorrect score athlete cnts queue ->
-                        Hotseat (PlayCorrect score athlete cnts (queue |> Queue.tick))
+            PlayCorrect mode score athlete cnts queue ->
+                PlayCorrect mode score athlete cnts (queue |> Queue.tick)
 
-                    PlayWrong score athlete cnts queue ->
-                        Hotseat (PlayWrong score athlete cnts (queue |> Queue.tick))
+            PlayWrong mode score athlete cnts queue ->
+                PlayWrong mode score athlete cnts (queue |> Queue.tick)
 
-                    RoundEnd score athlete queue ->
-                        Hotseat (RoundEnd score athlete (queue |> Queue.tick))
+            RoundEnd mode score athlete queue ->
+                RoundEnd mode score athlete (queue |> Queue.tick)
 
-                    Assessment score athlete queue ->
-                        Hotseat (Assessment score athlete (queue |> Queue.tick))
+            Assessment mode score athlete queue ->
+                Assessment mode score athlete (queue |> Queue.tick)
 
-                    End athlete points queue ->
-                        Hotseat (End athlete points (queue |> Queue.tick))
+            End mode athlete points queue ->
+                End mode athlete points (queue |> Queue.tick)
 
-                    Play _ _ _ _ ->
-                        game
-
-            Single turn ->
-                Debug.todo "Single mode not implemented."
+            Play _ _ _ _ _ ->
+                game
 
 
 skip : Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
@@ -157,61 +133,58 @@ skip seed words game =
         ignore =
             ( game, seed, Nothing )
 
-        check queue gameCreator =
-            case Queue.pop queue of
-                ( _, Nothing ) ->
-                    nextStatus seed words game
+        check queue createGame =
+            let
+                ( ann, newQueueM ) =
+                    Queue.pop queue
+            in
+            if Announcement.isSkippable ann then
+                case newQueueM of
+                    Nothing ->
+                        nextStatus seed words game
 
-                ( ann, Just newQueue ) ->
-                    ( gameCreator newQueue
-                    , seed
-                    , Just (Announcement.toMessage ann)
-                    )
-    in
-    case getQueue game of
-        Just q ->
-            if Queue.peek q |> Announcement.isSkippable then
-                case game of
-                    Hotseat turn ->
-                        case turn of
-                            GameStart queue ->
-                                check queue (\newQueue -> Hotseat (GameStart newQueue))
-
-                            RoundStart score athlete cnts queue ->
-                                check queue (\newQueue -> Hotseat (RoundStart score athlete cnts newQueue))
-
-                            PlayCorrect score athlete cnts queue ->
-                                check queue (\newQueue -> Hotseat (PlayCorrect score athlete cnts newQueue))
-
-                            PlayWrong score athlete cnts queue ->
-                                check queue (\newQueue -> Hotseat (PlayWrong score athlete cnts newQueue))
-
-                            RoundEnd score athlete queue ->
-                                check queue (\newQueue -> Hotseat (RoundEnd score athlete newQueue))
-
-                            Assessment score athlete queue ->
-                                check queue (\newQueue -> Hotseat (Assessment score athlete newQueue))
-
-                            End athlete points queue ->
-                                check queue (\newQueue -> Hotseat (End athlete points newQueue))
-
-                            Play _ _ _ _ ->
-                                nextStatus seed words game
-
-                    Single turn ->
-                        Debug.todo "Single mode not implemented."
+                    Just newQueue ->
+                        ( createGame newQueue
+                        , seed
+                        , Just (Announcement.toMessage ann)
+                        )
 
             else
                 ignore
+    in
+    case game of
+        GameStart mode queue ->
+            check queue (\newQueue -> GameStart mode newQueue)
 
-        Nothing ->
+        RoundStart mode score athlete cnts queue ->
+            check queue (\newQueue -> RoundStart mode score athlete cnts newQueue)
+
+        PlayCorrect mode score athlete cnts queue ->
+            check queue (\newQueue -> PlayCorrect mode score athlete cnts newQueue)
+
+        PlayWrong mode score athlete cnts queue ->
+            check queue (\newQueue -> PlayWrong mode score athlete cnts newQueue)
+
+        RoundEnd mode score athlete queue ->
+            check queue (\newQueue -> RoundEnd mode score athlete newQueue)
+
+        Assessment mode score athlete queue ->
+            check queue (\newQueue -> Assessment mode score athlete newQueue)
+
+        End mode athlete points queue ->
+            check queue (\newQueue -> End mode athlete points newQueue)
+
+        Play HotseatMode _ _ _ _ ->
             nextStatus seed words game
+
+        Play SingleMode _ _ _ _ ->
+            Debug.todo "Single mode not implemented yet."
 
 
 userInput : String -> Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
 userInput input seed words game =
     case game of
-        Hotseat (Play score athlete previousInput cnts) ->
+        Play HotseatMode score athlete previousInput cnts ->
             let
                 newInput =
                     previousInput ++ input
@@ -229,25 +202,22 @@ userInput input seed words game =
 
                 message =
                     case newGame of
-                        Hotseat (PlayCorrect _ _ _ _) ->
+                        PlayCorrect _ _ _ _ _ ->
                             Just (Message.CorrectAthleteInput athlete newInput)
 
-                        Hotseat (PlayWrong _ _ _ _) ->
+                        PlayWrong _ _ _ _ _ ->
                             Just (Message.WrongAthleteInput athlete newInput)
-
-                        Single _ ->
-                            Debug.todo "Single mode not implemented."
 
                         _ ->
                             Nothing
             in
             ( newGame, newSeed, message )
 
-        Hotseat _ ->
-            ( game, seed, Nothing )
-
-        Single _ ->
+        Play SingleMode _ _ _ _ ->
             Debug.todo "Single mode not implemented."
+
+        _ ->
+            ( game, seed, Nothing )
 
 
 
@@ -281,19 +251,20 @@ startRound { athlete, score, mode, seed } =
 
         newGame =
             RoundStart
+                mode
                 score
                 athlete
                 (Constraints.serve initial)
                 (Queue.singleton ann)
     in
-    ( Hotseat newGame
+    ( newGame
     , newSeed
     )
 
 
 startPlay : { score : PlayingScore, athlete : Athlete, constraints : Constraints, mode : GameMode } -> Game
 startPlay { score, athlete, mode, constraints } =
-    Hotseat (Play score athlete "" constraints)
+    Play mode score athlete "" constraints
 
 
 athleteInput : { input : String, words : Words, score : PlayingScore, athlete : Athlete, constraints : Constraints, mode : GameMode, seed : Random.Seed } -> ( Game, Random.Seed )
@@ -305,13 +276,13 @@ athleteInput { input, words, score, athlete, constraints, mode, seed } =
                 , score = score
                 , athlete = athlete
                 , constraints = constraints
-                , mode = HotseatMode
+                , mode = mode
                 , seed = seed
                 }
     in
     case Constraints.checkCandidate input constraints words of
         Constraints.CandidateCorrect ->
-            ( Hotseat (Play score athlete input constraints)
+            ( Play mode score athlete input constraints
             , seed
             )
 
@@ -331,7 +302,7 @@ athleteInputDone { input, words, constraints, score, athlete, mode, seed } =
                 , score = score
                 , athlete = athlete
                 , constraints = constraints
-                , mode = HotseatMode
+                , mode = mode
                 , seed = seed
                 }
 
@@ -349,7 +320,7 @@ athleteInputDone { input, words, constraints, score, athlete, mode, seed } =
                     { constraints = newCnts
                     , score = score
                     , athlete = athlete
-                    , mode = HotseatMode
+                    , mode = mode
                     , seed = seed
                     }
                     |> addMessage Message.CorrectAthleteInput
@@ -371,7 +342,7 @@ athleteInputDone { input, words, constraints, score, athlete, mode, seed } =
                     |> addMessage Message.WrongAthleteInput
 
     else
-        ( Hotseat (Play score athlete input constraints)
+        ( Play mode score athlete input constraints
         , seed
         , Nothing
         )
@@ -389,7 +360,7 @@ endRound { winner, score, mode, seed } =
                 }
 
         newGame =
-            Hotseat (RoundEnd score winner (Queue.singleton (message |> Announcement.create)))
+            RoundEnd mode score winner (Queue.singleton (message |> Announcement.create))
     in
     ( newGame, newSeed )
 
@@ -439,7 +410,7 @@ assessment { score, athlete, mode, seed } =
             )
 
         newGame =
-            Hotseat (Assessment score athlete (Queue.fromList ann anns))
+            Assessment mode score athlete (Queue.fromList ann anns)
     in
     ( newGame, newSeed )
 
@@ -451,34 +422,29 @@ assessment { score, athlete, mode, seed } =
 getQueue : Game -> Maybe Queue
 getQueue game =
     case game of
-        Hotseat turn ->
-            case turn of
-                GameStart queue ->
-                    Just queue
+        GameStart _ queue ->
+            Just queue
 
-                RoundStart _ _ _ queue ->
-                    Just queue
+        RoundStart _ _ _ _ queue ->
+            Just queue
 
-                PlayCorrect _ _ _ queue ->
-                    Just queue
+        PlayCorrect _ _ _ _ queue ->
+            Just queue
 
-                PlayWrong _ _ _ queue ->
-                    Just queue
+        PlayWrong _ _ _ _ queue ->
+            Just queue
 
-                RoundEnd _ _ queue ->
-                    Just queue
+        RoundEnd _ _ _ queue ->
+            Just queue
 
-                Assessment _ _ queue ->
-                    Just queue
+        Assessment _ _ _ queue ->
+            Just queue
 
-                End _ _ queue ->
-                    Just queue
+        End _ _ _ queue ->
+            Just queue
 
-                Play _ _ _ _ ->
-                    Nothing
-
-        Single turn ->
-            Debug.todo "Single mode not implemented."
+        Play _ _ _ _ _ ->
+            Nothing
 
 
 checkAnnouncementDone : Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
@@ -501,34 +467,29 @@ checkAnnouncementDone seed words game =
                 ( game, seed, Nothing )
     in
     case game of
-        Hotseat turn ->
-            case turn of
-                GameStart queue ->
-                    check queue (\newQueue -> Hotseat (GameStart newQueue))
+        GameStart mode queue ->
+            check queue (\newQueue -> GameStart mode newQueue)
 
-                RoundStart score athlete cnts queue ->
-                    check queue (\newQueue -> Hotseat (RoundStart score athlete cnts newQueue))
+        RoundStart mode score athlete cnts queue ->
+            check queue (\newQueue -> RoundStart mode score athlete cnts newQueue)
 
-                PlayCorrect score athlete cnts queue ->
-                    check queue (\newQueue -> Hotseat (PlayCorrect score athlete cnts newQueue))
+        PlayCorrect mode score athlete cnts queue ->
+            check queue (\newQueue -> PlayCorrect mode score athlete cnts newQueue)
 
-                PlayWrong score athlete cnts queue ->
-                    check queue (\newQueue -> Hotseat (PlayWrong score athlete cnts newQueue))
+        PlayWrong mode score athlete cnts queue ->
+            check queue (\newQueue -> PlayWrong mode score athlete cnts newQueue)
 
-                RoundEnd score athlete queue ->
-                    check queue (\newQueue -> Hotseat (RoundEnd score athlete newQueue))
+        RoundEnd mode score athlete queue ->
+            check queue (\newQueue -> RoundEnd mode score athlete newQueue)
 
-                Assessment score athlete queue ->
-                    check queue (\newQueue -> Hotseat (Assessment score athlete newQueue))
+        Assessment mode score athlete queue ->
+            check queue (\newQueue -> Assessment mode score athlete newQueue)
 
-                End athlete points queue ->
-                    check queue (\newQueue -> Hotseat (End athlete points newQueue))
+        End mode athlete points queue ->
+            check queue (\newQueue -> End mode athlete points newQueue)
 
-                Play _ _ _ _ ->
-                    ( game, seed, Nothing )
-
-        Single _ ->
-            Debug.todo "Single mode not implemented yet."
+        Play _ _ _ _ _ ->
+            ( game, seed, Nothing )
 
 
 nextStatus : Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
@@ -538,87 +499,87 @@ nextStatus seed words game =
             ( g, s, Just (Announcement.toMessage ann) )
     in
     case game of
-        Hotseat turn ->
-            case turn of
-                GameStart queue ->
-                    startRound
-                        { score = Score.emptyPlayingScore
-                        , athlete = AthleteB
-                        , mode = HotseatMode
-                        , seed = seed
-                        }
-                        |> addMessage (Queue.peek queue)
+        GameStart mode queue ->
+            startRound
+                { score = Score.emptyPlayingScore
+                , athlete = AthleteB
+                , mode = mode
+                , seed = seed
+                }
+                |> addMessage (Queue.peek queue)
 
-                RoundStart score athlete cnts queue ->
-                    ( startPlay
-                        { score = score
-                        , athlete = athlete
-                        , constraints = cnts
-                        , mode = HotseatMode
-                        }
-                    , seed
-                    )
-                        |> addMessage (Queue.peek queue)
+        RoundStart mode score athlete cnts queue ->
+            ( startPlay
+                { score = score
+                , athlete = athlete
+                , constraints = cnts
+                , mode = mode
+                }
+            , seed
+            )
+                |> addMessage (Queue.peek queue)
 
-                Play score athlete input cnts ->
+        Play mode score athlete input cnts ->
+            case mode of
+                HotseatMode ->
                     athleteInputDone
                         { input = input
                         , words = words
                         , score = score
                         , athlete = athlete
                         , constraints = cnts
-                        , mode = HotseatMode
+                        , mode = mode
                         , seed = seed
                         }
 
-                PlayCorrect score athlete cnts queue ->
-                    ( startPlay
-                        { score = score
-                        , athlete = Utils.oppositeAthlete athlete
-                        , constraints = cnts
-                        , mode = HotseatMode
-                        }
-                    , seed
-                    )
-                        |> addMessage (Queue.peek queue)
+                SingleMode ->
+                    Debug.todo "Single mode not implemented."
 
-                PlayWrong score athlete _ queue ->
-                    endRound
-                        { winner = Utils.oppositeAthlete athlete
-                        , score = score
-                        , mode = HotseatMode
-                        , seed = seed
-                        }
-                        |> addMessage (Queue.peek queue)
+        PlayCorrect mode score athlete cnts queue ->
+            ( startPlay
+                { score = score
+                , athlete = Utils.oppositeAthlete athlete
+                , constraints = cnts
+                , mode = mode
+                }
+            , seed
+            )
+                |> addMessage (Queue.peek queue)
 
-                RoundEnd score athlete queue ->
-                    case score of
-                        PlayingScore playingScore ->
-                            assessment
-                                { score = playingScore
-                                , athlete = athlete
-                                , mode = HotseatMode
-                                , seed = seed
-                                }
-                                |> addMessage (Queue.peek queue)
+        PlayWrong mode score athlete _ queue ->
+            endRound
+                { winner = Utils.oppositeAthlete athlete
+                , score = score
+                , mode = mode
+                , seed = seed
+                }
+                |> addMessage (Queue.peek queue)
 
-                        WinnerScore winner loserScore ->
-                            ( game, seed, Nothing )
-
-                Assessment score athlete queue ->
-                    startRound
-                        { score = score
-                        , athlete = Utils.oppositeAthlete athlete
-                        , mode = HotseatMode
+        RoundEnd mode score athlete queue ->
+            case score of
+                PlayingScore playingScore ->
+                    assessment
+                        { score = playingScore
+                        , athlete = athlete
+                        , mode = mode
                         , seed = seed
                         }
                         |> addMessage (Queue.peek queue)
 
-                End winner loserPoints queue ->
+                WinnerScore winner loserScore ->
                     ( game, seed, Nothing )
 
-        Single turn ->
-            Debug.todo "Single mode not implemented."
+        Assessment mode score athlete queue ->
+            startRound
+                { score = score
+                , athlete = Utils.oppositeAthlete athlete
+                , mode = mode
+                , seed = seed
+                }
+                |> addMessage (Queue.peek queue)
+
+        End mode winner loserPoints queue ->
+            ( game, seed, Nothing )
 
 
 playCorrect : { constraints : Constraints, score : PlayingScore, athlete : Athlete, mode : GameMode, seed : Random.Seed } -> ( Game, Random.Seed )
@@ -637,13 +598,12 @@ playCorrect { constraints, score, athlete, mode, seed } =
             Texts.interjection seed
 
         newGame =
-            Hotseat
-                (PlayCorrect
-                    score
-                    athlete
-                    newCnts
-                    (Queue.singleton (message |> Announcement.createUnskippable))
-                )
+            PlayCorrect
+                mode
+                score
+                athlete
+                newCnts
+                (Queue.singleton (message |> Announcement.createUnskippable))
     in
     ( newGame, newSeed )
 
@@ -662,13 +622,12 @@ playWrong { messageFn, score, athlete, constraints, mode, seed } =
                 }
 
         newGame =
-            Hotseat
-                (PlayWrong
-                    newScore
-                    athlete
-                    constraints
-                    (Queue.singleton (message |> Announcement.createUnskippable))
-                )
+            PlayWrong
+                mode
+                newScore
+                athlete
+                constraints
+                (Queue.singleton (message |> Announcement.createUnskippable))
     in
     ( newGame, newSeed )
 
