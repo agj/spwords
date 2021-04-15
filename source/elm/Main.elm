@@ -57,6 +57,7 @@ main =
 
 type alias Model =
     { status : Status
+    , gameMode : Game.GameMode
     , viewport : Viewport
     , randomSeed : Random.Seed
     }
@@ -81,6 +82,7 @@ type alias Flags =
 init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { status = Loading (Announcement.create Texts.loading)
+      , gameMode = Game.HotseatMode
       , viewport = flags.viewport
       , randomSeed = Random.initialSeed 64
       }
@@ -153,7 +155,9 @@ update msg model =
                         default
 
         SelectedMode mode ->
-            default
+            ( { model | gameMode = mode }
+            , Cmd.none
+            )
 
         -- INITIALIZATION STAGE
         --
@@ -238,7 +242,7 @@ pressedEnter : Model -> Model
 pressedEnter model =
     case model.status of
         Ready words passed ann ->
-            { model | status = Playing words (Passed.pushAnnouncement ann passed) (Game.startGame HotseatMode) }
+            { model | status = Playing words (Passed.pushAnnouncement ann passed) (Game.startGame model.gameMode) }
 
         Playing words passed game ->
             let
@@ -354,7 +358,7 @@ ticker model =
             row
                 [ centerY
                 , width fill
-                , above title
+                , above (title model.gameMode)
                 , Cursor.default
                 ]
                 [ el
@@ -385,8 +389,8 @@ ticker model =
             none
 
 
-title : Element Msg
-title =
+title : Game.GameMode -> Element Msg
+title gameMode =
     row
         [ Font.size Palette.textSizeLarge
         , alignRight
@@ -395,10 +399,30 @@ title =
         ]
         [ el [ Font.bold ] (text "SPWORDS")
         , text " BY "
-        , newTabLink [] { label = text "AGJ", url = "http://agj.cl" }
-        , text ". 2P HOTSEAT MODE. "
-        , el [ Events.onClick (SelectedMode Game.SingleMode) ] (text "(PLAY SINGLE)")
-        , text "."
+        , newTabLink [] { label = text "[AGJ]", url = "http://agj.cl" }
+        , text ". "
+        , case gameMode of
+            HotseatMode ->
+                text "2P HOTSEAT MODE"
+
+            SingleMode ->
+                text "SINGLE MODE"
+        , text ". "
+        , case gameMode of
+            HotseatMode ->
+                el
+                    [ Events.onClick (SelectedMode SingleMode)
+                    , Cursor.pointer
+                    ]
+                    (text "[PLAY SINGLE]")
+
+            SingleMode ->
+                el
+                    [ Events.onClick (SelectedMode HotseatMode)
+                    , Cursor.pointer
+                    ]
+                    (text "[PLAY 2P HOTSEAT]")
+        , text " "
         ]
 
 

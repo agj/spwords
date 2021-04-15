@@ -58,6 +58,6 @@ typeLetter : ComputerThought -> ComputerThought
 typeLetter (ComputerThought ct) =
     ComputerThought
         { ct
-            | input = String.left (String.length ct.input + 1) ct.input
+            | input = String.left (String.length ct.input + 1) ct.word
             , ticks = 0
         }
