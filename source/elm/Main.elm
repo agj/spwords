@@ -102,6 +102,7 @@ type Msg
     = Ticked Time.Posix
     | Inputted String
     | GotWords (Result Http.Error String)
+    | SelectedMode Game.GameMode
     | Resized
     | GotViewport Viewport
     | GotSeed Random.Seed
@@ -150,6 +151,9 @@ update msg model =
 
                     _ ->
                         default
+
+        SelectedMode mode ->
+            default
 
         -- INITIALIZATION STAGE
         --
@@ -389,12 +393,12 @@ title =
         , Cursor.default
         , moveDown (1.7 * toFloat Palette.textSizeLarge)
         ]
-        [ "*SPWORDS* BY AGJ. HOTSEAT MODE. (PLAY SINGLE)."
-            |> Doc.EmuDecode.fromEmu
-            |> Doc.content
-            |> List.head
-            |> Maybe.withDefault Paragraph.empty
-            |> fromDocParagraph
+        [ el [ Font.bold ] (text "SPWORDS")
+        , text " BY "
+        , newTabLink [] { label = text "AGJ", url = "http://agj.cl" }
+        , text ". 2P HOTSEAT MODE. "
+        , el [ Events.onClick (SelectedMode Game.SingleMode) ] (text "(PLAY SINGLE)")
+        , text "."
         ]
 
 
