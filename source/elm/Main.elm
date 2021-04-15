@@ -7,6 +7,7 @@ import Constraints exposing (Constraints)
 import CustomEl
 import Dict exposing (Dict)
 import Doc
+import Doc.EmuDecode
 import Doc.Format
 import Doc.Paragraph as Paragraph exposing (Paragraph)
 import Doc.Text
@@ -347,6 +348,7 @@ ticker model =
             row
                 [ centerY
                 , width fill
+                , above title
                 ]
                 [ el
                     [ clip
@@ -374,6 +376,21 @@ ticker model =
 
         WordsLoadError err ->
             none
+
+
+title : Element Msg
+title =
+    row
+        [ Font.size Palette.textSizeLarge
+        , alignRight
+        ]
+        [ "*SPWORDS* BY AGJ. HOTSEAT MODE. (PLAY SINGLE)."
+            |> Doc.EmuDecode.fromEmu
+            |> Doc.content
+            |> List.head
+            |> Maybe.withDefault Paragraph.empty
+            |> fromDocParagraph
+        ]
 
 
 tickerActive : Active -> Element Msg

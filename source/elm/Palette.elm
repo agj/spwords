@@ -66,12 +66,12 @@ textSizeNormal =
 
 textSizeLarge : Int
 textSizeLarge =
-    26
+    30
 
 
 textSizeLarger : Int
 textSizeLarger =
-    100
+    110
 
 
 textLineSpacing : Int -> Int
