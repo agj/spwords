@@ -71,27 +71,37 @@ candidate text (Words words) =
             String.left len w == text
     in
     words
-        |> Dict.get initial
-        |> Maybe.map (List.any matches)
-        |> Maybe.withDefault False
+        |> getByInitial initial
+        |> List.any matches
 
 
 get : Random.Seed -> Char -> Maybe Char -> Words -> ( String, Random.Seed )
 get seed initial incorporatesM (Words words) =
     let
-        incorporatesPredicate word =
+        incorporatesPredicate =
             case incorporatesM of
                 Nothing ->
-                    True
+                    always True
 
                 Just incorporates ->
-                    String.any ((==) incorporates) word
+                    \word ->
+                        String.any ((==) incorporates) word
 
         filteredWords =
             words
-                |> Dict.get initial
-                |> Maybe.withDefault []
+                |> getByInitial initial
                 |> List.filter incorporatesPredicate
     in
     Utils.randomItem seed filteredWords
         |> Tuple.mapFirst (Maybe.withDefault "?")
+
+
+
+-- INTERNAL
+
+
+getByInitial : Char -> Dict Char (List String) -> List String
+getByInitial initial words =
+    words
+        |> Dict.get initial
+        |> Maybe.withDefault []
