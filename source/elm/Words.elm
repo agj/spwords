@@ -1,5 +1,6 @@
 module Words exposing
     ( Words
+    , all
     , candidate
     , exists
     , getByInitial
@@ -52,6 +53,14 @@ parse data =
 
 
 --
+
+
+all : Words -> List String
+all (Words words) =
+    Dict.foldl
+        (\_ list acc -> acc ++ list)
+        []
+        words
 
 
 exists : String -> Words -> Bool

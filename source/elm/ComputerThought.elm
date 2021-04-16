@@ -137,18 +137,19 @@ getWord seed words cnts =
                     wordsWithInitial
                         |> List.filter (String.contains (String.fromChar incorporates))
 
-        errorProbability =
-            1 / (List.length filteredWords |> toFloat)
+        ( initialError, seed1 ) =
+            chance seed
+                (1 / (List.length wordsWithInitial |> toFloat) * Levers.computerWordErrorFactor)
 
-        ( incorporatesError, seed1 ) =
-            Random.step
-                (Random.float 0 1
-                    |> Random.map (\n -> n < errorProbability)
-                )
-                seed
+        ( incorporatesError, seed2 ) =
+            chance seed1
+                (1 / (List.length filteredWords |> toFloat) * Levers.computerWordErrorFactor)
 
         selectedWords =
-            if incorporatesError then
+            if initialError then
+                Words.all words
+
+            else if incorporatesError then
                 wordsWithInitial
 
             else
@@ -156,6 +157,15 @@ getWord seed words cnts =
     in
     randomItem seed1 selectedWords
         |> Tuple.mapFirst (Maybe.withDefault "?")
+
+
+chance : Random.Seed -> Float -> ( Bool, Random.Seed )
+chance seed probability =
+    Random.step
+        (Random.float 0 1
+            |> Random.map (\n -> n < probability)
+        )
+        seed
 
 
 letterDelayGenerator =
