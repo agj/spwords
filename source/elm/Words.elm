@@ -2,7 +2,8 @@ module Words exposing
     ( Words
     , candidate
     , exists
-    , get
+    , getByInitial
+    , getRandom
     , parse
     )
 
@@ -59,7 +60,7 @@ exists word (Words words) =
 
 
 candidate : String -> Words -> Bool
-candidate text (Words words) =
+candidate text words =
     let
         initial =
             stringHead text |> Maybe.withDefault '?'
@@ -75,8 +76,8 @@ candidate text (Words words) =
         |> List.any matches
 
 
-get : Random.Seed -> Char -> Maybe Char -> Words -> ( String, Random.Seed )
-get seed initial incorporatesM (Words words) =
+getRandom : Random.Seed -> Char -> Maybe Char -> Words -> ( String, Random.Seed )
+getRandom seed initial incorporatesM words =
     let
         incorporatesPredicate =
             case incorporatesM of
@@ -96,12 +97,8 @@ get seed initial incorporatesM (Words words) =
         |> Tuple.mapFirst (Maybe.withDefault "?")
 
 
-
--- INTERNAL
-
-
-getByInitial : Char -> Dict Char (List String) -> List String
-getByInitial initial words =
+getByInitial : Char -> Words -> List String
+getByInitial initial (Words words) =
     words
         |> Dict.get initial
         |> Maybe.withDefault []

@@ -9,7 +9,7 @@ module ComputerThought exposing
 import Constraints exposing (Constraints)
 import Levers
 import Random
-import Utils exposing (stringCharAt)
+import Utils exposing (randomItem, stringCharAt)
 import Words exposing (Words)
 
 
@@ -32,14 +32,11 @@ type alias NextLetter =
 create : Words -> Constraints -> Random.Seed -> ( ComputerThought, Random.Seed )
 create words cnts seed =
     let
-        ( word, seed1 ) =
-            Words.get seed
-                (Constraints.getInitial cnts)
-                (Constraints.getIncorporates cnts)
-                words
+        ( seed1, outSeed ) =
+            Random.step Random.independentSeed seed
 
-        ( seed2, outSeed ) =
-            Random.step Random.independentSeed seed1
+        ( word, seed2 ) =
+            getWord seed1 words cnts
 
         ( nextLetter, newSeed ) =
             getNextLetter word 0 seed2
@@ -117,6 +114,48 @@ typeLetter (ComputerThought ct) =
             , nextLetter = nextLetter
             , seed = newSeed
         }
+
+
+getWord : Random.Seed -> Words -> Constraints -> ( String, Random.Seed )
+getWord seed words cnts =
+    let
+        initial =
+            Constraints.getInitial cnts
+
+        incorporatesM =
+            Constraints.getIncorporates cnts
+
+        wordsWithInitial =
+            Words.getByInitial initial words
+
+        filteredWords =
+            case incorporatesM of
+                Nothing ->
+                    wordsWithInitial
+
+                Just incorporates ->
+                    wordsWithInitial
+                        |> List.filter (String.contains (String.fromChar incorporates))
+
+        errorProbability =
+            1 / (List.length filteredWords |> toFloat)
+
+        ( incorporatesError, seed1 ) =
+            Random.step
+                (Random.float 0 1
+                    |> Random.map (\n -> n < errorProbability)
+                )
+                seed
+
+        selectedWords =
+            if incorporatesError then
+                wordsWithInitial
+
+            else
+                filteredWords
+    in
+    randomItem seed1 selectedWords
+        |> Tuple.mapFirst (Maybe.withDefault "?")
 
 
 letterDelayGenerator =
