@@ -1,5 +1,6 @@
 module Levers exposing
-    ( Milliseconds
+    ( Factor
+    , Milliseconds
     , Ticks
     , computerLetterDelay
     , computerLetterErrorProbability
@@ -17,15 +18,21 @@ type alias Ticks =
     Int
 
 
+{-| Indicates a Float that will get multiplied against another number in order to adjust it.
+-}
 type alias Factor =
     Float
 
 
+{-| The duration of one tick of the ticker.
+-}
 tickInterval : Milliseconds
 tickInterval =
     80
 
 
+{-| How long the computer “thinks” before starting to type their word.
+-}
 computerWordDelay : { min : Ticks, max : Ticks }
 computerWordDelay =
     { min = msToTicks 200
@@ -33,11 +40,16 @@ computerWordDelay =
     }
 
 
+{-| Gets multiplied with a probability based on how many words the dictionary has that fit the current constraints.
+The bigger the number, the higher the probability of picking the wrong word.
+-}
 computerWordErrorFactor : Factor
 computerWordErrorFactor =
     100
 
 
+{-| How long the computer takes to type each single letter in the word.
+-}
 computerLetterDelay : { min : Ticks, max : Ticks }
 computerLetterDelay =
     { min = msToTicks 20
@@ -45,6 +57,10 @@ computerLetterDelay =
     }
 
 
+{-| How likely it is for the computer to make a mistake typing a letter.
+1 is 100%.
+-}
+computerLetterErrorProbability : Float
 computerLetterErrorProbability =
     0.005
 
