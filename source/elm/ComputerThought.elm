@@ -9,6 +9,7 @@ module ComputerThought exposing
 import Constraints exposing (Constraints)
 import Levers
 import Random
+import Texts
 import Utils exposing (randomItem, stringCharAt)
 import Words exposing (Words)
 
@@ -82,16 +83,26 @@ getInput (ComputerThought ct) =
 getNextLetter : String -> Int -> Random.Seed -> ( NextLetter, Random.Seed )
 getNextLetter word index seed =
     let
-        letter =
-            stringCharAt index word
-                |> Maybe.withDefault '?'
+        ( isError, seed1 ) =
+            chance seed Levers.computerLetterErrorProbability
+
+        ( letter, seed2 ) =
+            if isError then
+                randomItem seed1 (Texts.alphabet |> String.toList)
+                    |> Tuple.mapFirst (Maybe.withDefault '?')
+
+            else
+                ( stringCharAt index word
+                    |> Maybe.withDefault '?'
+                , seed1
+                )
 
         ( ticks, newSeed ) =
             if index == 0 then
-                Random.step initialDelayGenerator seed
+                Random.step initialDelayGenerator seed2
 
             else
-                Random.step letterDelayGenerator seed
+                Random.step letterDelayGenerator seed2
     in
     ( { ticks = ticks, letter = letter }
     , newSeed
@@ -138,12 +149,10 @@ getWord seed words cnts =
                         |> List.filter (String.contains (String.fromChar incorporates))
 
         ( initialError, seed1 ) =
-            chance seed
-                (1 / (List.length wordsWithInitial |> toFloat) * Levers.computerWordErrorFactor)
+            wordErrorChance seed wordsWithInitial
 
         ( incorporatesError, seed2 ) =
-            chance seed1
-                (1 / (List.length filteredWords |> toFloat) * Levers.computerWordErrorFactor)
+            wordErrorChance seed1 filteredWords
 
         selectedWords =
             if initialError then
@@ -155,8 +164,14 @@ getWord seed words cnts =
             else
                 filteredWords
     in
-    randomItem seed1 selectedWords
+    randomItem seed2 selectedWords
         |> Tuple.mapFirst (Maybe.withDefault "?")
+
+
+wordErrorChance : Random.Seed -> List String -> ( Bool, Random.Seed )
+wordErrorChance seed words =
+    chance seed
+        (1 / (List.length words |> toFloat) * Levers.computerWordErrorFactor)
 
 
 chance : Random.Seed -> Float -> ( Bool, Random.Seed )
