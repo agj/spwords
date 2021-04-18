@@ -4,7 +4,6 @@ import Athlete exposing (..)
 import Browser
 import Browser.Events
 import Constraints exposing (Constraints)
-import CustomEl
 import Dict exposing (Dict)
 import Doc.Format
 import Doc.Paragraph as Paragraph exposing (Paragraph)
@@ -14,6 +13,7 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Cursor as Cursor
+import Element.Custom.Attribute as Attribute
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
@@ -493,7 +493,7 @@ tickerMessage tt =
                 [ Font.color (athleteColor athlete)
                 , Font.strike
                 , Font.bold
-                , CustomEl.style "text-decoration-color" (toCssColor Palette.light)
+                , Attribute.style "text-decoration-color" (toCssColor Palette.light)
                 ]
                 (text (String.toUpper txt))
 

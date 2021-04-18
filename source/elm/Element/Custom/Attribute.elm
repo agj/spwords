@@ -1,47 +1,30 @@
-module CustomEl exposing (..)
+module Element.Custom.Attribute exposing (..)
 
 import Element exposing (..)
-import Html.Attributes as Attributes
+import Html.Attributes
 import Html.Events
 import Json.Decode as Decode
 import Util.Element exposing (toCssColor)
 
 
-
--- ELEMENTS
-
-
-imageInline : List (Element.Attribute msg) -> { src : String, description : String } -> Element msg
-imageInline attrs desc =
-    image
-        (style "display" "inline-flex"
-            :: attrs
-        )
-        desc
-
-
-
--- ATTRIBUTES
-
-
-backgroundColor : Element.Color -> Element.Attribute msg
+backgroundColor : Element.Color -> Attribute msg
 backgroundColor color =
     style "background-color" (toCssColor color)
 
 
-iOsTextScalingFix : Element.Attribute msg
+iOsTextScalingFix : Attribute msg
 iOsTextScalingFix =
     style "-webkit-text-size-adjust" "100%"
 
 
-style : String -> String -> Element.Attribute msg
+style : String -> String -> Attribute msg
 style attribute value =
-    Element.htmlAttribute <| Attributes.style attribute value
+    Element.htmlAttribute <| Html.Attributes.style attribute value
 
 
-id : String -> Element.Attribute msg
+id : String -> Attribute msg
 id name =
-    Element.htmlAttribute <| Attributes.id name
+    Element.htmlAttribute <| Html.Attributes.id name
 
 
 onKey : String -> msg -> Attribute msg
