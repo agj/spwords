@@ -1,6 +1,7 @@
 module Game exposing
     ( Game
     , GameMode(..)
+    , ended
     , getActive
     , getActiveAthlete
     , skip
@@ -36,6 +37,7 @@ type Game
     | RoundEnd GameMode Score Athlete Queue
     | Assessment GameMode PlayingScore Athlete Queue
     | End GameMode Athlete Points Queue
+    | Done
 
 
 type GameMode
@@ -58,35 +60,38 @@ startGame mode =
         )
 
 
-getActive : Game -> Active
+getActive : Game -> Maybe Active
 getActive game =
     case game of
         GameStart _ queue ->
-            Active.fromQueue queue
+            Just (Active.fromQueue queue)
 
         RoundStart _ _ _ _ queue ->
-            Active.fromQueue queue
+            Just (Active.fromQueue queue)
 
         PlayCorrect _ _ _ _ queue ->
-            Active.fromQueue queue
+            Just (Active.fromQueue queue)
 
         PlayWrong _ _ _ _ queue ->
-            Active.fromQueue queue
+            Just (Active.fromQueue queue)
 
         RoundEnd _ _ _ queue ->
-            Active.fromQueue queue
+            Just (Active.fromQueue queue)
 
         Assessment _ _ _ queue ->
-            Active.fromQueue queue
+            Just (Active.fromQueue queue)
 
         End _ _ _ queue ->
-            Active.fromQueue queue
+            Just (Active.fromQueue queue)
 
         Play _ _ athlete input _ ->
-            Active.athleteInput athlete input
+            Just (Active.athleteInput athlete input)
 
         ComputerPlay _ thought _ ->
-            Active.athleteInput AthleteB (ComputerThought.getInput thought)
+            Just (Active.athleteInput AthleteB (ComputerThought.getInput thought))
+
+        Done ->
+            Nothing
 
 
 getActiveAthlete : Game -> Maybe Athlete
@@ -100,6 +105,16 @@ getActiveAthlete game =
 
         _ ->
             Nothing
+
+
+ended : Game -> Bool
+ended game =
+    case game of
+        Done ->
+            True
+
+        _ ->
+            False
 
 
 
@@ -135,6 +150,9 @@ tick seed words game =
                 ComputerPlay score (ComputerThought.tick thought) cnts
 
             Play _ _ _ _ _ ->
+                game
+
+            Done ->
                 game
 
 
@@ -189,6 +207,9 @@ skip seed words game =
             nextStatus seed words game
 
         ComputerPlay _ _ _ ->
+            ignore
+
+        Done ->
             ignore
 
 
@@ -533,10 +554,16 @@ checkDone seed words game =
         Play _ _ _ _ _ ->
             ignore
 
+        Done ->
+            ignore
+
 
 nextStatus : Random.Seed -> Words -> Game -> ( Game, Random.Seed, Maybe Message )
 nextStatus seed words game =
     let
+        ignore =
+            ( game, seed, Nothing )
+
         addMessage queue ( g, s ) =
             ( g, s, Just (queue |> Queue.peek |> Announcement.toMessage) )
     in
@@ -633,8 +660,11 @@ nextStatus seed words game =
                 }
                 |> addMessage queue
 
-        End mode winner loserPoints queue ->
-            ( game, seed, Nothing )
+        End _ _ _ queue ->
+            ( Done, seed, Just (queue |> Queue.peek |> Announcement.toMessage) )
+
+        Done ->
+            ignore
 
 
 playCorrect : { constraints : Constraints, score : PlayingScore, athlete : Athlete, mode : GameMode, seed : Random.Seed } -> ( Game, Random.Seed )

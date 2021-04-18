@@ -356,11 +356,13 @@ ticker model =
 
         tickerEl act passed =
             row
-                [ centerY
-                , width fill
-                , above (title model.gameMode)
-                , Cursor.default
-                ]
+                ([ centerY
+                 , width fill
+                 , Cursor.default
+                 ]
+                    |> consWhen (not <| playing model.status)
+                        (above (title model.gameMode))
+                )
                 [ el
                     [ clip
                     , width fill
@@ -426,10 +428,10 @@ title gameMode =
         ]
 
 
-tickerActive : Active -> Element Msg
-tickerActive active =
-    case active of
-        Active.AthleteInput athlete input ->
+tickerActive : Maybe Active -> Element Msg
+tickerActive activeM =
+    case activeM of
+        Just (Active.AthleteInput athlete input) ->
             el
                 [ Font.color (athleteColor athlete)
                 , Font.underline
@@ -437,8 +439,11 @@ tickerActive active =
                 ]
                 (text (String.toUpper input))
 
-        Active.Announcement ann ->
+        Just (Active.Announcement ann) ->
             tickerAnnouncement ann
+
+        Nothing ->
+            none
 
 
 tickerAnnouncement : Announcement -> Element Msg
@@ -638,3 +643,13 @@ getActiveAthlete status =
 
         _ ->
             Nothing
+
+
+playing : Status -> Bool
+playing status =
+    case status of
+        Playing _ _ game ->
+            not <| Game.ended game
+
+        _ ->
+            False

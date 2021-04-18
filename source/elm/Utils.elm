@@ -5,49 +5,8 @@ import Element
 import Random
 
 
-fraction : Float -> Int -> Int
-fraction frac num =
-    round (frac * toFloat num)
 
-
-ifElse : Bool -> a -> a -> a
-ifElse check yes no =
-    if check then
-        yes
-
-    else
-        no
-
-
-unnest : List (List a) -> List a
-unnest list =
-    List.concatMap identity list
-
-
-sides =
-    { left = 0
-    , right = 0
-    , top = 0
-    , bottom = 0
-    }
-
-
-toCssColor : Element.Color -> String
-toCssColor color =
-    let
-        { red, green, blue, alpha } =
-            Element.toRgb color
-    in
-    "rgba("
-        ++ String.fromInt (round <| red * 255)
-        ++ ", "
-        ++ String.fromInt (round <| green * 255)
-        ++ ", "
-        ++ String.fromInt (round <| blue * 255)
-        ++ ", "
-        ++ String.fromFloat (alpha * 100)
-        ++ "%"
-        ++ ")"
+-- STRING
 
 
 stringHead : String -> Maybe Char
@@ -73,14 +32,22 @@ stringMember char str =
     String.any (\ch -> char == ch) str
 
 
-oppositeAthlete : Athlete -> Athlete
-oppositeAthlete athlete =
-    case athlete of
-        AthleteA ->
-            AthleteB
 
-        AthleteB ->
-            AthleteA
+-- LIST
+
+
+unnest : List (List a) -> List a
+unnest list =
+    List.concatMap identity list
+
+
+consWhen : Bool -> a -> List a -> List a
+consWhen yes item list =
+    if yes then
+        item :: list
+
+    else
+        list
 
 
 
@@ -103,3 +70,65 @@ indexToItem list index =
     list
         |> List.drop index
         |> List.head
+
+
+
+-- NUMBER
+
+
+fraction : Float -> Int -> Int
+fraction frac num =
+    round (frac * toFloat num)
+
+
+
+-- BOOLEAN
+
+
+ifElse : Bool -> a -> a -> a
+ifElse check yes no =
+    if check then
+        yes
+
+    else
+        no
+
+
+sides =
+    { left = 0
+    , right = 0
+    , top = 0
+    , bottom = 0
+    }
+
+
+
+-- ELM-UI
+
+
+toCssColor : Element.Color -> String
+toCssColor color =
+    let
+        { red, green, blue, alpha } =
+            Element.toRgb color
+    in
+    "rgba("
+        ++ String.fromInt (round <| red * 255)
+        ++ ", "
+        ++ String.fromInt (round <| green * 255)
+        ++ ", "
+        ++ String.fromInt (round <| blue * 255)
+        ++ ", "
+        ++ String.fromFloat (alpha * 100)
+        ++ "%"
+        ++ ")"
+
+
+oppositeAthlete : Athlete -> Athlete
+oppositeAthlete athlete =
+    case athlete of
+        AthleteA ->
+            AthleteB
+
+        AthleteB ->
+            AthleteA
