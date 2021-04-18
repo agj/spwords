@@ -392,6 +392,15 @@ ticker model =
 
 title : Game.GameMode -> Element Msg
 title gameMode =
+    let
+        nextMode =
+            case gameMode of
+                HotseatMode ->
+                    SingleMode
+
+                SingleMode ->
+                    HotseatMode
+    in
     row
         [ Font.size Palette.textSizeLarge
         , alignRight
@@ -400,30 +409,22 @@ title gameMode =
         ]
         [ el [ Font.bold ] (text "SPWORDS")
         , text " BY "
-        , newTabLink [] { label = text "[AGJ]", url = "http://agj.cl" }
+        , newTabLink [] { label = text "AGJ", url = "http://agj.cl" }
         , text ". "
-        , case gameMode of
-            HotseatMode ->
-                text "2P HOTSEAT MODE"
+        , el
+            [ Events.onClick (SelectedMode nextMode)
+            , Cursor.pointer
+            ]
+            (text
+                (case gameMode of
+                    HotseatMode ->
+                        "[2P HOTSEAT]"
 
-            SingleMode ->
-                text "SINGLE MODE"
-        , text ". "
-        , case gameMode of
-            HotseatMode ->
-                el
-                    [ Events.onClick (SelectedMode SingleMode)
-                    , Cursor.pointer
-                    ]
-                    (text "[PLAY SINGLE]")
-
-            SingleMode ->
-                el
-                    [ Events.onClick (SelectedMode HotseatMode)
-                    , Cursor.pointer
-                    ]
-                    (text "[PLAY 2P HOTSEAT]")
-        , text " "
+                    SingleMode ->
+                        "[SOLO]"
+                )
+            )
+        , text " MODE. NORMAL SPEED. "
         ]
 
 
