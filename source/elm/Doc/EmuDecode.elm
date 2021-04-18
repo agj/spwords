@@ -9,7 +9,7 @@ import Doc.Text as Text exposing (Text)
 import Json.Decode as Decode exposing (Decoder, andThen, string)
 import Mark
 import Mark.Error
-import Utils exposing (..)
+import Util.List as List
 
 
 fromEmu : String -> Doc
@@ -59,7 +59,7 @@ emuDocument : Mark.Document Doc
 emuDocument =
     Mark.document emuWrapper <|
         Mark.manyOf
-            [ Mark.map (unnest >> Paragraph.create) inlineParser
+            [ Mark.map (List.unnest >> Paragraph.create) inlineParser
             ]
 
 

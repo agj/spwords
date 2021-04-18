@@ -11,7 +11,8 @@ module Words exposing
 import Dict exposing (Dict)
 import Dict.Extra as Dict
 import Random
-import Utils exposing (stringHead)
+import Util.Random as Random
+import Util.String as String
 
 
 type Words
@@ -29,7 +30,7 @@ parse data =
         wordToDict word dict =
             let
                 initial =
-                    Utils.stringHead word
+                    String.head word
                         |> Maybe.withDefault '?'
             in
             Dict.update initial (wordToList word) dict
@@ -72,7 +73,7 @@ candidate : String -> Words -> Bool
 candidate text words =
     let
         initial =
-            stringHead text |> Maybe.withDefault '?'
+            String.head text |> Maybe.withDefault '?'
 
         len =
             String.length text
@@ -102,7 +103,7 @@ getRandom seed initial incorporatesM words =
                 |> getByInitial initial
                 |> List.filter incorporatesPredicate
     in
-    Utils.randomItem seed filteredWords
+    Random.item seed filteredWords
         |> Tuple.mapFirst (Maybe.withDefault "?")
 
 

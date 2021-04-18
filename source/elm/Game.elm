@@ -13,17 +13,15 @@ module Game exposing
 import Athlete exposing (..)
 import ComputerThought exposing (ComputerThought)
 import Constraints exposing (Constraints)
-import Doc.Format
 import Doc.Paragraph exposing (Paragraph)
-import Doc.Text
 import Random
 import Score exposing (PlayingScore, Points, Score(..))
-import Texts exposing (newRound)
+import Texts
 import Ticker.Active as Active exposing (Active)
 import Ticker.Announcement as Announcement exposing (Announcement)
 import Ticker.Message as Message exposing (Message)
 import Ticker.Queue as Queue exposing (Queue)
-import Utils
+import Util.String as String
 import Words exposing (Words)
 
 
@@ -613,7 +611,7 @@ nextStatus seed words game =
         PlayCorrect mode score athlete cnts queue ->
             startPlay
                 { score = score
-                , athlete = Utils.oppositeAthlete athlete
+                , athlete = Athlete.opposite athlete
                 , constraints = cnts
                 , words = words
                 , mode = mode
@@ -623,7 +621,7 @@ nextStatus seed words game =
 
         PlayWrong mode score athlete _ queue ->
             endRound
-                { winner = Utils.oppositeAthlete athlete
+                { winner = Athlete.opposite athlete
                 , score = score
                 , mode = mode
                 , seed = seed
@@ -654,7 +652,7 @@ nextStatus seed words game =
         Assessment mode score athlete queue ->
             startRound
                 { score = score
-                , athlete = Utils.oppositeAthlete athlete
+                , athlete = Athlete.opposite athlete
                 , mode = mode
                 , seed = seed
                 }
@@ -697,7 +695,7 @@ playWrong : { messageFn : Texts.MistakeArguments -> ( Paragraph, Random.Seed ), 
 playWrong { messageFn, score, athlete, constraints, mode, seed } =
     let
         newScore =
-            Score.increaseScore (Utils.oppositeAthlete athlete) score
+            Score.increaseScore (Athlete.opposite athlete) score
 
         ( message, newSeed ) =
             messageFn
@@ -730,7 +728,7 @@ letterGenerator alphabet =
 
 indexToLetter : String -> Int -> Char
 indexToLetter alpha n =
-    Utils.stringCharAt n alpha
+    String.charAt n alpha
         |> Maybe.withDefault '?'
 
 

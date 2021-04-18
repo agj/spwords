@@ -6,8 +6,6 @@ import Browser.Events
 import Constraints exposing (Constraints)
 import CustomEl
 import Dict exposing (Dict)
-import Doc
-import Doc.EmuDecode
 import Doc.Format
 import Doc.Paragraph as Paragraph exposing (Paragraph)
 import Doc.Text
@@ -32,7 +30,8 @@ import Ticker.Announcement as Announcement exposing (Announcement)
 import Ticker.Message as Message exposing (Message)
 import Ticker.Passed as Passed exposing (Passed)
 import Time
-import Utils exposing (..)
+import Util.Element exposing (toCssColor)
+import Util.List exposing (consWhen)
 import Viewport exposing (Viewport)
 import Words exposing (Words)
 
@@ -494,7 +493,7 @@ tickerMessage tt =
                 [ Font.color (athleteColor athlete)
                 , Font.strike
                 , Font.bold
-                , CustomEl.style "text-decoration-color" (Utils.toCssColor Palette.light)
+                , CustomEl.style "text-decoration-color" (toCssColor Palette.light)
                 ]
                 (text (String.toUpper txt))
 

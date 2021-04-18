@@ -10,7 +10,8 @@ import Constraints exposing (Constraints)
 import Levers
 import Random
 import Texts
-import Utils exposing (randomItem, stringCharAt)
+import Util.Random as Random
+import Util.String as String
 import Words exposing (Words)
 
 
@@ -88,11 +89,11 @@ getNextLetter word index seed =
 
         ( letter, seed2 ) =
             if isError then
-                randomItem seed1 (Texts.alphabet |> String.toList)
+                Random.item seed1 (Texts.alphabet |> String.toList)
                     |> Tuple.mapFirst (Maybe.withDefault '?')
 
             else
-                ( stringCharAt index word
+                ( String.charAt index word
                     |> Maybe.withDefault '?'
                 , seed1
                 )
@@ -164,7 +165,7 @@ getWord seed words cnts =
             else
                 filteredWords
     in
-    randomItem seed2 selectedWords
+    Random.item seed2 selectedWords
         |> Tuple.mapFirst (Maybe.withDefault "?")
 
 

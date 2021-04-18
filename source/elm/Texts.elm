@@ -31,7 +31,7 @@ import Doc.Paragraph as Paragraph exposing (Paragraph)
 import Doc.Text as Text exposing (Text)
 import Random
 import Score exposing (Points, Score)
-import Utils exposing (..)
+import Util.Random as Random
 
 
 title =
@@ -128,7 +128,7 @@ roundEnd { winner, athleteA, athleteB, seed } =
                     txt |> Text.mapFormat (Format.setAthlete (Just winner))
 
                 "loser" ->
-                    txt |> Text.mapFormat (Format.setAthlete (Just (oppositeAthlete winner)))
+                    txt |> Text.mapFormat (Format.setAthlete (Just (Athlete.opposite winner)))
 
                 _ ->
                     txt
@@ -185,7 +185,7 @@ winning { winner, athleteA, athleteB, seed } =
                     txt |> Text.mapFormat (Format.setAthlete (Just winner))
 
                 "loser" ->
-                    txt |> Text.mapFormat (Format.setAthlete (Just (oppositeAthlete winner)))
+                    txt |> Text.mapFormat (Format.setAthlete (Just (Athlete.opposite winner)))
 
                 _ ->
                     txt
@@ -237,7 +237,7 @@ gameEnd { winner, athleteA, athleteB, loserPoints } =
                     txt |> Text.mapFormat (Format.setAthlete (Just winner))
 
                 "loser" ->
-                    txt |> Text.mapFormat (Format.setAthlete (Just (oppositeAthlete winner)))
+                    txt |> Text.mapFormat (Format.setAthlete (Just (Athlete.opposite winner)))
 
                 _ ->
                     txt |> Text.mapFormat (Format.setBold True)
@@ -439,7 +439,7 @@ emuRandomString seed formatter vars strings =
 
 randomString : Random.Seed -> List String -> ( String, Random.Seed )
 randomString seed strings =
-    randomItem seed strings
+    Random.item seed strings
         |> Tuple.mapFirst (Maybe.withDefault "")
 
 

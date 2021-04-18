@@ -4,8 +4,7 @@ import Element exposing (..)
 import Html.Attributes as Attributes
 import Html.Events
 import Json.Decode as Decode
-import Palette
-import Utils exposing (..)
+import Util.Element exposing (toCssColor)
 
 
 
@@ -15,9 +14,8 @@ import Utils exposing (..)
 imageInline : List (Element.Attribute msg) -> { src : String, description : String } -> Element msg
 imageInline attrs desc =
     image
-        ([ style "display" "inline-flex"
-         ]
-            ++ attrs
+        (style "display" "inline-flex"
+            :: attrs
         )
         desc
 

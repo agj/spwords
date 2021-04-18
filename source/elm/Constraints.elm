@@ -14,7 +14,7 @@ module Constraints exposing
     , setInitial
     )
 
-import Utils
+import Util.String as String
 import Words exposing (Words)
 
 
@@ -119,7 +119,7 @@ setIncorporates incorporates constraints =
 
 pushPlayed : String -> Constraints -> Constraints
 pushPlayed word constraints =
-    case Utils.stringLast word of
+    case String.last word of
         Just char ->
             case constraints of
                 ServeConstraints ini ->
@@ -146,7 +146,7 @@ pushPlayed word constraints =
 
 checkCandidate : String -> Constraints -> Words -> CandidateCheck
 checkCandidate text cnts words =
-    case Utils.stringHead text of
+    case String.head text of
         Just head ->
             if head /= getInitial cnts then
                 CandidateInitialWrong
@@ -172,7 +172,7 @@ check text constraints words =
                 RallyConstraints { initial, incorporates, played } ->
                     ( initial, Just incorporates, played )
     in
-    case Utils.stringHead text of
+    case String.head text of
         Just head ->
             if head /= initial_ then
                 InputInitialWrong
@@ -186,7 +186,7 @@ check text constraints words =
             else
                 case incorporatesM of
                     Just incorporates ->
-                        if not (Utils.stringMember incorporates text) then
+                        if not (String.member incorporates text) then
                             InputIncorporatesWrong
 
                         else
