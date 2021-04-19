@@ -1,8 +1,10 @@
 module Ticker.Passed exposing
     ( Passed
     , empty
+    , fromList
     , push
     , pushAnnouncement
+    , singleton
     , toList
     )
 
@@ -17,6 +19,16 @@ type Passed
 empty : Passed
 empty =
     Passed []
+
+
+singleton : Message -> Passed
+singleton mes =
+    Passed [ mes ]
+
+
+fromList : List Message -> Passed
+fromList list =
+    Passed list
 
 
 push : Message -> Passed -> Passed

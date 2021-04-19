@@ -7,6 +7,7 @@ module Texts exposing
     , incorporatesWrong
     , initialWrong
     , interjection
+    , loadError
     , loading
     , names
     , newRound
@@ -52,6 +53,11 @@ names =
 
 loading =
     comments.loading
+        |> emu identity Dict.empty
+
+
+loadError =
+    comments.loadError
         |> emu identity Dict.empty
 
 
@@ -297,6 +303,7 @@ timeOut arguments =
 
 comments =
     { loading = "/loading.../"
+    , loadError = "/error loading! please refresh./"
     , ready = "/ready. press *enter*./"
     , gameStart =
         "welcome to tonight's exciting match! "

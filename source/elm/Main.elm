@@ -67,7 +67,7 @@ type Status
     = Loading Announcement
     | Ready Words Passed Announcement
     | Playing Words Passed Game
-    | WordsLoadError Http.Error
+    | WordsLoadError Http.Error Passed Announcement
 
 
 
@@ -82,7 +82,7 @@ type alias Flags =
 init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { status = Loading (Announcement.create Texts.loading)
-      , gameMode = Game.HotseatMode
+      , gameMode = Game.SingleMode
       , viewport = flags.viewport
       , randomSeed = Random.initialSeed 64
       }
@@ -105,6 +105,7 @@ type Msg
     | Inputted String
     | GotWords (Result Http.Error String)
     | SelectedMode Game.GameMode
+    | SelectedRestart
     | Resized
     | GotViewport Viewport
     | GotSeed Random.Seed
@@ -159,6 +160,16 @@ update msg model =
             , Cmd.none
             )
 
+        SelectedRestart ->
+            case model.status of
+                Playing words _ _ ->
+                    ( { model | status = ready words Passed.empty }
+                    , Cmd.none
+                    )
+
+                _ ->
+                    default
+
         -- INITIALIZATION STAGE
         --
         GotSeed seed ->
@@ -193,18 +204,23 @@ gotWords result model =
         Loading ann ->
             case result of
                 Ok words ->
-                    { model
-                        | status =
-                            Ready (Words.parse words)
-                                (Passed.empty |> Passed.push (Announcement.toMessage ann))
-                                (Announcement.create Texts.ready)
-                    }
+                    { model | status = ready (Words.parse words) (Passed.singleton (Announcement.toMessage ann)) }
 
                 Err err ->
-                    { model | status = WordsLoadError err }
+                    { model
+                        | status =
+                            WordsLoadError err
+                                (Passed.singleton (Announcement.toMessage ann))
+                                (Announcement.create Texts.loadError)
+                    }
 
         _ ->
             model
+
+
+ready : Words -> Passed -> Status
+ready words passed =
+    Ready words passed (Announcement.create Texts.ready)
 
 
 tickStatus : Model -> Model
@@ -212,6 +228,9 @@ tickStatus model =
     case model.status of
         Loading ann ->
             { model | status = Loading (Announcement.tick ann) }
+
+        WordsLoadError err passed ann ->
+            { model | status = WordsLoadError err passed (Announcement.tick ann) }
 
         Ready words passed ann ->
             { model | status = Ready words passed (Announcement.tick ann) }
@@ -233,9 +252,6 @@ tickStatus model =
                 | status = Playing words newPassed newGame
                 , randomSeed = newSeed
             }
-
-        _ ->
-            model
 
 
 pressedEnter : Model -> Model
@@ -368,7 +384,7 @@ ticker model =
                  , width fill
                  , Cursor.default
                  ]
-                    |> consWhen (not <| playing model.status)
+                    |> consWhen (not (playing model.status))
                         (above (title model.gameMode gameEnded))
                 )
                 [ el
@@ -389,14 +405,14 @@ ticker model =
         Loading ann ->
             tickerEl (tickerAnnouncement ann) Passed.empty
 
+        WordsLoadError _ passed ann ->
+            tickerEl (tickerAnnouncement ann) passed
+
         Ready _ passed ann ->
             tickerEl (tickerAnnouncement ann) passed
 
         Playing _ passed game ->
             tickerEl (tickerActive (Game.getActive game)) passed
-
-        WordsLoadError err ->
-            none
 
 
 title : Game.GameMode -> Bool -> Element Msg
@@ -424,12 +440,12 @@ title gameMode ended =
                             "[SOLO]"
                     )
                 )
-            , text " MODE. NORMAL SPEED. "
+            , text " MODE. NORMAL SPEED."
             ]
 
         restart =
             [ el
-                [ Events.onClick NoOp
+                [ Events.onClick SelectedRestart
                 , Cursor.pointer
                 ]
                 (text "[RESTART]")
@@ -449,6 +465,7 @@ title gameMode ended =
             ++ ifElse ended
                 restart
                 options
+            ++ [ text " " ]
         )
 
 
