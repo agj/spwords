@@ -30,8 +30,9 @@ import Ticker.Announcement as Announcement exposing (Announcement)
 import Ticker.Message as Message exposing (Message)
 import Ticker.Passed as Passed exposing (Passed)
 import Time
+import Util exposing (ifElse)
 import Util.Element exposing (toCssColor)
-import Util.List exposing (consWhen)
+import Util.List exposing (appendWhen, consWhen)
 import Viewport exposing (Viewport)
 import Words exposing (Words)
 
@@ -353,6 +354,14 @@ ticker model =
                 |> List.reverse
                 |> List.intersperse (text " ")
 
+        gameEnded =
+            case model.status of
+                Playing _ _ game ->
+                    Game.ended game
+
+                _ ->
+                    False
+
         tickerEl act passed =
             row
                 ([ centerY
@@ -360,7 +369,7 @@ ticker model =
                  , Cursor.default
                  ]
                     |> consWhen (not <| playing model.status)
-                        (above (title model.gameMode))
+                        (above (title model.gameMode gameEnded))
                 )
                 [ el
                     [ clip
@@ -390,8 +399,8 @@ ticker model =
             none
 
 
-title : Game.GameMode -> Element Msg
-title gameMode =
+title : Game.GameMode -> Bool -> Element Msg
+title gameMode ended =
     let
         nextMode =
             case gameMode of
@@ -400,6 +409,31 @@ title gameMode =
 
                 SingleMode ->
                     HotseatMode
+
+        options =
+            [ el
+                [ Events.onClick (SelectedMode nextMode)
+                , Cursor.pointer
+                ]
+                (text
+                    (case gameMode of
+                        HotseatMode ->
+                            "[2P HOTSEAT]"
+
+                        SingleMode ->
+                            "[SOLO]"
+                    )
+                )
+            , text " MODE. NORMAL SPEED. "
+            ]
+
+        restart =
+            [ el
+                [ Events.onClick NoOp
+                , Cursor.pointer
+                ]
+                (text "[RESTART]")
+            ]
     in
     row
         [ Font.size Palette.textSizeLarge
@@ -407,25 +441,15 @@ title gameMode =
         , Cursor.default
         , moveDown (1.7 * toFloat Palette.textSizeLarge)
         ]
-        [ el [ Font.bold ] (text "SPWORDS")
-        , text " BY "
-        , newTabLink [] { label = text "AGJ", url = "http://agj.cl" }
-        , text ". "
-        , el
-            [ Events.onClick (SelectedMode nextMode)
-            , Cursor.pointer
-            ]
-            (text
-                (case gameMode of
-                    HotseatMode ->
-                        "[2P HOTSEAT]"
-
-                    SingleMode ->
-                        "[SOLO]"
-                )
-            )
-        , text " MODE. NORMAL SPEED. "
-        ]
+        ([ el [ Font.bold ] (text "SPWORDS")
+         , text " BY "
+         , newTabLink [] { label = text "AGJ", url = "http://agj.cl" }
+         , text ". "
+         ]
+            ++ ifElse ended
+                restart
+                options
+        )
 
 
 tickerActive : Maybe Active -> Element Msg

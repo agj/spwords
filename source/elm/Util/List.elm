@@ -13,3 +13,12 @@ consWhen yes item list =
 
     else
         list
+
+
+appendWhen : Bool -> List a -> List a -> List a
+appendWhen yes listA listB =
+    if yes then
+        listB ++ listA
+
+    else
+        listB
