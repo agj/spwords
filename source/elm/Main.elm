@@ -348,6 +348,7 @@ ticker model =
                 , Font.size Palette.textSizeSmall
                 , Background.color Palette.transparent
                 , Border.color Palette.transparent
+                , Font.color Palette.transparent
                 , focused [ Border.glow Palette.transparent 0 ]
                 , Cursor.default
                 ]
