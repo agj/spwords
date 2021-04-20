@@ -2,6 +2,7 @@ module Palette exposing (..)
 
 import Element exposing (..)
 import Element.Font as Font exposing (Font)
+import Layout exposing (Layout)
 
 
 
@@ -54,29 +55,29 @@ font =
     ]
 
 
-textSizeSmall : Int
-textSizeSmall =
-    13
+textSizeNormal : Layout -> Int
+textSizeNormal layout =
+    case layout of
+        Layout.Small ->
+            17
+
+        _ ->
+            30
 
 
-textSizeNormal : Int
-textSizeNormal =
-    16
+textSizeLarge : Layout -> Int
+textSizeLarge layout =
+    case layout of
+        Layout.Small ->
+            55
 
-
-textSizeLarge : Int
-textSizeLarge =
-    30
-
-
-textSizeLarger : Int
-textSizeLarger =
-    110
+        _ ->
+            110
 
 
 textLineSpacing : Int -> Int
 textLineSpacing fontSize =
-    round (toFloat fontSize * 0.4)
+    round (toFloat fontSize * 0.2)
 
 
 

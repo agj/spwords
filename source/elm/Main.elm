@@ -300,7 +300,7 @@ view model =
     , body =
         [ layout
             [ Font.family Palette.font
-            , Font.size Palette.textSizeNormal
+            , Font.size (Palette.textSizeNormal model.layout)
             , Font.color Palette.light
             , Background.color Palette.dark
             , padding 0
@@ -345,8 +345,8 @@ ticker model =
         input =
             Input.multiline
                 [ width fill
-                , height (px Palette.textSizeLarger)
-                , Font.size Palette.textSizeSmall
+                , height (px (Palette.textSizeLarge model.layout))
+                , Font.size 5
                 , Background.color Palette.transparent
                 , Border.color Palette.transparent
                 , Font.color Palette.transparent
@@ -363,7 +363,7 @@ ticker model =
         cursor =
             el
                 [ width (px 5)
-                , height (px (Palette.textSizeLarger * 2))
+                , height (px (Palette.textSizeLarge model.layout * 2))
                 , Background.color <|
                     case getActiveAthlete model.status of
                         Just athlete ->
@@ -395,13 +395,13 @@ ticker model =
                  , Cursor.default
                  ]
                     |> consWhen (not (playing model.status))
-                        (above (title model.gameMode gameEnded))
+                        (above (title model.layout model.gameMode gameEnded))
                 )
                 [ el
                     [ clip
                     , width fill
-                    , height (px Palette.textSizeLarger)
-                    , Font.size Palette.textSizeLarger
+                    , height (px (Palette.textSizeLarge model.layout))
+                    , Font.size (Palette.textSizeLarge model.layout)
                     , inFront input
                     ]
                     (row
@@ -425,8 +425,8 @@ ticker model =
             tickerEl (tickerActive (Game.getActive game)) passed
 
 
-title : Game.GameMode -> Bool -> Element Msg
-title gameMode ended =
+title : Layout -> Game.GameMode -> Bool -> Element Msg
+title layout gameMode ended =
     let
         nextMode =
             case gameMode of
@@ -435,6 +435,13 @@ title gameMode ended =
 
                 SingleMode ->
                     HotseatMode
+
+        titleText =
+            [ el [ Font.bold ] (text "SPWORDS")
+            , text " BY "
+            , newTabLink [] { label = text "AGJ", url = "http://agj.cl" }
+            , text ". "
+            ]
 
         options =
             [ el
@@ -450,7 +457,7 @@ title gameMode ended =
                             "[SOLO]"
                     )
                 )
-            , text " MODE. NORMAL SPEED."
+            , text " MODE. NORMAL SPEED. "
             ]
 
         restart =
@@ -459,24 +466,35 @@ title gameMode ended =
                 , Cursor.pointer
                 ]
                 (text "[RESTART]")
+            , text " "
             ]
-    in
-    row
-        [ Font.size Palette.textSizeLarge
-        , alignRight
-        , Cursor.default
-        , moveDown (1.7 * toFloat Palette.textSizeLarge)
-        ]
-        ([ el [ Font.bold ] (text "SPWORDS")
-         , text " BY "
-         , newTabLink [] { label = text "AGJ", url = "http://agj.cl" }
-         , text ". "
-         ]
-            ++ ifElse ended
+
+        optionsOrRestart =
+            if ended then
                 restart
+
+            else
                 options
-            ++ [ text " " ]
-        )
+    in
+    case layout of
+        Layout.Small ->
+            column
+                [ alignRight
+                , Cursor.default
+                , moveDown (1.5 * toFloat (Palette.textSizeNormal layout))
+                , spacing (Palette.textLineSpacing (Palette.textSizeNormal layout))
+                ]
+                [ row [ alignRight ] titleText
+                , row [ alignRight ] optionsOrRestart
+                ]
+
+        _ ->
+            row
+                [ alignRight
+                , Cursor.default
+                , moveDown (1.7 * toFloat (Palette.textSizeNormal layout))
+                ]
+                (titleText ++ optionsOrRestart)
 
 
 tickerActive : Maybe Active -> Element Msg
