@@ -18,7 +18,7 @@ module Texts exposing
     , rules
     , tally
     , tie
-    , timeOut
+    , timeUp
     , title
     , winning
     )
@@ -292,9 +292,9 @@ notAWord arguments =
     mistake comments.mistake.notAWord arguments
 
 
-timeOut : MistakeArguments -> ( Paragraph, Random.Seed )
-timeOut arguments =
-    mistake comments.mistake.timeOut arguments
+timeUp : MistakeArguments -> ( Paragraph, Random.Seed )
+timeUp arguments =
+    mistake comments.mistake.timeUp arguments
 
 
 
@@ -358,7 +358,7 @@ comments =
             , "no such word in my dictionary!"
             , "what does that even mean?"
             ]
-        , timeOut =
+        , timeUp =
             [ "time is up!"
             , "time ran out!"
             , "no time left!"

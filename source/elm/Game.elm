@@ -293,8 +293,8 @@ userInput input seed words game =
 -- GAME TURN GENERATION
 
 
-startRound : { athlete : Athlete, score : PlayingScore, mode : GameMode, times : Times, seed : Random.Seed } -> ( Game, Random.Seed )
-startRound { athlete, score, mode, times, seed } =
+startRound : { athlete : Athlete, score : PlayingScore, mode : GameMode, seed : Random.Seed } -> ( Game, Random.Seed )
+startRound { athlete, score, mode, seed } =
     let
         ( initial, seed1 ) =
             randomLetter seed Texts.alphabet
@@ -322,7 +322,7 @@ startRound { athlete, score, mode, times, seed } =
                 score
                 athlete
                 (Constraints.serve initial)
-                times
+                Times.start
                 (Queue.singleton ann)
     in
     ( newGame
@@ -455,6 +455,23 @@ athleteInputDone { input, words, constraints, score, athlete, mode, times, seed 
         )
 
 
+timeUp : { input : String, score : PlayingScore, athlete : Athlete, mode : GameMode, times : Times, seed : Random.Seed } -> ( Game, Random.Seed, Maybe Message )
+timeUp { input, score, athlete, mode, times, seed } =
+    let
+        ( newGame, newSeed ) =
+            playWrong
+                { messageFn = Texts.timeUp
+                , score = score
+                , athlete = athlete
+                , constraints = Constraints.serve '?'
+                , mode = mode
+                , times = times
+                , seed = seed
+                }
+    in
+    ( newGame, newSeed, Just (Message.WrongAthleteInput athlete input) )
+
+
 endRound : { winner : Athlete, score : Score, mode : GameMode, times : Times, seed : Random.Seed } -> ( Game, Random.Seed )
 endRound { winner, score, mode, times, seed } =
     let
@@ -585,15 +602,36 @@ checkDone seed words game =
         End mode athlete points times queue ->
             check queue (\newQueue -> End mode athlete points times newQueue)
 
-        ComputerPlay _ thought _ _ ->
+        ComputerPlay score thought _ times ->
             if ComputerThought.isFinished thought then
                 nextStatus seed words game
+
+            else if Times.isUp AthleteB times then
+                timeUp
+                    { athlete = AthleteB
+                    , times = times
+                    , mode = SingleMode
+                    , score = score
+                    , input = ComputerThought.getInput thought
+                    , seed = seed
+                    }
 
             else
                 checkComputerCandidate seed words game
 
-        Play _ _ _ _ _ _ ->
-            ignore
+        Play mode score athlete input _ times ->
+            if Times.isUp athlete times then
+                timeUp
+                    { athlete = athlete
+                    , times = times
+                    , mode = mode
+                    , score = score
+                    , input = input
+                    , seed = seed
+                    }
+
+            else
+                ignore
 
         Done _ ->
             ignore
@@ -614,7 +652,6 @@ nextStatus seed words game =
                 { score = Score.emptyPlayingScore
                 , athlete = AthleteB
                 , mode = mode
-                , times = Times.start
                 , seed = seed
                 }
                 |> addMessage queue
@@ -700,12 +737,11 @@ nextStatus seed words game =
                     )
                         |> addMessage queue
 
-        Assessment mode score athlete times queue ->
+        Assessment mode score athlete _ queue ->
             startRound
                 { score = score
                 , athlete = Athlete.opposite athlete
                 , mode = mode
-                , times = times
                 , seed = seed
                 }
                 |> addMessage queue

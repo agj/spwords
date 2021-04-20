@@ -1,4 +1,4 @@
-module Game.Times exposing (Times, get, start, tick)
+module Game.Times exposing (Times, get, isUp, start, tick)
 
 import Athlete exposing (Athlete(..))
 
@@ -30,6 +30,16 @@ get athlete (Times a b) =
 
         AthleteB ->
             b
+
+
+isUp : Athlete -> Times -> Bool
+isUp athlete (Times a b) =
+    case athlete of
+        AthleteA ->
+            a <= 0
+
+        AthleteB ->
+            b <= 0
 
 
 
