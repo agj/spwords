@@ -21,6 +21,7 @@ import Game exposing (Game, GameMode(..))
 import Game.Times as Times exposing (Times)
 import Html exposing (Html)
 import Http
+import Layout exposing (Layout)
 import Levers
 import Palette
 import Random
@@ -59,7 +60,7 @@ main =
 type alias Model =
     { status : Status
     , gameMode : Game.GameMode
-    , viewport : Viewport
+    , layout : Layout
     , randomSeed : Random.Seed
     }
 
@@ -84,7 +85,7 @@ init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { status = Loading (Announcement.create Texts.loading)
       , gameMode = Game.SingleMode
-      , viewport = flags.viewport
+      , layout = Layout.fromViewport flags.viewport
       , randomSeed = Random.initialSeed 64
       }
     , Cmd.batch
@@ -191,7 +192,7 @@ update msg model =
             )
 
         GotViewport viewport ->
-            ( { model | viewport = viewport }
+            ( { model | layout = Layout.fromViewport viewport }
             , Cmd.none
             )
 
