@@ -7,6 +7,7 @@ module Levers exposing
     , computerWordDelay
     , computerWordErrorFactor
     , tickInterval
+    , timeDepletionRate
     )
 
 
@@ -24,11 +25,20 @@ type alias Factor =
     Float
 
 
+type alias FractionPerTick =
+    Float
+
+
 {-| The duration of one tick of the ticker.
 -}
 tickInterval : Milliseconds
 tickInterval =
     80
+
+
+timeDepletionRate : FractionPerTick
+timeDepletionRate =
+    perSToPerTick 0.05
 
 
 {-| How long the computer “thinks” before starting to type their word.
@@ -72,3 +82,8 @@ computerLetterErrorProbability =
 msToTicks : Milliseconds -> Ticks
 msToTicks ms =
     ms / tickInterval |> round |> max 1
+
+
+perSToPerTick : Float -> FractionPerTick
+perSToPerTick fr =
+    fr / 1000 * tickInterval

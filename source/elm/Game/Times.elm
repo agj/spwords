@@ -1,6 +1,7 @@
 module Game.Times exposing (Times, get, isUp, start, tick)
 
 import Athlete exposing (Athlete(..))
+import Levers
 
 
 type Times
@@ -48,4 +49,4 @@ isUp athlete (Times a b) =
 
 deplete : Float -> Float
 deplete time =
-    max 0 (time - 0.01)
+    max 0 (time - Levers.timeDepletionRate)
