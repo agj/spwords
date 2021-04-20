@@ -60,6 +60,7 @@ main =
 type alias Model =
     { status : Status
     , gameMode : Game.GameMode
+    , inputFocused : Bool
     , layout : Layout
     , randomSeed : Random.Seed
     }
@@ -85,6 +86,7 @@ init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { status = Loading (Announcement.create Texts.loading)
       , gameMode = Game.SingleMode
+      , inputFocused = False
       , layout = Layout.fromViewport flags.viewport
       , randomSeed = Random.initialSeed 64
       }
@@ -108,6 +110,7 @@ type Msg
     | GotWords (Result Http.Error String)
     | SelectedMode Game.GameMode
     | SelectedRestart
+    | InputFocusChange Bool
     | Resized
     | GotViewport Viewport
     | GotSeed Random.Seed
@@ -171,6 +174,11 @@ update msg model =
 
                 _ ->
                     default
+
+        InputFocusChange focused ->
+            ( { model | inputFocused = focused }
+            , Cmd.none
+            )
 
         -- INITIALIZATION STAGE
         --
@@ -342,24 +350,6 @@ mainScreen model =
 ticker : Model -> Element Msg
 ticker model =
     let
-        input =
-            Input.multiline
-                [ width fill
-                , height (px (Palette.textSizeLarge model.layout))
-                , Font.size 5
-                , Background.color Palette.transparent
-                , Border.color Palette.transparent
-                , Font.color Palette.transparent
-                , focused [ Border.glow Palette.transparent 0 ]
-                , Cursor.default
-                ]
-                { text = ""
-                , onChange = Inputted
-                , placeholder = Nothing
-                , label = Input.labelHidden ""
-                , spellcheck = False
-                }
-
         cursor =
             el
                 [ width (px (Palette.spaceSmall model.layout))
@@ -402,7 +392,7 @@ ticker model =
                     , width fill
                     , height (px (Palette.textSizeLarge model.layout))
                     , Font.size (Palette.textSizeLarge model.layout)
-                    , inFront input
+                    , inFront (inputEl model.layout model.inputFocused)
                     ]
                     (row
                         [ alignRight ]
@@ -423,6 +413,45 @@ ticker model =
 
         Playing _ passed game ->
             tickerEl (tickerActive (Game.getActive game)) passed
+
+
+inputEl : Layout -> Bool -> Element Msg
+inputEl layout inputFocused =
+    let
+        pressHere =
+            behindContent
+                (el
+                    [ Background.color Palette.dark
+                    , Font.color Palette.light
+                    , Font.size (Palette.textSizeLarge layout)
+                    , width fill
+                    , height (px (Palette.textSizeLarge layout))
+                    , Font.center
+                    ]
+                    (text "PRESS HERE")
+                )
+    in
+    Input.multiline
+        ([ width fill
+         , height (px (Palette.textSizeLarge layout))
+         , Font.size 5
+         , Background.color Palette.transparent
+         , Border.color Palette.transparent
+         , Font.color Palette.transparent
+         , focused [ Border.glow Palette.transparent 0 ]
+         , Cursor.default
+         , Input.focusedOnLoad
+         , Events.onFocus (InputFocusChange True)
+         , Events.onLoseFocus (InputFocusChange False)
+         ]
+            |> consWhen (not inputFocused) pressHere
+        )
+        { text = ""
+        , onChange = Inputted
+        , placeholder = Nothing
+        , label = Input.labelHidden ""
+        , spellcheck = False
+        }
 
 
 title : Layout -> Game.GameMode -> Bool -> Element Msg
