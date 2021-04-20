@@ -333,9 +333,9 @@ mainScreen model =
                     Times.start
     in
     column [ height fill, width fill ]
-        [ bar AthleteA (Times.get AthleteA times) (isAthlete AthleteA)
+        [ bar model.layout AthleteA (Times.get AthleteA times) (isAthlete AthleteA)
         , ticker model
-        , bar AthleteB (Times.get AthleteB times) (isAthlete AthleteB)
+        , bar model.layout AthleteB (Times.get AthleteB times) (isAthlete AthleteB)
         ]
 
 
@@ -362,7 +362,7 @@ ticker model =
 
         cursor =
             el
-                [ width (px 5)
+                [ width (px (Palette.spaceSmall model.layout))
                 , height (px (Palette.textSizeLarge model.layout * 2))
                 , Background.color <|
                     case getActiveAthlete model.status of
@@ -477,7 +477,15 @@ title layout gameMode ended =
                 options
     in
     case layout of
-        Layout.Small ->
+        Layout.Large ->
+            row
+                [ alignRight
+                , Cursor.default
+                , moveDown (1.7 * toFloat (Palette.textSizeNormal layout))
+                ]
+                (titleText ++ optionsOrRestart)
+
+        _ ->
             column
                 [ alignRight
                 , Cursor.default
@@ -487,14 +495,6 @@ title layout gameMode ended =
                 [ row [ alignRight ] titleText
                 , row [ alignRight ] optionsOrRestart
                 ]
-
-        _ ->
-            row
-                [ alignRight
-                , Cursor.default
-                , moveDown (1.7 * toFloat (Palette.textSizeNormal layout))
-                ]
-                (titleText ++ optionsOrRestart)
 
 
 tickerActive : Maybe Active -> Element Msg
@@ -568,21 +568,18 @@ tickerMessage tt =
                 (text (String.toUpper txt))
 
 
-bar : Athlete -> Float -> Bool -> Element Msg
-bar athlete timeLeft active =
+bar : Layout -> Athlete -> Float -> Bool -> Element Msg
+bar layout athlete timeLeft active =
     let
         filledPortion =
             round (timeLeft * 10000)
 
         emptyPortion =
             10000 - filledPortion
-
-        fullHeight =
-            Palette.spaceSmall * 3
     in
     el
         [ width fill
-        , height (px fullHeight)
+        , height (px (Palette.spaceLarge layout))
         ]
         (row
             [ case athlete of
@@ -594,10 +591,10 @@ bar athlete timeLeft active =
             , width fill
             , height
                 (if active then
-                    px fullHeight
+                    px (Palette.spaceLarge layout)
 
                  else
-                    px Palette.spaceSmall
+                    px (Palette.spaceNormal layout)
                 )
             ]
             [ el

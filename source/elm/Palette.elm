@@ -61,7 +61,10 @@ textSizeNormal layout =
         Layout.Small ->
             17
 
-        _ ->
+        Layout.Medium ->
+            23
+
+        Layout.Large ->
             30
 
 
@@ -71,7 +74,10 @@ textSizeLarge layout =
         Layout.Small ->
             55
 
-        _ ->
+        Layout.Medium ->
+            80
+
+        Layout.Large ->
             110
 
 
@@ -84,26 +90,31 @@ textLineSpacing fontSize =
 -- SPACING
 
 
-spaceLarge : Int
-spaceLarge =
-    26
+spaceLarge : Layout -> Int
+spaceLarge layout =
+    case layout of
+        Layout.Small ->
+            18
+
+        _ ->
+            30
 
 
-spaceNormal : Int
-spaceNormal =
-    20
+spaceNormal : Layout -> Int
+spaceNormal layout =
+    case layout of
+        Layout.Small ->
+            6
+
+        _ ->
+            10
 
 
-spaceSmall : Int
-spaceSmall =
-    10
+spaceSmall : Layout -> Int
+spaceSmall layout =
+    case layout of
+        Layout.Small ->
+            3
 
-
-spaceSmaller : Int
-spaceSmaller =
-    5
-
-
-spaceSmallest : Int
-spaceSmallest =
-    2
+        _ ->
+            5

@@ -11,8 +11,11 @@ type Layout
 
 fromViewport : Viewport -> Layout
 fromViewport vp =
-    if vp.width <= 400 then
+    if vp.width <= 450 then
         Small
 
-    else
+    else if vp.width <= 850 then
         Medium
+
+    else
+        Large
