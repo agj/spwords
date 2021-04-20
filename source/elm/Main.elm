@@ -618,7 +618,7 @@ fromDocText txt =
 
 getStyle : Doc.Format.Format -> List (Element.Attribute msg)
 getStyle format =
-    [ Attribute.preformatted ]
+    []
         |> consWhen (Doc.Format.isBold format)
             Font.bold
         |> consWhen (Doc.Format.isItalic format)
