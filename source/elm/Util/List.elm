@@ -15,6 +15,16 @@ consWhen yes item list =
         list
 
 
+consMaybe : Maybe a -> List a -> List a
+consMaybe maybe list =
+    case maybe of
+        Just a ->
+            a :: list
+
+        Nothing ->
+            list
+
+
 appendWhen : Bool -> List a -> List a -> List a
 appendWhen yes listA listB =
     if yes then

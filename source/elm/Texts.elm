@@ -30,6 +30,7 @@ import Doc.EmuDecode
 import Doc.Format as Format exposing (Format)
 import Doc.Paragraph as Paragraph exposing (Paragraph)
 import Doc.Text as Text exposing (Text)
+import List.Extra as List
 import Random
 import Score exposing (Points, Score)
 import Util.Random as Random
@@ -116,13 +117,16 @@ roundStart { turnAthlete, turn, initial, seed } =
                 ]
     in
     comments.roundStart
-        |> emuRandomString seed setStyles vars
+        |> randomString seed
+        |> Tuple.mapFirst (emu setStyles vars)
+        |> Tuple.mapFirst addLastSpace
 
 
 interjection : Random.Seed -> ( Paragraph, Random.Seed )
 interjection seed =
     comments.interjection
         |> emuRandomString seed identity Dict.empty
+        |> Tuple.mapFirst addLastSpace
 
 
 roundEnd : { winner : Athlete, athleteA : String, athleteB : String, seed : Random.Seed } -> ( Paragraph, Random.Seed )
@@ -409,7 +413,7 @@ comments =
 
 emu : (Text -> Text) -> Dict String String -> String -> Paragraph
 emu formatter vars str =
-    Doc.EmuDecode.fromEmu str
+    Doc.EmuDecode.fromEmu (" " ++ str)
         |> Doc.content
         |> List.head
         |> Maybe.withDefault Paragraph.empty
@@ -478,3 +482,17 @@ mistake texts { initial, incorporates, seed } =
     in
     texts
         |> emuRandomString seed setStyles vars
+
+
+addLastSpace : Paragraph -> Paragraph
+addLastSpace par =
+    let
+        add texts =
+            case ( List.init texts, List.last texts ) of
+                ( Just init, Just last ) ->
+                    init ++ [ last |> Text.mapContent (\str -> str ++ " ") ]
+
+                _ ->
+                    texts
+    in
+    Paragraph.mapContent add par

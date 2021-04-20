@@ -33,7 +33,7 @@ import Ticker.Passed as Passed exposing (Passed)
 import Time
 import Util exposing (ifElse)
 import Util.Element exposing (toCssColor)
-import Util.List exposing (appendWhen, consWhen)
+import Util.List exposing (appendWhen, consMaybe, consWhen)
 import Viewport exposing (Viewport)
 import Words exposing (Words)
 
@@ -377,7 +377,6 @@ ticker model =
                 :: tickerPassed passed
             )
                 |> List.reverse
-                |> List.intersperse (text " ")
 
         gameEnded =
             case model.status of
@@ -619,24 +618,18 @@ fromDocText txt =
 
 getStyle : Doc.Format.Format -> List (Element.Attribute msg)
 getStyle format =
-    List.concat
-        [ if Doc.Format.isBold format then
-            [ Font.bold ]
-
-          else
-            []
-        , if Doc.Format.isItalic format then
-            [ Font.italic ]
-
-          else
-            []
-        , case Doc.Format.athlete format of
-            Just athlete ->
-                [ Font.color (athleteColor athlete) ]
-
-            Nothing ->
-                []
-        ]
+    [ Attribute.preformatted ]
+        |> consWhen (Doc.Format.isBold format)
+            Font.bold
+        |> consWhen (Doc.Format.isItalic format)
+            Font.italic
+        |> consMaybe
+            (Doc.Format.athlete format
+                |> Maybe.map
+                    (\athlete ->
+                        Font.color (athleteColor athlete)
+                    )
+            )
 
 
 athleteColor : Athlete -> Color
