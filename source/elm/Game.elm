@@ -4,6 +4,7 @@ module Game exposing
     , ended
     , getActive
     , getActiveAthlete
+    , getTimes
     , skip
     , startGame
     , tick
@@ -104,6 +105,40 @@ getActiveAthlete game =
 
         _ ->
             Nothing
+
+
+getTimes : Game -> Times
+getTimes game =
+    case game of
+        GameStart _ _ ->
+            Times.start
+
+        RoundStart _ _ _ _ times _ ->
+            times
+
+        PlayCorrect _ _ _ _ times _ ->
+            times
+
+        PlayWrong _ _ _ _ times _ ->
+            times
+
+        RoundEnd _ _ _ times _ ->
+            times
+
+        Assessment _ _ _ times _ ->
+            times
+
+        End _ _ _ times _ ->
+            times
+
+        Play _ _ _ _ _ times ->
+            times
+
+        ComputerPlay _ _ _ times ->
+            times
+
+        Done times ->
+            times
 
 
 ended : Game -> Bool

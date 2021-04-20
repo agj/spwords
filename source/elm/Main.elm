@@ -18,6 +18,7 @@ import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import Game exposing (Game, GameMode(..))
+import Game.Times as Times exposing (Times)
 import Html exposing (Html)
 import Http
 import Levers
@@ -321,11 +322,19 @@ mainScreen model =
 
                 _ ->
                     False
+
+        times =
+            case model.status of
+                Playing _ _ game ->
+                    Game.getTimes game
+
+                _ ->
+                    Times.start
     in
     column [ height fill, width fill ]
-        [ bar AthleteA (TimeLeft 0.5) (isAthlete AthleteA)
+        [ bar AthleteA (Times.get AthleteA times) (isAthlete AthleteA)
         , ticker model
-        , bar AthleteB (TimeLeft 0.5) (isAthlete AthleteB)
+        , bar AthleteB (Times.get AthleteB times) (isAthlete AthleteB)
         ]
 
 
@@ -540,12 +549,8 @@ tickerMessage tt =
                 (text (String.toUpper txt))
 
 
-type TimeLeft
-    = TimeLeft Float
-
-
-bar : Athlete -> TimeLeft -> Bool -> Element Msg
-bar athlete (TimeLeft timeLeft) active =
+bar : Athlete -> Float -> Bool -> Element Msg
+bar athlete timeLeft active =
     let
         filledPortion =
             round (timeLeft * 10000)
