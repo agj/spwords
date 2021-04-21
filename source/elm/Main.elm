@@ -17,7 +17,8 @@ import Element.Custom.Attribute as Attribute
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
-import Game exposing (Game, GameMode(..))
+import Game exposing (Game)
+import Game.GameMode exposing (GameMode(..))
 import Game.Times as Times exposing (Times)
 import Html exposing (Html)
 import Http
@@ -61,7 +62,7 @@ main =
 
 type alias Model =
     { status : Status
-    , gameMode : Game.GameMode
+    , gameMode : GameMode
     , speed : Speed
     , inputFocused : Bool
     , layout : Layout
@@ -88,7 +89,7 @@ type alias Flags =
 init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { status = Loading (Announcement.create Texts.loading)
-      , gameMode = Game.SingleMode
+      , gameMode = SingleMode
       , speed = Speed.Normal
       , inputFocused = False
       , layout = Layout.fromViewport flags.viewport
@@ -112,7 +113,7 @@ type Msg
     = Ticked Time.Posix
     | Inputted String
     | GotWords (Result Http.Error String)
-    | SelectedMode Game.GameMode
+    | SelectedMode GameMode
     | SelectedSpeed Speed
     | SelectedRestart
     | InputFocusChange Bool
@@ -509,7 +510,7 @@ inputEl layout inputFocused athleteM =
         }
 
 
-title : Layout -> Game.GameMode -> Speed -> Bool -> Element Msg
+title : Layout -> GameMode -> Speed -> Bool -> Element Msg
 title layout gameMode speed ended =
     let
         nextMode =

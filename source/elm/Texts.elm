@@ -9,7 +9,6 @@ module Texts exposing
     , interjection
     , loadError
     , loading
-    , names
     , newRound
     , notAWord
     , ready
@@ -30,7 +29,9 @@ import Doc.EmuDecode
 import Doc.Format as Format exposing (Format)
 import Doc.Paragraph as Paragraph exposing (Paragraph)
 import Doc.Text as Text exposing (Text)
+import Game.GameMode exposing (GameMode(..))
 import List.Extra as List
+import Palette exposing (athleteA)
 import Random
 import Score exposing (Points, Score)
 import Util.Random as Random
@@ -42,14 +43,6 @@ title =
 
 alphabet =
     "abcdefghijklmnopqrstuvwxyz"
-
-
-names =
-    { player = "player"
-    , computer = "computer"
-    , left = "left"
-    , right = "right"
-    }
 
 
 loading =
@@ -67,8 +60,8 @@ ready =
         |> emu identity Dict.empty
 
 
-gameStart : { athleteA : String, athleteB : String } -> Paragraph
-gameStart { athleteA, athleteB } =
+gameStart : GameMode -> Paragraph
+gameStart mode =
     let
         setStyles txt =
             case Text.content txt of
@@ -83,8 +76,8 @@ gameStart { athleteA, athleteB } =
 
         vars =
             Dict.fromList
-                [ ( "athleteA", athleteA )
-                , ( "athleteB", athleteB )
+                [ ( "athleteA", athleteName mode AthleteA )
+                , ( "athleteB", athleteName mode AthleteB )
                 ]
     in
     comments.gameStart
@@ -96,8 +89,8 @@ rules =
         |> emu identity Dict.empty
 
 
-roundStart : { turnAthlete : Athlete, turn : String, initial : Char, seed : Random.Seed } -> ( Paragraph, Random.Seed )
-roundStart { turnAthlete, turn, initial, seed } =
+roundStart : { turnAthlete : Athlete, mode : GameMode, initial : Char, seed : Random.Seed } -> ( Paragraph, Random.Seed )
+roundStart { turnAthlete, mode, initial, seed } =
     let
         setStyles txt =
             case Text.content txt of
@@ -112,7 +105,7 @@ roundStart { turnAthlete, turn, initial, seed } =
 
         vars =
             Dict.fromList
-                [ ( "turn", turn )
+                [ ( "turn", athleteName mode turnAthlete )
                 , ( "letter", initial |> String.fromChar )
                 ]
     in
@@ -129,39 +122,35 @@ interjection seed =
         |> Tuple.mapFirst addLastSpace
 
 
-roundEnd : { winner : Athlete, athleteA : String, athleteB : String, seed : Random.Seed } -> ( Paragraph, Random.Seed )
-roundEnd { winner, athleteA, athleteB, seed } =
+roundEnd : { winner : Athlete, mode : GameMode, seed : Random.Seed } -> ( Paragraph, Random.Seed )
+roundEnd { winner, mode, seed } =
     let
+        loser =
+            Athlete.opposite winner
+
         setStyles txt =
             case Text.content txt of
                 "winner" ->
                     txt |> Text.mapFormat (Format.setAthlete (Just winner))
 
                 "loser" ->
-                    txt |> Text.mapFormat (Format.setAthlete (Just (Athlete.opposite winner)))
+                    txt |> Text.mapFormat (Format.setAthlete (Just loser))
 
                 _ ->
                     txt
 
         vars =
-            Dict.fromList <|
-                case winner of
-                    AthleteA ->
-                        [ ( "winner", athleteA )
-                        , ( "loser", athleteB )
-                        ]
-
-                    AthleteB ->
-                        [ ( "winner", athleteB )
-                        , ( "loser", athleteA )
-                        ]
+            Dict.fromList
+                [ ( "winner", athleteName mode winner )
+                , ( "loser", athleteName mode loser )
+                ]
     in
     comments.roundEnd
         |> emuRandomString seed setStyles vars
 
 
-tally : { athleteA : String, athleteB : String, pointsA : Points, pointsB : Points, seed : Random.Seed } -> ( Paragraph, Random.Seed )
-tally { athleteA, athleteB, pointsA, pointsB, seed } =
+tally : { mode : GameMode, pointsA : Points, pointsB : Points, seed : Random.Seed } -> ( Paragraph, Random.Seed )
+tally { mode, pointsA, pointsB, seed } =
     let
         setStyles txt =
             case Text.content txt of
@@ -176,8 +165,8 @@ tally { athleteA, athleteB, pointsA, pointsB, seed } =
 
         vars =
             Dict.fromList
-                [ ( "athleteA", athleteA )
-                , ( "athleteB", athleteB )
+                [ ( "athleteA", athleteName mode AthleteA )
+                , ( "athleteB", athleteName mode AthleteB )
                 , ( "pointsA", pointsA |> Score.intFromPoints |> String.fromInt )
                 , ( "pointsB", pointsB |> Score.intFromPoints |> String.fromInt )
                 ]
@@ -186,32 +175,28 @@ tally { athleteA, athleteB, pointsA, pointsB, seed } =
         |> emuRandomString seed setStyles vars
 
 
-winning : { winner : Athlete, athleteA : String, athleteB : String, seed : Random.Seed } -> ( Paragraph, Random.Seed )
-winning { winner, athleteA, athleteB, seed } =
+winning : { winner : Athlete, mode : GameMode, seed : Random.Seed } -> ( Paragraph, Random.Seed )
+winning { winner, mode, seed } =
     let
+        loser =
+            Athlete.opposite winner
+
         setStyles txt =
             case Text.content txt of
                 "winner" ->
                     txt |> Text.mapFormat (Format.setAthlete (Just winner))
 
                 "loser" ->
-                    txt |> Text.mapFormat (Format.setAthlete (Just (Athlete.opposite winner)))
+                    txt |> Text.mapFormat (Format.setAthlete (Just loser))
 
                 _ ->
                     txt
 
         vars =
-            Dict.fromList <|
-                case winner of
-                    AthleteA ->
-                        [ ( "winner", athleteA )
-                        , ( "loser", athleteB )
-                        ]
-
-                    AthleteB ->
-                        [ ( "winner", athleteB )
-                        , ( "loser", athleteA )
-                        ]
+            Dict.fromList
+                [ ( "winner", athleteName mode winner )
+                , ( "loser", athleteName mode loser )
+                ]
     in
     comments.assessment.winning
         |> emuRandomString seed setStyles vars
@@ -238,32 +223,27 @@ newRound seed =
         |> emuRandomString seed identity Dict.empty
 
 
-gameEnd : { winner : Athlete, athleteA : String, athleteB : String, loserPoints : Points } -> Paragraph
-gameEnd { winner, athleteA, athleteB, loserPoints } =
+gameEnd : { winner : Athlete, mode : GameMode, loserPoints : Points } -> Paragraph
+gameEnd { winner, mode, loserPoints } =
     let
+        loser =
+            Athlete.opposite winner
+
         setStyles txt =
             case Text.content txt of
                 "winner" ->
                     txt |> Text.mapFormat (Format.setAthlete (Just winner))
 
                 "loser" ->
-                    txt |> Text.mapFormat (Format.setAthlete (Just (Athlete.opposite winner)))
+                    txt |> Text.mapFormat (Format.setAthlete (Just loser))
 
                 _ ->
                     txt |> Text.mapFormat (Format.setBold True)
 
-        ( winnerName, loserName ) =
-            case winner of
-                AthleteA ->
-                    ( athleteA, athleteB )
-
-                AthleteB ->
-                    ( athleteB, athleteA )
-
         vars =
             Dict.fromList <|
-                [ ( "winner", winnerName )
-                , ( "loser", loserName )
+                [ ( "winner", athleteName mode winner )
+                , ( "loser", athleteName mode loser )
                 , ( "winnerPoints", Score.winPoints |> String.fromInt )
                 , ( "loserPoints", loserPoints |> Score.intFromPoints |> String.fromInt )
                 ]
@@ -496,3 +476,23 @@ addLastSpace par =
                     texts
     in
     Paragraph.mapContent add par
+
+
+athleteName : GameMode -> Athlete -> String
+athleteName mode athlete =
+    case mode of
+        HotseatMode ->
+            case athlete of
+                AthleteA ->
+                    "left"
+
+                AthleteB ->
+                    "right"
+
+        SingleMode ->
+            case athlete of
+                AthleteA ->
+                    "player"
+
+                AthleteB ->
+                    "computer"

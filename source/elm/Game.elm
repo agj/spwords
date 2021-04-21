@@ -1,6 +1,5 @@
 module Game exposing
     ( Game
-    , GameMode(..)
     , ended
     , getActive
     , getActiveAthlete
@@ -15,6 +14,7 @@ import Athlete exposing (..)
 import ComputerThought exposing (ComputerThought)
 import Constraints exposing (Constraints)
 import Doc.Paragraph exposing (Paragraph)
+import Game.GameMode exposing (GameMode(..))
 import Game.Times as Times exposing (Times)
 import Random
 import Score exposing (PlayingScore, Points, Score(..))
@@ -40,20 +40,12 @@ type Game
     | Done Times
 
 
-type GameMode
-    = HotseatMode
-    | SingleMode
-
-
 startGame : GameMode -> Game
 startGame mode =
     GameStart
         mode
         (Queue.fromList
-            (Texts.gameStart
-                { athleteA = "left"
-                , athleteB = "right"
-                }
+            (Texts.gameStart mode
                 |> Announcement.create
             )
             [ Texts.rules |> Announcement.create ]
@@ -303,13 +295,7 @@ startRound { athlete, score, mode, seed } =
             Texts.roundStart
                 { turnAthlete = athlete
                 , seed = seed1
-                , turn =
-                    case athlete of
-                        AthleteA ->
-                            "left"
-
-                        AthleteB ->
-                            "right"
+                , mode = mode
                 , initial = initial
                 }
 
@@ -478,8 +464,7 @@ endRound { winner, score, mode, times, seed } =
         ( message, newSeed ) =
             Texts.roundEnd
                 { winner = winner
-                , athleteA = "left"
-                , athleteB = "right"
+                , mode = mode
                 , seed = seed
                 }
 
@@ -494,8 +479,7 @@ assessment { score, athlete, mode, times, seed } =
     let
         ( tallyMsg, seed1 ) =
             Texts.tally
-                { athleteA = "left"
-                , athleteB = "right"
+                { mode = mode
                 , pointsA = Tuple.first score
                 , pointsB = Tuple.second score
                 , seed = seed
@@ -518,8 +502,7 @@ assessment { score, athlete, mode, times, seed } =
 
                                 else
                                     AthleteB
-                            , athleteA = "left"
-                            , athleteB = "right"
+                            , mode = mode
                             , seed = seed1
                             }
 
@@ -546,8 +529,7 @@ endGame { winner, loserPoints, times, mode } =
             Texts.gameEnd
                 { winner = winner
                 , loserPoints = loserPoints
-                , athleteA = "left"
-                , athleteB = "right"
+                , mode = mode
                 }
                 |> Announcement.createUnskippable
     in
