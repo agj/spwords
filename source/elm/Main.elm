@@ -465,8 +465,8 @@ inputEl layout inputFocused athleteM =
         pressHere =
             case athleteM of
                 Just athlete ->
-                    [ behindContent
-                        (el
+                    if not inputFocused then
+                        el
                             [ Background.color (athleteColor athlete)
                             , Font.color Palette.dark
                             , Font.size (Palette.textSizeNormal layout)
@@ -476,27 +476,27 @@ inputEl layout inputFocused athleteM =
                             , Font.center
                             ]
                             (el [ centerY, centerX ] (text "PRESS HERE"))
-                        )
-                    ]
+
+                    else
+                        none
 
                 Nothing ->
-                    []
+                    none
     in
     Input.multiline
-        ([ width fill
-         , height (px (Palette.textSizeLarge layout))
-         , Font.size 5
-         , Background.color Palette.transparent
-         , Border.color Palette.transparent
-         , Font.color Palette.transparent
-         , focused [ Border.glow Palette.transparent 0 ]
-         , Cursor.default
-         , Events.onFocus (InputFocusChange True)
-         , Events.onLoseFocus (InputFocusChange False)
-         , Events.onClick InputSelected
-         ]
-            |> appendWhen (not inputFocused) pressHere
-        )
+        [ width fill
+        , height (px (Palette.textSizeLarge layout))
+        , Font.size 5
+        , Background.color Palette.transparent
+        , Border.color Palette.transparent
+        , Font.color Palette.transparent
+        , focused [ Border.glow Palette.transparent 0 ]
+        , Cursor.default
+        , Events.onFocus (InputFocusChange True)
+        , Events.onLoseFocus (InputFocusChange False)
+        , Events.onClick InputSelected
+        , behindContent pressHere
+        ]
         { text = ""
         , onChange = Inputted
         , placeholder = Nothing
