@@ -26,6 +26,7 @@ import Levers
 import Palette
 import Random
 import Score exposing (..)
+import Speed exposing (Speed)
 import Texts
 import Ticker.Active as Active exposing (Active)
 import Ticker.Announcement as Announcement exposing (Announcement)
@@ -60,6 +61,7 @@ main =
 type alias Model =
     { status : Status
     , gameMode : Game.GameMode
+    , speed : Speed
     , inputFocused : Bool
     , layout : Layout
     , randomSeed : Random.Seed
@@ -86,6 +88,7 @@ init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { status = Loading (Announcement.create Texts.loading)
       , gameMode = Game.SingleMode
+      , speed = Speed.Normal
       , inputFocused = False
       , layout = Layout.fromViewport flags.viewport
       , randomSeed = Random.initialSeed 64
@@ -109,6 +112,7 @@ type Msg
     | Inputted String
     | GotWords (Result Http.Error String)
     | SelectedMode Game.GameMode
+    | SelectedSpeed Speed
     | SelectedRestart
     | InputFocusChange Bool
     | Resized
@@ -162,6 +166,11 @@ update msg model =
 
         SelectedMode mode ->
             ( { model | gameMode = mode }
+            , Cmd.none
+            )
+
+        SelectedSpeed speed ->
+            ( { model | speed = speed }
             , Cmd.none
             )
 
@@ -385,7 +394,7 @@ ticker model =
                  , Cursor.default
                  ]
                     |> consWhen (not (playing model.status))
-                        (above (title model.layout model.gameMode gameEnded))
+                        (above (title model.layout model.gameMode model.speed gameEnded))
                 )
                 [ el
                     [ clip
@@ -454,8 +463,8 @@ inputEl layout inputFocused =
         }
 
 
-title : Layout -> Game.GameMode -> Bool -> Element Msg
-title layout gameMode ended =
+title : Layout -> Game.GameMode -> Speed -> Bool -> Element Msg
+title layout gameMode speed ended =
     let
         nextMode =
             case gameMode of
@@ -464,6 +473,14 @@ title layout gameMode ended =
 
                 SingleMode ->
                     HotseatMode
+
+        nextSpeed =
+            case speed of
+                Speed.Normal ->
+                    Speed.Slow
+
+                Speed.Slow ->
+                    Speed.Normal
 
         titleText =
             [ el [ Font.bold ] (text "SPWORDS")
@@ -486,7 +503,21 @@ title layout gameMode ended =
                             "[SOLO]"
                     )
                 )
-            , text " MODE. NORMAL SPEED. "
+            , text " MODE. "
+            , el
+                [ Events.onClick (SelectedSpeed nextSpeed)
+                , Cursor.pointer
+                ]
+                (text
+                    (case speed of
+                        Speed.Normal ->
+                            "[TOURNAMENT]"
+
+                        Speed.Slow ->
+                            "[AMATEUR]"
+                    )
+                )
+            , text " SPEED. "
             ]
 
         restart =
