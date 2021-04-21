@@ -115,6 +115,7 @@ type Msg
     | SelectedSpeed Speed
     | SelectedRestart
     | InputFocusChange Bool
+    | InputSelected
     | Resized
     | GotViewport Viewport
     | GotSeed Random.Seed
@@ -124,7 +125,7 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     let
-        default =
+        ignore =
             ( model, Cmd.none )
     in
     case msg of
@@ -162,7 +163,7 @@ update msg model =
                         )
 
                     _ ->
-                        default
+                        ignore
 
         SelectedMode mode ->
             ( { model | gameMode = mode }
@@ -182,12 +183,27 @@ update msg model =
                     )
 
                 _ ->
-                    default
+                    ignore
 
         InputFocusChange focused ->
-            ( { model | inputFocused = focused }
-            , Cmd.none
-            )
+            let
+                newModel =
+                    { model | inputFocused = focused }
+            in
+            case model.status of
+                Ready _ _ _ ->
+                    ( startPlay newModel, Cmd.none )
+
+                _ ->
+                    ( newModel, Cmd.none )
+
+        InputSelected ->
+            case model.status of
+                Ready _ _ _ ->
+                    ( startPlay model, Cmd.none )
+
+                _ ->
+                    ignore
 
         -- INITIALIZATION STAGE
         --
@@ -214,7 +230,7 @@ update msg model =
             )
 
         NoOp ->
-            default
+            ignore
 
 
 gotWords : Result Http.Error String -> Model -> Model
@@ -240,6 +256,16 @@ gotWords result model =
 ready : Words -> Passed -> Status
 ready words passed =
     Ready words passed (Announcement.create Texts.ready)
+
+
+startPlay : Model -> Model
+startPlay model =
+    case model.status of
+        Ready words passed ann ->
+            { model | status = Playing words (Passed.pushAnnouncement ann passed) (Game.startGame model.gameMode) }
+
+        _ ->
+            model
 
 
 tickStatus : Model -> Model
@@ -276,9 +302,8 @@ tickStatus model =
 pressedEnter : Model -> Model
 pressedEnter model =
     case model.status of
-        Ready words passed ann ->
-            { model | status = Playing words (Passed.pushAnnouncement ann passed) (Game.startGame model.gameMode) }
-
+        -- Ready words passed ann ->
+        --     { model | status = Playing words (Passed.pushAnnouncement ann passed) (Game.startGame model.gameMode) }
         Playing words passed game ->
             let
                 ( newGame, newSeed, messageM ) =
@@ -449,11 +474,11 @@ inputEl layout inputFocused =
          , Font.color Palette.transparent
          , focused [ Border.glow Palette.transparent 0 ]
          , Cursor.default
-         , Input.focusedOnLoad
          , Events.onFocus (InputFocusChange True)
          , Events.onLoseFocus (InputFocusChange False)
+         , Events.onClick InputSelected
          ]
-            |> consWhen (not inputFocused) pressHere
+         -- |> consWhen (not inputFocused) pressHere
         )
         { text = ""
         , onChange = Inputted

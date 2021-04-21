@@ -308,7 +308,7 @@ timeUp arguments =
 comments =
     { loading = "/loading.../"
     , loadError = "/error loading! please refresh./"
-    , ready = "/ready. press *enter*./"
+    , ready = "/ready. press here./"
     , gameStart =
         "welcome to tonight's exciting match! "
             ++ "it's menacing `athleteB`{var} against crowd favorite `athleteA`{var}!"
