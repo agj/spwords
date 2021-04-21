@@ -632,7 +632,12 @@ nextStatus seed words game =
         GameStart mode queue ->
             startRound
                 { score = Score.emptyPlayingScore
-                , athlete = AthleteB
+                , athlete =
+                    if mode == HotseatMode then
+                        AthleteA
+
+                    else
+                        AthleteB
                 , mode = mode
                 , seed = seed
                 }
