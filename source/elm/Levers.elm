@@ -10,6 +10,8 @@ module Levers exposing
     , timeDepletionRate
     )
 
+import Speed exposing (Speed)
+
 
 type alias Milliseconds =
     Float
@@ -31,9 +33,14 @@ type alias FractionPerTick =
 
 {-| The duration of one tick of the ticker.
 -}
-tickInterval : Milliseconds
-tickInterval =
-    80
+tickInterval : Speed -> Milliseconds
+tickInterval speed =
+    case speed of
+        Speed.Normal ->
+            80
+
+        Speed.Slow ->
+            100
 
 
 timeDepletionRate : FractionPerTick
@@ -55,7 +62,7 @@ The bigger the number, the higher the probability of picking the wrong word.
 -}
 computerWordErrorFactor : Factor
 computerWordErrorFactor =
-    100
+    50
 
 
 {-| How long the computer takes to type each single letter in the word.
@@ -81,9 +88,9 @@ computerLetterErrorProbability =
 
 msToTicks : Milliseconds -> Ticks
 msToTicks ms =
-    ms / tickInterval |> round |> max 1
+    ms / tickInterval Speed.Normal |> round |> max 1
 
 
 perSToPerTick : Float -> FractionPerTick
 perSToPerTick fr =
-    fr / 1000 * tickInterval
+    fr / 1000 * tickInterval Speed.Normal

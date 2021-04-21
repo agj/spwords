@@ -791,7 +791,7 @@ subscriptions model =
         [ Browser.Events.onResize <|
             \w h -> Resized
         , Viewport.got GotViewport NoOp
-        , Time.every Levers.tickInterval Ticked
+        , Time.every (Levers.tickInterval model.speed) Ticked
         ]
 
 
