@@ -34,7 +34,7 @@ import Ticker.Announcement as Announcement exposing (Announcement)
 import Ticker.Message as Message exposing (Message)
 import Ticker.Passed as Passed exposing (Passed)
 import Time
-import Util exposing (ifElse)
+import Util exposing (fraction, ifElse)
 import Util.Element exposing (toCssColor)
 import Util.List exposing (appendWhen, consMaybe, consWhen)
 import Viewport exposing (Viewport)
@@ -432,14 +432,14 @@ ticker model =
                         (above (title model.layout model.gameMode model.speed gameEnded))
                 )
                 [ el
-                    [ clip
-                    , width fill
-                    , height (px (Palette.textSizeLarge model.layout))
+                    [ inFront (inputEl model.layout model.inputFocused athleteM)
                     , Font.size (Palette.textSizeLarge model.layout)
-                    , inFront (inputEl model.layout model.inputFocused athleteM)
+                    , height (px (fraction 1.2 (Palette.textSizeLarge model.layout)))
+                    , width fill
+                    , clip
                     ]
                     (row
-                        [ alignRight ]
+                        [ alignRight, centerY ]
                         (toTickerTexts act passed)
                     )
                 , cursor
@@ -467,15 +467,17 @@ inputEl layout inputFocused athleteM =
                 Just athlete ->
                     if not inputFocused then
                         el
-                            [ Background.color (athleteColor athlete)
+                            [ Background.color (athleteColorTransparent athlete)
                             , Font.color Palette.dark
                             , Font.size (Palette.textSizeNormal layout)
                             , Font.bold
+                            , Font.center
                             , width fill
                             , height fill
-                            , Font.center
                             ]
-                            (el [ centerY, centerX ] (text "PRESS HERE"))
+                            (el [ centerY, centerX ]
+                                (text "PRESS HERE")
+                            )
 
                     else
                         none
@@ -484,18 +486,20 @@ inputEl layout inputFocused athleteM =
                     none
     in
     Input.multiline
-        [ width fill
-        , height (px (Palette.textSizeLarge layout))
-        , Font.size 5
-        , Background.color Palette.transparent
-        , Border.color Palette.transparent
-        , Font.color Palette.transparent
-        , focused [ Border.glow Palette.transparent 0 ]
-        , Cursor.default
-        , Events.onFocus (InputFocusChange True)
+        [ Events.onFocus (InputFocusChange True)
         , Events.onLoseFocus (InputFocusChange False)
         , Events.onClick InputSelected
         , behindContent pressHere
+        , Font.size 5
+        , Font.color Palette.transparent
+        , Background.color Palette.transparent
+        , width fill
+        , height fill
+        , padding 0
+        , Border.width 0
+        , focused [ Border.glow Palette.transparent 0 ]
+        , Border.rounded 0
+        , Cursor.default
         ]
         { text = ""
         , onChange = Inputted
@@ -765,6 +769,16 @@ athleteColorDark athlete =
 
         AthleteB ->
             Palette.athleteBDark
+
+
+athleteColorTransparent : Athlete -> Color
+athleteColorTransparent athlete =
+    case athlete of
+        AthleteA ->
+            Palette.athleteATransparent
+
+        AthleteB ->
+            Palette.athleteBTransparent
 
 
 

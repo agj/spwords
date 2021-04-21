@@ -34,6 +34,11 @@ athleteADark =
     rgb 0.3 0 0.3
 
 
+athleteATransparent : Color
+athleteATransparent =
+    rgba 1 0 1 0.85
+
+
 athleteB : Color
 athleteB =
     rgb 0 1 1
@@ -42,6 +47,11 @@ athleteB =
 athleteBDark : Color
 athleteBDark =
     rgb 0 0.3 0.3
+
+
+athleteBTransparent : Color
+athleteBTransparent =
+    rgba 0 1 1 0.85
 
 
 transparent : Color
