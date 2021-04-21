@@ -31,9 +31,8 @@ import Doc.Paragraph as Paragraph exposing (Paragraph)
 import Doc.Text as Text exposing (Text)
 import Game.GameMode exposing (GameMode(..))
 import List.Extra as List
-import Palette exposing (athleteA)
 import Random
-import Score exposing (Points, Score)
+import Score exposing (Points)
 import Util.Random as Random
 
 
@@ -294,7 +293,7 @@ comments =
             ++ "it's menacing `athleteB`{var} against crowd favorite `athleteA`{var}!"
     , rules =
         "remember the rules: "
-            ++ "the contestants take turns to type words that *start* with the *round's letter*. "
+            ++ "the two contestants take turns to type words that *start* with the *round's letter*. "
             ++ "they also must *contain* the *last letter of the previous word*. "
             ++ "then, press enter. "
             ++ "*no repeats*, and watch the time limit! "
@@ -306,18 +305,20 @@ comments =
         , "here we go, turn for `turn`{var}, with “`letter`{var}”!"
         , "watch for that “`letter`{var}”, `turn`{var}!"
         , "time for “`letter`{var}”, `turn`{var}!"
-        , "featuring “`letter`{var}”, speaks `turn`{var}!"
+        , "featuring “`letter`{var}”, draws `turn`{var}!"
         , "we want letter “`letter`{var}”, `turn`{var}!"
-        , "show us that “`letter`{var}”, `turn`{var}!"
+        , "hit that “`letter`{var}” up, `turn`{var}!"
         ]
     , interjection =
-        [ "ooh!"
+        [ "oooh!"
         , "nice!"
         , "good!"
         , "safe!"
-        , "wow!"
-        , "works!"
+        , "woww!"
+        , "okay!"
         , "fair!"
+        , "yess!"
+        , "poww!"
         ]
     , mistake =
         { initial =
@@ -336,33 +337,42 @@ comments =
             , "that one's a repeat!"
             , "that's been played already!"
             , "word's not fresh!"
+            , "we've heard that one already!"
             ]
         , notAWord =
             [ "is that english?"
             , "no such word in my dictionary!"
             , "what does that even mean?"
+            , "seems like gibberish to me!"
+            , "never heard that in my life!"
             ]
         , timeUp =
             [ "time is up!"
-            , "time ran out!"
             , "no time left!"
+            , "no more time!"
+            , "no more dilly-dallying!"
+            , "no time, no point!"
             ]
         }
     , roundEnd =
         [ "brilliant point for `winner`{var}!"
         , "`loser`{var} wastes a chance!"
         , "tough luck!"
-        , "what a shock!"
         , "`winner`{var} scores!"
         , "too bad for `loser`{var}!"
         , "close, but no dice!"
         , "it's `loser`{var}'s miss!"
         , "`winner`{var} takes this point!"
+        , "the round goes to `winner`{var}!"
+        , "what a slam dunk!"
+        , "it's a home run!"
+        , "`winner`{var} hits a strike!"
+        , "`winner`{var} leaves `loser`{var} in the dust!"
         ]
     , tally =
         [ "we have our game at `athleteA`{var} `pointsA`{var}, `athleteB`{var} `pointsB`{var}!"
-        , "the panel reads `athleteA`{var} `pointsA`{var} versus `athleteB`{var} `pointsB`{var}."
-        , "`athleteA`{var} at `pointsA`{var}, `athleteB`{var} at `pointsB`{var}!"
+        , "the scoreboard reads `athleteA`{var} `pointsA`{var} versus `athleteB`{var} `pointsB`{var}."
+        , "`athleteA`{var} is at `pointsA`{var}, and `athleteB`{var} at `pointsB`{var}!"
         ]
     , assessment =
         { winning =
@@ -385,8 +395,9 @@ comments =
         , "who will make the best of this round?"
         ]
     , gameEnd =
-        "and it's settled! `winner`{var} defeats `loser`{var} `winnerPoints`{var} to `loserPoints`{var} in a match to remember! "
-            ++ "we look forward to when these two titans have another face-off. "
+        "and it's settled!"
+            ++ "`winner`{var} crushes `loser`{var} `winnerPoints`{var} to `loserPoints`{var} in a match to remember! "
+            ++ "I look forward to when these two titans have another face-off. "
             ++ "see you next time!"
     }
 
