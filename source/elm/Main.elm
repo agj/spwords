@@ -489,7 +489,7 @@ title layout gameMode speed ended =
             , text ". "
             ]
 
-        options =
+        modeSelection =
             [ el
                 [ Events.onClick (SelectedMode nextMode)
                 , Cursor.pointer
@@ -504,7 +504,10 @@ title layout gameMode speed ended =
                     )
                 )
             , text " MODE. "
-            , el
+            ]
+
+        speedSelection =
+            [ el
                 [ Events.onClick (SelectedSpeed nextSpeed)
                 , Cursor.pointer
                 ]
@@ -530,21 +533,16 @@ title layout gameMode speed ended =
             ]
 
         optionsOrRestart =
-            if ended then
-                restart
+            List.map (row [ alignRight, Font.color Palette.lightish ]) <|
+                if ended then
+                    [ restart ]
 
-            else
-                options
+                else
+                    [ modeSelection
+                    , speedSelection
+                    ]
     in
     case layout of
-        Layout.Large ->
-            row
-                [ alignRight
-                , Cursor.default
-                , moveDown (1.7 * toFloat (Palette.textSizeNormal layout))
-                ]
-                (titleText ++ optionsOrRestart)
-
         _ ->
             column
                 [ alignRight
@@ -552,9 +550,7 @@ title layout gameMode speed ended =
                 , moveDown (1.5 * toFloat (Palette.textSizeNormal layout))
                 , spacing (Palette.textLineSpacing (Palette.textSizeNormal layout))
                 ]
-                [ row [ alignRight ] titleText
-                , row [ alignRight ] optionsOrRestart
-                ]
+                ([ row [ alignRight ] titleText ] ++ optionsOrRestart)
 
 
 tickerActive : Maybe Active -> Element Msg

@@ -19,6 +19,11 @@ dark =
     rgb 0.2 0.2 0.2
 
 
+lightish : Color
+lightish =
+    rgb 0.6 0.6 0.6
+
+
 athleteA : Color
 athleteA =
     rgb 1 0 1
