@@ -23,6 +23,7 @@ import Html exposing (Html)
 import Http
 import Layout exposing (Layout)
 import Levers
+import Maybe.Extra as Maybe
 import Palette
 import Random
 import Score exposing (..)
@@ -412,6 +413,15 @@ ticker model =
                 _ ->
                     False
 
+        athleteM =
+            case model.status of
+                Playing _ _ game ->
+                    Game.getActiveAthlete game
+                        |> Maybe.filter (isHumanAthlete model.gameMode)
+
+                _ ->
+                    Nothing
+
         tickerEl act passed =
             row
                 ([ centerY
@@ -426,7 +436,7 @@ ticker model =
                     , width fill
                     , height (px (Palette.textSizeLarge model.layout))
                     , Font.size (Palette.textSizeLarge model.layout)
-                    , inFront (inputEl model.layout model.inputFocused)
+                    , inFront (inputEl model.layout model.inputFocused athleteM)
                     ]
                     (row
                         [ alignRight ]
@@ -449,21 +459,28 @@ ticker model =
             tickerEl (tickerActive (Game.getActive game)) passed
 
 
-inputEl : Layout -> Bool -> Element Msg
-inputEl layout inputFocused =
+inputEl : Layout -> Bool -> Maybe Athlete -> Element Msg
+inputEl layout inputFocused athleteM =
     let
         pressHere =
-            behindContent
-                (el
-                    [ Background.color Palette.dark
-                    , Font.color Palette.light
-                    , Font.size (Palette.textSizeLarge layout)
-                    , width fill
-                    , height (px (Palette.textSizeLarge layout))
-                    , Font.center
+            case athleteM of
+                Just athlete ->
+                    [ behindContent
+                        (el
+                            [ Background.color (athleteColor athlete)
+                            , Font.color Palette.dark
+                            , Font.size (Palette.textSizeNormal layout)
+                            , Font.bold
+                            , width fill
+                            , height fill
+                            , Font.center
+                            ]
+                            (el [ centerY, centerX ] (text "PRESS HERE"))
+                        )
                     ]
-                    (text "PRESS HERE")
-                )
+
+                Nothing ->
+                    []
     in
     Input.multiline
         ([ width fill
@@ -478,7 +495,7 @@ inputEl layout inputFocused =
          , Events.onLoseFocus (InputFocusChange False)
          , Events.onClick InputSelected
          ]
-         -- |> consWhen (not inputFocused) pressHere
+            |> appendWhen (not inputFocused) pressHere
         )
         { text = ""
         , onChange = Inputted
@@ -780,6 +797,11 @@ getActiveAthlete status =
 
         _ ->
             Nothing
+
+
+isHumanAthlete : GameMode -> Athlete -> Bool
+isHumanAthlete mode athlete =
+    mode == HotseatMode || (mode == SingleMode && athlete == AthleteA)
 
 
 playing : Status -> Bool
