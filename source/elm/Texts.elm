@@ -166,8 +166,8 @@ tally { mode, pointsA, pointsB, seed } =
             Dict.fromList
                 [ ( "athleteA", athleteName mode AthleteA )
                 , ( "athleteB", athleteName mode AthleteB )
-                , ( "pointsA", pointsA |> Score.intFromPoints |> String.fromInt )
-                , ( "pointsB", pointsB |> Score.intFromPoints |> String.fromInt )
+                , ( "pointsA", pointsA |> Score.stringFromPoints )
+                , ( "pointsB", pointsB |> Score.stringFromPoints )
                 ]
     in
     comments.tally
@@ -209,7 +209,7 @@ tie { points, seed } =
 
         vars =
             Dict.fromList
-                [ ( "points", points |> Score.intFromPoints |> String.fromInt )
+                [ ( "points", points |> Score.stringFromPoints )
                 ]
     in
     comments.assessment.tie
@@ -243,8 +243,8 @@ gameEnd { winner, mode, loserPoints } =
             Dict.fromList <|
                 [ ( "winner", athleteName mode winner )
                 , ( "loser", athleteName mode loser )
-                , ( "winnerPoints", Score.winPoints |> String.fromInt )
-                , ( "loserPoints", loserPoints |> Score.intFromPoints |> String.fromInt )
+                , ( "winnerPoints", Score.winPointsString )
+                , ( "loserPoints", loserPoints |> Score.stringFromPoints )
                 ]
     in
     comments.gameEnd
@@ -372,7 +372,7 @@ comments =
     , tally =
         [ "we have our game at `athleteA`{var} `pointsA`{var}, `athleteB`{var} `pointsB`{var}!"
         , "the scoreboard reads `athleteA`{var} `pointsA`{var} versus `athleteB`{var} `pointsB`{var}."
-        , "`athleteA`{var} is at `pointsA`{var}, and `athleteB`{var} at `pointsB`{var}!"
+        , "score's at `athleteA`{var} with `pointsA`{var}, `athleteB`{var} with `pointsB`{var}!"
         ]
     , assessment =
         { winning =
@@ -395,7 +395,7 @@ comments =
         , "who will make the best of this round?"
         ]
     , gameEnd =
-        "and it's settled!"
+        "and it's settled! "
             ++ "`winner`{var} crushes `loser`{var} `winnerPoints`{var} to `loserPoints`{var} in a match to remember! "
             ++ "I look forward to when these two titans have another face-off. "
             ++ "see you next time!"

@@ -23,6 +23,11 @@ winPoints =
     3
 
 
+winPointsString : String
+winPointsString =
+    "three"
+
+
 emptyPlayingScore : PlayingScore
 emptyPlayingScore =
     ( Love, Love )
@@ -61,3 +66,16 @@ intFromPoints points =
 
         Two ->
             2
+
+
+stringFromPoints : Points -> String
+stringFromPoints points =
+    case points of
+        Love ->
+            "love"
+
+        One ->
+            "one"
+
+        Two ->
+            "two"
