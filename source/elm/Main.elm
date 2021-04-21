@@ -480,10 +480,10 @@ inputEl layout inputFocused athleteM =
                             )
 
                     else
-                        none
+                        el [] none
 
                 Nothing ->
-                    none
+                    el [] none
     in
     Input.multiline
         [ Events.onFocus (InputFocusChange True)
