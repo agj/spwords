@@ -21,4 +21,4 @@ charAt index str =
 
 member : Char -> String -> Bool
 member char str =
-    String.any (\ch -> char == ch) str
+    String.any ((==) char) str

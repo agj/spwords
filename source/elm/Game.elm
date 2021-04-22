@@ -244,8 +244,11 @@ userInput input seed words game =
     case game of
         Play mode score athlete previousInput cnts times ->
             let
+                fixedInput =
+                    String.filter (\ch -> String.member ch Texts.alphabet) input
+
                 newInput =
-                    previousInput ++ input
+                    previousInput ++ fixedInput
 
                 playWrongWith messageFn =
                     let
