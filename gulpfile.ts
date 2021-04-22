@@ -16,7 +16,7 @@ const debugElm = () => doElm(true);
 
 const developElm = () =>
   run(
-    `npx elm-live ${cfg.elmDir}Main.elm `,
+    `npx elm-go ${cfg.elmDir}Main.elm `,
     {
       "path-to-elm": "./node_modules/.bin/elm",
       dir: "output/",
