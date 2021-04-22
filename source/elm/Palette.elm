@@ -1,6 +1,26 @@
-module Palette exposing (..)
+module Palette exposing
+    ( athleteA
+    , athleteADark
+    , athleteATransparent
+    , athleteB
+    , athleteBDark
+    , athleteBTransparent
+    , dark
+    , font
+    , light
+    , lightish
+    , spaceLarge
+    , spaceNormal
+    , spaceSmall
+    , textLineSpacing
+    , textSizeLarge
+    , textSizeNormal
+    , transparent
+    )
 
-import Element exposing (..)
+import Color exposing (Color)
+import Color.Manipulate exposing (darken, desaturate, fadeOut, lighten)
+import Element
 import Element.Font as Font exposing (Font)
 import Layout exposing (Layout)
 
@@ -9,54 +29,54 @@ import Layout exposing (Layout)
 -- COLOR
 
 
-light : Color
+light : Element.Color
 light =
-    rgb 0.9 0.9 0.9
+    toElmUi light_
 
 
-dark : Color
-dark =
-    rgb 0.2 0.2 0.2
-
-
-lightish : Color
+lightish : Element.Color
 lightish =
-    rgb 0.6 0.6 0.6
+    toElmUi lightish_
 
 
-athleteA : Color
+dark : Element.Color
+dark =
+    toElmUi dark_
+
+
+athleteA : Element.Color
 athleteA =
-    rgb 1 0 1
+    toElmUi athleteA_
 
 
-athleteADark : Color
+athleteADark : Element.Color
 athleteADark =
-    rgb 0.3 0 0.3
+    toElmUi athleteADark_
 
 
-athleteATransparent : Color
+athleteATransparent : Element.Color
 athleteATransparent =
-    rgba 1 0 1 0.85
+    toElmUi athleteATransparent_
 
 
-athleteB : Color
+athleteB : Element.Color
 athleteB =
-    rgb 0 1 1
+    toElmUi athleteB_
 
 
-athleteBDark : Color
+athleteBDark : Element.Color
 athleteBDark =
-    rgb 0 0.3 0.3
+    toElmUi athleteBDark_
 
 
-athleteBTransparent : Color
+athleteBTransparent : Element.Color
 athleteBTransparent =
-    rgba 0 1 1 0.85
+    toElmUi athleteBTransparent_
 
 
-transparent : Color
+transparent : Element.Color
 transparent =
-    rgba 0 0 0 0
+    Element.rgba 0 0 0 0
 
 
 
@@ -133,3 +153,72 @@ spaceSmall layout =
 
         _ ->
             5
+
+
+
+-- INTERNAL COLORS
+
+
+light_ =
+    Color.hsl 0 0 0
+
+
+dark_ =
+    Color.hsl (deg 46.7) (pc 32.5) (pc 95.9)
+
+
+lightish_ =
+    dark_
+        |> darken 0.4
+        |> desaturate 0.7
+
+
+athleteA_ =
+    Color.hsl (deg 313.3) (pc 83) (pc 48.4)
+
+
+athleteADark_ =
+    athleteA_
+        |> lighten 0.4
+
+
+athleteATransparent_ =
+    athleteA_
+        |> fadeOut 0.1
+
+
+athleteB_ =
+    Color.hsl (deg 200.8) (pc 84.7) (pc 50.9)
+
+
+athleteBDark_ =
+    athleteB_
+        |> lighten 0.4
+
+
+athleteBTransparent_ =
+    athleteB_
+        |> fadeOut 0.1
+
+
+
+-- INTERNAL UTILS
+
+
+toElmUi : Color -> Element.Color
+toElmUi color =
+    let
+        { red, green, blue, alpha } =
+            Color.toRgba color
+    in
+    Element.rgba red green blue alpha
+
+
+deg : Float -> Float
+deg n =
+    n / 360
+
+
+pc : Float -> Float
+pc n =
+    n / 100
