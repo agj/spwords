@@ -11,7 +11,7 @@ type Layout
 
 fromViewport : Viewport -> Layout
 fromViewport vp =
-    if vp.width <= 450 then
+    if vp.width <= 450 || vp.height <= 350 then
         Small
 
     else if vp.width <= 850 then

@@ -760,16 +760,6 @@ getStyle format =
             Font.italic
 
 
-
--- |> consMaybe
---     (Doc.Format.athlete format
---         |> Maybe.map
---             (\athlete ->
---                 Font.color (athleteColor athlete)
---             )
---     )
-
-
 athleteColor : Athlete -> Color
 athleteColor athlete =
     case athlete of
