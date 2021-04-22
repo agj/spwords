@@ -525,18 +525,21 @@ assessment { score, athlete, mode, times, seed } =
     ( newGame, newSeed )
 
 
-endGame : { winner : Athlete, loserPoints : Points, times : Times, mode : GameMode } -> Game
-endGame { winner, loserPoints, times, mode } =
+endGame : { winner : Athlete, loserPoints : Points, times : Times, mode : GameMode, seed : Random.Seed } -> ( Game, Random.Seed )
+endGame { winner, loserPoints, times, mode, seed } =
     let
-        message =
+        ( message, newSeed ) =
             Texts.gameEnd
                 { winner = winner
                 , loserPoints = loserPoints
                 , mode = mode
+                , seed = seed
                 }
-                |> Announcement.createUnskippable
+                |> Tuple.mapFirst Announcement.createUnskippable
     in
-    End mode winner loserPoints times (Queue.singleton message)
+    ( End mode winner loserPoints times (Queue.singleton message)
+    , newSeed
+    )
 
 
 
@@ -717,14 +720,13 @@ nextStatus seed words game =
                         |> addMessage queue
 
                 WinnerScore winner loserPoints ->
-                    ( endGame
+                    endGame
                         { winner = winner
                         , loserPoints = loserPoints
                         , times = times
                         , mode = mode
+                        , seed = seed
                         }
-                    , seed
-                    )
                         |> addMessage queue
 
         Assessment mode score athlete _ queue ->

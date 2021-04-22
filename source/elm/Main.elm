@@ -599,10 +599,6 @@ title layout gameMode speed playing_ ended =
         )
 
 
-
--- ([ row [ alignRight ] titleText ] ++ optionsOrRestart)
-
-
 tickerActive : Maybe Active -> Element Msg
 tickerActive activeM =
     case activeM of

@@ -222,8 +222,8 @@ newRound seed =
         |> emuRandomString seed identity Dict.empty
 
 
-gameEnd : { winner : Athlete, mode : GameMode, loserPoints : Points } -> Paragraph
-gameEnd { winner, mode, loserPoints } =
+gameEnd : { winner : Athlete, mode : GameMode, loserPoints : Points, seed : Random.Seed } -> ( Paragraph, Random.Seed )
+gameEnd { winner, mode, loserPoints, seed } =
     let
         loser =
             Athlete.opposite winner
@@ -248,7 +248,7 @@ gameEnd { winner, mode, loserPoints } =
                 ]
     in
     comments.gameEnd
-        |> emu setStyles vars
+        |> emuRandomString seed setStyles vars
 
 
 
@@ -356,18 +356,23 @@ comments =
         }
     , roundEnd =
         [ "brilliant point for `winner`{var}!"
-        , "`loser`{var} wastes a chance!"
-        , "tough luck!"
         , "`winner`{var} scores!"
         , "too bad for `loser`{var}!"
         , "close, but no dice!"
         , "it's `loser`{var}'s miss!"
         , "`winner`{var} takes this point!"
         , "the round goes to `winner`{var}!"
+        , "what a fine play!"
         , "what a slam dunk!"
-        , "it's a home run!"
+        , "shoots and scores!"
+        , "it's `winner`{var}'s home run!"
+        , "`loser`{var}'s out of strikes!"
         , "`winner`{var} hits a strike!"
         , "`winner`{var} leaves `loser`{var} in the dust!"
+        , "it's a goal!"
+        , "the referee speaks her mind!"
+        , "the umpire has spoken!"
+        , "the referee raises her flag!"
         ]
     , tally =
         [ "we have our game at `athleteA`{var} `pointsA`{var}, `athleteB`{var} `pointsB`{var}!"
@@ -384,7 +389,6 @@ comments =
         , tie =
             [ "it's tied!"
             , "`points`{var} all!"
-            , "it's a battle of noses!"
             , "both sides equal!"
             , "both with `points`{var}!"
             ]
@@ -393,12 +397,26 @@ comments =
         [ "let's see who comes out victorious in the next round!"
         , "now for another round full of suspense!"
         , "who will make the best of this round?"
+        , "now for the next inning!"
         ]
     , gameEnd =
-        "and it's settled! "
+        [ "what a knockout! "
             ++ "`winner`{var} crushes `loser`{var} `winnerPoints`{var} to `loserPoints`{var} in a match to remember! "
             ++ "I look forward to when these two titans have another face-off. "
             ++ "see you next time!"
+        , "the checkered flag waves! "
+            ++ "`winner`{var} defeats `loser`{var} `winnerPoints`{var} to `loserPoints`{var} in this historic race! "
+            ++ "but we'll be there to see `loser`{var}'s comeback! "
+            ++ "well, I'll see you all in another circuit!"
+        , "the bell rings and it's over! "
+            ++ "`winner`{var} stomps on `loser`{var} `winnerPoints`{var} to `loserPoints`{var} in an epic battle! "
+            ++ "look at `winner`{var}'s smug face as the crowd cheers him off! "
+            ++ "and thus a new champion has been born!"
+        , "the sound of the horn and the crowd goes wild! "
+            ++ "`winner`{var} triumphs over `loser`{var} `winnerPoints`{var} to `loserPoints`{var} and wins the championship! "
+            ++ "the bar's been raised higher than ever before for our sport! "
+            ++ "`loser`{var} sheds frustrated tears as `winner`{var} lifts the cup with pride!"
+        ]
     }
 
 
