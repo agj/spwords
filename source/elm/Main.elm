@@ -14,6 +14,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Cursor as Cursor
 import Element.Custom.Attribute as Attribute
+import Element.Custom.Input as Input
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
@@ -484,7 +485,7 @@ inputEl layout inputFocused athleteM =
                 Nothing ->
                     el [] none
     in
-    Input.multiline
+    Input.fixedMultiline
         [ Events.onFocus (InputFocusChange True)
         , Events.onLoseFocus (InputFocusChange False)
         , Events.onClick InputSelected

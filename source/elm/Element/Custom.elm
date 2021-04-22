@@ -1,6 +1,6 @@
 module Element.Custom exposing (..)
 
-import Element exposing (..)
+import Element exposing (Element, image)
 import Element.Custom.Attribute exposing (style)
 
 
