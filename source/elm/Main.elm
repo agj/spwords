@@ -425,13 +425,11 @@ ticker model =
 
         tickerEl act passed =
             row
-                ([ centerY
-                 , width fill
-                 , Cursor.default
-                 ]
-                    |> consWhen (not (playing model.status))
-                        (above (title model.layout model.gameMode model.speed gameEnded))
-                )
+                [ centerY
+                , width fill
+                , Cursor.default
+                , above (title model.layout model.gameMode model.speed (playing model.status) gameEnded)
+                ]
                 [ el
                     [ inFront (inputEl model.layout model.inputFocused athleteM)
                     , Font.size (Palette.textSizeLarge model.layout)
@@ -510,8 +508,8 @@ inputEl layout inputFocused athleteM =
         }
 
 
-title : Layout -> GameMode -> Speed -> Bool -> Element Msg
-title layout gameMode speed ended =
+title : Layout -> GameMode -> Speed -> Bool -> Bool -> Element Msg
+title layout gameMode speed playing_ ended =
     let
         nextMode =
             case gameMode of
@@ -581,7 +579,7 @@ title layout gameMode speed ended =
 
         optionsOrRestart =
             List.map (row [ alignRight, Font.color Palette.lightish ]) <|
-                if ended then
+                if playing_ || ended then
                     [ restart ]
 
                 else
@@ -589,15 +587,20 @@ title layout gameMode speed ended =
                     , speedSelection
                     ]
     in
-    case layout of
-        _ ->
-            column
-                [ alignRight
-                , Cursor.default
-                , moveDown (1.5 * toFloat (Palette.textSizeNormal layout))
-                , spacing (Palette.textLineSpacing (Palette.textSizeNormal layout))
-                ]
-                ([ row [ alignRight ] titleText ] ++ optionsOrRestart)
+    column
+        [ alignRight
+        , Cursor.default
+        , moveDown (1.5 * toFloat (Palette.textSizeNormal layout))
+        , spacing (Palette.textLineSpacing (Palette.textSizeNormal layout))
+        ]
+        (optionsOrRestart
+            |> consWhen (not playing_)
+                (row [ alignRight ] titleText)
+        )
+
+
+
+-- ([ row [ alignRight ] titleText ] ++ optionsOrRestart)
 
 
 tickerActive : Maybe Active -> Element Msg
