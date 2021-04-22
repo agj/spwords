@@ -34,10 +34,10 @@ type Game
     | ComputerPlay PlayingScore ComputerThought Constraints Times
     | PlayCorrect GameMode PlayingScore Athlete Constraints Times Queue
     | PlayWrong GameMode Score Athlete Constraints Times Queue
-    | RoundEnd GameMode Score Athlete Played Times Queue
-    | Assessment GameMode PlayingScore Athlete Played Times Queue
-    | End GameMode Athlete Points Times Queue
-    | Done Times
+    | RoundEnd GameMode Score Athlete Played Queue
+    | Assessment GameMode PlayingScore Athlete Played Queue
+    | End GameMode Athlete Points Queue
+    | Done
 
 
 type alias Played =
@@ -71,13 +71,13 @@ getActive game =
         PlayWrong _ _ _ _ _ queue ->
             Just (Active.fromQueue queue)
 
-        RoundEnd _ _ _ _ _ queue ->
+        RoundEnd _ _ _ _ queue ->
             Just (Active.fromQueue queue)
 
-        Assessment _ _ _ _ _ queue ->
+        Assessment _ _ _ _ queue ->
             Just (Active.fromQueue queue)
 
-        End _ _ _ _ queue ->
+        End _ _ _ queue ->
             Just (Active.fromQueue queue)
 
         Play _ _ athlete input _ _ ->
@@ -86,7 +86,7 @@ getActive game =
         ComputerPlay _ thought _ _ ->
             Just (Active.athleteInput AthleteB (ComputerThought.getInput thought))
 
-        Done _ ->
+        Done ->
             Nothing
 
 
@@ -118,29 +118,29 @@ getTimes game =
         PlayWrong _ _ _ _ times _ ->
             times
 
-        RoundEnd _ _ _ _ times _ ->
-            times
-
-        Assessment _ _ _ _ times _ ->
-            times
-
-        End _ _ _ times _ ->
-            times
-
         Play _ _ _ _ _ times ->
             times
 
         ComputerPlay _ _ _ times ->
             times
 
-        Done times ->
-            times
+        RoundEnd _ _ _ _ _ ->
+            Times.start
+
+        Assessment _ _ _ _ _ ->
+            Times.start
+
+        End _ _ _ _ ->
+            Times.start
+
+        Done ->
+            Times.start
 
 
 ended : Game -> Bool
 ended game =
     case game of
-        Done _ ->
+        Done ->
             True
 
         _ ->
@@ -167,14 +167,14 @@ tick seed words game =
             PlayWrong mode score athlete cnts times queue ->
                 PlayWrong mode score athlete cnts times (queue |> Queue.tick)
 
-            RoundEnd mode score athlete played times queue ->
-                RoundEnd mode score athlete played times (queue |> Queue.tick)
+            RoundEnd mode score athlete played queue ->
+                RoundEnd mode score athlete played (queue |> Queue.tick)
 
-            Assessment mode score athlete played times queue ->
-                Assessment mode score athlete played times (queue |> Queue.tick)
+            Assessment mode score athlete played queue ->
+                Assessment mode score athlete played (queue |> Queue.tick)
 
-            End mode athlete points times queue ->
-                End mode athlete points times (queue |> Queue.tick)
+            End mode athlete points queue ->
+                End mode athlete points (queue |> Queue.tick)
 
             ComputerPlay score thought cnts times ->
                 ComputerPlay score (ComputerThought.tick thought) cnts (Times.tick AthleteB times)
@@ -182,7 +182,7 @@ tick seed words game =
             Play mode score athlete input cnts times ->
                 Play mode score athlete input cnts (Times.tick athlete times)
 
-            Done _ ->
+            Done ->
                 game
 
 
@@ -224,14 +224,14 @@ skip seed words game =
         PlayWrong mode score athlete cnts times queue ->
             check queue (\newQueue -> PlayWrong mode score athlete cnts times newQueue)
 
-        RoundEnd mode score athlete played times queue ->
-            check queue (\newQueue -> RoundEnd mode score athlete played times newQueue)
+        RoundEnd mode score athlete played queue ->
+            check queue (\newQueue -> RoundEnd mode score athlete played newQueue)
 
-        Assessment mode score athlete played times queue ->
-            check queue (\newQueue -> Assessment mode score athlete played times newQueue)
+        Assessment mode score athlete played queue ->
+            check queue (\newQueue -> Assessment mode score athlete played newQueue)
 
-        End mode athlete points times queue ->
-            check queue (\newQueue -> End mode athlete points times newQueue)
+        End mode athlete points queue ->
+            check queue (\newQueue -> End mode athlete points newQueue)
 
         Play _ _ _ _ _ _ ->
             nextStatus seed words game
@@ -239,7 +239,7 @@ skip seed words game =
         ComputerPlay _ _ _ _ ->
             ignore
 
-        Done _ ->
+        Done ->
             ignore
 
 
@@ -469,8 +469,8 @@ timeUp { input, score, athlete, mode, times, seed } =
     ( newGame, newSeed, Just (Message.WrongAthleteInput athlete input) )
 
 
-endRound : { winner : Athlete, score : Score, mode : GameMode, played : Played, times : Times, seed : Random.Seed } -> ( Game, Random.Seed )
-endRound { winner, score, played, mode, times, seed } =
+endRound : { winner : Athlete, score : Score, mode : GameMode, played : Played, seed : Random.Seed } -> ( Game, Random.Seed )
+endRound { winner, score, played, mode, seed } =
     let
         ( message, newSeed ) =
             Texts.roundEnd
@@ -480,13 +480,13 @@ endRound { winner, score, played, mode, times, seed } =
                 }
 
         newGame =
-            RoundEnd mode score winner played times (Queue.singleton (message |> Announcement.create))
+            RoundEnd mode score winner played (Queue.singleton (message |> Announcement.create))
     in
     ( newGame, newSeed )
 
 
-assessment : { score : PlayingScore, athlete : Athlete, played : Played, mode : GameMode, times : Times, seed : Random.Seed } -> ( Game, Random.Seed )
-assessment { score, athlete, played, mode, times, seed } =
+assessment : { score : PlayingScore, athlete : Athlete, played : Played, mode : GameMode, seed : Random.Seed } -> ( Game, Random.Seed )
+assessment { score, athlete, played, mode, seed } =
     let
         ( tallyMsg, seed1 ) =
             Texts.tally
@@ -528,13 +528,13 @@ assessment { score, athlete, played, mode, times, seed } =
             )
 
         newGame =
-            Assessment mode score athlete played times (Queue.fromList ann anns)
+            Assessment mode score athlete played (Queue.fromList ann anns)
     in
     ( newGame, newSeed )
 
 
-endGame : { winner : Athlete, loserPoints : Points, times : Times, mode : GameMode, seed : Random.Seed } -> ( Game, Random.Seed )
-endGame { winner, loserPoints, times, mode, seed } =
+endGame : { winner : Athlete, loserPoints : Points, mode : GameMode, seed : Random.Seed } -> ( Game, Random.Seed )
+endGame { winner, loserPoints, mode, seed } =
     let
         ( message, newSeed ) =
             Texts.gameEnd
@@ -545,7 +545,7 @@ endGame { winner, loserPoints, times, mode, seed } =
                 }
                 |> Tuple.mapFirst Announcement.createUnskippable
     in
-    ( End mode winner loserPoints times (Queue.singleton message)
+    ( End mode winner loserPoints (Queue.singleton message)
     , newSeed
     )
 
@@ -589,14 +589,14 @@ checkDone seed words game =
         PlayWrong mode score athlete cnts times queue ->
             check queue (\newQueue -> PlayWrong mode score athlete cnts times newQueue)
 
-        RoundEnd mode score athlete played times queue ->
-            check queue (\newQueue -> RoundEnd mode score athlete played times newQueue)
+        RoundEnd mode score athlete played queue ->
+            check queue (\newQueue -> RoundEnd mode score athlete played newQueue)
 
-        Assessment mode score athlete played times queue ->
-            check queue (\newQueue -> Assessment mode score athlete played times newQueue)
+        Assessment mode score athlete played queue ->
+            check queue (\newQueue -> Assessment mode score athlete played newQueue)
 
-        End mode athlete points times queue ->
-            check queue (\newQueue -> End mode athlete points times newQueue)
+        End mode athlete points queue ->
+            check queue (\newQueue -> End mode athlete points newQueue)
 
         ComputerPlay score thought _ times ->
             if ComputerThought.isFinished thought then
@@ -629,7 +629,7 @@ checkDone seed words game =
             else
                 ignore
 
-        Done _ ->
+        Done ->
             ignore
 
 
@@ -706,18 +706,17 @@ nextStatus seed words game =
                 }
                 |> addMessage queue
 
-        PlayWrong mode score athlete cnts times queue ->
+        PlayWrong mode score athlete cnts _ queue ->
             endRound
                 { winner = Athlete.opposite athlete
                 , score = score
                 , mode = mode
                 , played = Constraints.getPlayed cnts
-                , times = times
                 , seed = seed
                 }
                 |> addMessage queue
 
-        RoundEnd mode score athlete played times queue ->
+        RoundEnd mode score athlete played queue ->
             case score of
                 PlayingScore playingScore ->
                     assessment
@@ -725,7 +724,6 @@ nextStatus seed words game =
                         , athlete = athlete
                         , played = played
                         , mode = mode
-                        , times = times
                         , seed = seed
                         }
                         |> addMessage queue
@@ -734,13 +732,12 @@ nextStatus seed words game =
                     endGame
                         { winner = winner
                         , loserPoints = loserPoints
-                        , times = times
                         , mode = mode
                         , seed = seed
                         }
                         |> addMessage queue
 
-        Assessment mode score athlete played _ queue ->
+        Assessment mode score athlete played queue ->
             startRound
                 { score = score
                 , athlete = Athlete.opposite athlete
@@ -750,10 +747,10 @@ nextStatus seed words game =
                 }
                 |> addMessage queue
 
-        End _ _ _ times queue ->
-            ( Done times, seed, Just (queue |> Queue.peek |> Announcement.toMessage) )
+        End _ _ _ queue ->
+            ( Done, seed, Just (queue |> Queue.peek |> Announcement.toMessage) )
 
-        Done _ ->
+        Done ->
             ignore
 
 
