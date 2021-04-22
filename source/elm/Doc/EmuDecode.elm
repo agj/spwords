@@ -57,15 +57,10 @@ errorToParagraph error =
 
 emuDocument : Mark.Document Doc
 emuDocument =
-    Mark.document emuWrapper <|
+    Mark.document Doc.create <|
         Mark.manyOf
             [ Mark.map (List.unnest >> Paragraph.create) inlineParser
             ]
-
-
-emuWrapper : List Paragraph -> Doc
-emuWrapper =
-    Doc.create
 
 
 inlineParser : Mark.Block (List (List Text))
@@ -78,6 +73,7 @@ inlineParser =
                 |> Mark.field "url" Mark.string
             , Mark.annotation "athleteA" (toAthleteText AthleteA)
             , Mark.annotation "athleteB" (toAthleteText AthleteB)
+            , Mark.annotation "invert" inverted
             , Mark.verbatim "var" toVarText
             ]
         }
@@ -89,6 +85,17 @@ toAthleteText athlete strings =
         process ( styles, str ) =
             Text.create
                 (toFormat styles |> Format.setAthlete (Just athlete))
+                str
+    in
+    List.map process strings
+
+
+inverted : List ( Mark.Styles, String ) -> List Text
+inverted strings =
+    let
+        process ( styles, str ) =
+            Text.create
+                (toFormat styles |> Format.setInverted True)
                 str
     in
     List.map process strings

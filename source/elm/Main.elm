@@ -735,18 +735,39 @@ fromDocText txt =
 
 getStyle : Doc.Format.Format -> List (Element.Attribute msg)
 getStyle format =
-    []
+    let
+        color =
+            case Doc.Format.athlete format of
+                Just athlete ->
+                    athleteColor athlete
+
+                Nothing ->
+                    Palette.light
+
+        colors =
+            if Doc.Format.isInverted format then
+                [ Font.color Palette.dark
+                , Background.color color
+                ]
+
+            else
+                [ Font.color color ]
+    in
+    colors
         |> consWhen (Doc.Format.isBold format)
             Font.bold
         |> consWhen (Doc.Format.isItalic format)
             Font.italic
-        |> consMaybe
-            (Doc.Format.athlete format
-                |> Maybe.map
-                    (\athlete ->
-                        Font.color (athleteColor athlete)
-                    )
-            )
+
+
+
+-- |> consMaybe
+--     (Doc.Format.athlete format
+--         |> Maybe.map
+--             (\athlete ->
+--                 Font.color (athleteColor athlete)
+--             )
+--     )
 
 
 athleteColor : Athlete -> Color

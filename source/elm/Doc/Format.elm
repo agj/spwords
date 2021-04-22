@@ -3,11 +3,13 @@ module Doc.Format exposing
     , athlete
     , empty
     , isBold
+    , isInverted
     , isItalic
     , isVar
     , link
     , setAthlete
     , setBold
+    , setInverted
     , setItalic
     , setLink
     , setVar
@@ -21,6 +23,7 @@ type Format
     = Format
         { bold : Bool
         , italic : Bool
+        , inverted : Bool
         , var : Bool
         , athlete : Maybe Athlete
         , link : Maybe Link
@@ -32,6 +35,7 @@ empty =
     Format
         { bold = False
         , italic = False
+        , inverted = False
         , var = False
         , athlete = Nothing
         , link = Nothing
@@ -46,6 +50,11 @@ isBold (Format format) =
 isItalic : Format -> Bool
 isItalic (Format format) =
     format.italic
+
+
+isInverted : Format -> Bool
+isInverted (Format format) =
+    format.inverted
 
 
 isVar : Format -> Bool
@@ -75,6 +84,11 @@ setBold status (Format format) =
 setItalic : Bool -> Format -> Format
 setItalic status (Format format) =
     Format { format | italic = status }
+
+
+setInverted : Bool -> Format -> Format
+setInverted status (Format format) =
+    Format { format | inverted = status }
 
 
 setVar : Bool -> Format -> Format
