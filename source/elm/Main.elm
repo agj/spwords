@@ -657,8 +657,6 @@ tickerMessage tt =
                     , Background.color color
                     ]
                     (text (String.right 1 txtUpper))
-                , el [ Font.regular ]
-                    (text "✔")
                 ]
 
         Message.WrongAthleteInput athlete txt ->
