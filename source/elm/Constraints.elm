@@ -19,7 +19,10 @@ import Words exposing (Words)
 
 
 type Constraints
-    = ServeConstraints Char
+    = ServeConstraints
+        { initial : Char
+        , played : List String
+        }
     | RallyConstraints
         { initial : Char
         , incorporates : Char
@@ -45,9 +48,9 @@ type InputCheck
 -- CONSTRUCTORS
 
 
-serve : Char -> Constraints
-serve initial =
-    ServeConstraints initial
+serve : { initial : Char, played : List String } -> Constraints
+serve { initial, played } =
+    ServeConstraints { initial = initial, played = played }
 
 
 rally : { initial : Char, incorporates : Char, played : List String } -> Constraints
@@ -62,7 +65,7 @@ rally { initial, incorporates, played } =
 getInitial : Constraints -> Char
 getInitial constraints =
     case constraints of
-        ServeConstraints initial ->
+        ServeConstraints { initial } ->
             initial
 
         RallyConstraints { initial } ->
@@ -82,8 +85,8 @@ getIncorporates constraints =
 getPlayed : Constraints -> List String
 getPlayed constraints =
     case constraints of
-        ServeConstraints _ ->
-            []
+        ServeConstraints { played } ->
+            played
 
         RallyConstraints { played } ->
             played
@@ -96,8 +99,8 @@ getPlayed constraints =
 setInitial : Char -> Constraints -> Constraints
 setInitial initial constraints =
     case constraints of
-        ServeConstraints _ ->
-            ServeConstraints initial
+        ServeConstraints ser ->
+            ServeConstraints { ser | initial = initial }
 
         RallyConstraints ral ->
             RallyConstraints { ral | initial = initial }
@@ -106,11 +109,11 @@ setInitial initial constraints =
 setIncorporates : Char -> Constraints -> Constraints
 setIncorporates incorporates constraints =
     case constraints of
-        ServeConstraints ini ->
+        ServeConstraints { initial, played } ->
             RallyConstraints
-                { initial = ini
+                { initial = initial
+                , played = played
                 , incorporates = incorporates
-                , played = []
                 }
 
         RallyConstraints ral ->
@@ -122,11 +125,11 @@ pushPlayed word constraints =
     case String.last word of
         Just char ->
             case constraints of
-                ServeConstraints ini ->
+                ServeConstraints { initial, played } ->
                     RallyConstraints
-                        { initial = ini
+                        { initial = initial
+                        , played = word :: played
                         , incorporates = char
-                        , played = [ word ]
                         }
 
                 RallyConstraints ral ->
@@ -166,8 +169,8 @@ check text constraints words =
     let
         ( initial_, incorporatesM, played_ ) =
             case constraints of
-                ServeConstraints initial ->
-                    ( initial, Nothing, [] )
+                ServeConstraints { initial, played } ->
+                    ( initial, Nothing, played )
 
                 RallyConstraints { initial, incorporates, played } ->
                     ( initial, Just incorporates, played )

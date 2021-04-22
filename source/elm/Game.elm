@@ -34,10 +34,14 @@ type Game
     | ComputerPlay PlayingScore ComputerThought Constraints Times
     | PlayCorrect GameMode PlayingScore Athlete Constraints Times Queue
     | PlayWrong GameMode Score Athlete Constraints Times Queue
-    | RoundEnd GameMode Score Athlete Times Queue
-    | Assessment GameMode PlayingScore Athlete Times Queue
+    | RoundEnd GameMode Score Athlete Played Times Queue
+    | Assessment GameMode PlayingScore Athlete Played Times Queue
     | End GameMode Athlete Points Times Queue
     | Done Times
+
+
+type alias Played =
+    List String
 
 
 startGame : GameMode -> Game
@@ -67,10 +71,10 @@ getActive game =
         PlayWrong _ _ _ _ _ queue ->
             Just (Active.fromQueue queue)
 
-        RoundEnd _ _ _ _ queue ->
+        RoundEnd _ _ _ _ _ queue ->
             Just (Active.fromQueue queue)
 
-        Assessment _ _ _ _ queue ->
+        Assessment _ _ _ _ _ queue ->
             Just (Active.fromQueue queue)
 
         End _ _ _ _ queue ->
@@ -114,10 +118,10 @@ getTimes game =
         PlayWrong _ _ _ _ times _ ->
             times
 
-        RoundEnd _ _ _ times _ ->
+        RoundEnd _ _ _ _ times _ ->
             times
 
-        Assessment _ _ _ times _ ->
+        Assessment _ _ _ _ times _ ->
             times
 
         End _ _ _ times _ ->
@@ -163,11 +167,11 @@ tick seed words game =
             PlayWrong mode score athlete cnts times queue ->
                 PlayWrong mode score athlete cnts times (queue |> Queue.tick)
 
-            RoundEnd mode score athlete times queue ->
-                RoundEnd mode score athlete times (queue |> Queue.tick)
+            RoundEnd mode score athlete played times queue ->
+                RoundEnd mode score athlete played times (queue |> Queue.tick)
 
-            Assessment mode score athlete times queue ->
-                Assessment mode score athlete times (queue |> Queue.tick)
+            Assessment mode score athlete played times queue ->
+                Assessment mode score athlete played times (queue |> Queue.tick)
 
             End mode athlete points times queue ->
                 End mode athlete points times (queue |> Queue.tick)
@@ -220,11 +224,11 @@ skip seed words game =
         PlayWrong mode score athlete cnts times queue ->
             check queue (\newQueue -> PlayWrong mode score athlete cnts times newQueue)
 
-        RoundEnd mode score athlete times queue ->
-            check queue (\newQueue -> RoundEnd mode score athlete times newQueue)
+        RoundEnd mode score athlete played times queue ->
+            check queue (\newQueue -> RoundEnd mode score athlete played times newQueue)
 
-        Assessment mode score athlete times queue ->
-            check queue (\newQueue -> Assessment mode score athlete times newQueue)
+        Assessment mode score athlete played times queue ->
+            check queue (\newQueue -> Assessment mode score athlete played times newQueue)
 
         End mode athlete points times queue ->
             check queue (\newQueue -> End mode athlete points times newQueue)
@@ -288,8 +292,8 @@ userInput input seed words game =
 -- GAME TURN GENERATION
 
 
-startRound : { athlete : Athlete, score : PlayingScore, mode : GameMode, seed : Random.Seed } -> ( Game, Random.Seed )
-startRound { athlete, score, mode, seed } =
+startRound : { athlete : Athlete, score : PlayingScore, played : Played, mode : GameMode, seed : Random.Seed } -> ( Game, Random.Seed )
+startRound { athlete, score, played, mode, seed } =
     let
         ( initial, seed1 ) =
             randomLetter seed Texts.alphabet
@@ -310,7 +314,11 @@ startRound { athlete, score, mode, seed } =
                 mode
                 score
                 athlete
-                (Constraints.serve initial)
+                (Constraints.serve
+                    { initial = initial
+                    , played = played
+                    }
+                )
                 Times.start
                 (Queue.singleton ann)
     in
@@ -452,7 +460,7 @@ timeUp { input, score, athlete, mode, times, seed } =
                 { messageFn = Texts.timeUp
                 , score = score
                 , athlete = athlete
-                , constraints = Constraints.serve '?'
+                , constraints = Constraints.serve { initial = '?', played = [] }
                 , mode = mode
                 , times = times
                 , seed = seed
@@ -461,8 +469,8 @@ timeUp { input, score, athlete, mode, times, seed } =
     ( newGame, newSeed, Just (Message.WrongAthleteInput athlete input) )
 
 
-endRound : { winner : Athlete, score : Score, mode : GameMode, times : Times, seed : Random.Seed } -> ( Game, Random.Seed )
-endRound { winner, score, mode, times, seed } =
+endRound : { winner : Athlete, score : Score, mode : GameMode, played : Played, times : Times, seed : Random.Seed } -> ( Game, Random.Seed )
+endRound { winner, score, played, mode, times, seed } =
     let
         ( message, newSeed ) =
             Texts.roundEnd
@@ -472,13 +480,13 @@ endRound { winner, score, mode, times, seed } =
                 }
 
         newGame =
-            RoundEnd mode score winner times (Queue.singleton (message |> Announcement.create))
+            RoundEnd mode score winner played times (Queue.singleton (message |> Announcement.create))
     in
     ( newGame, newSeed )
 
 
-assessment : { score : PlayingScore, athlete : Athlete, mode : GameMode, times : Times, seed : Random.Seed } -> ( Game, Random.Seed )
-assessment { score, athlete, mode, times, seed } =
+assessment : { score : PlayingScore, athlete : Athlete, played : Played, mode : GameMode, times : Times, seed : Random.Seed } -> ( Game, Random.Seed )
+assessment { score, athlete, played, mode, times, seed } =
     let
         ( tallyMsg, seed1 ) =
             Texts.tally
@@ -520,7 +528,7 @@ assessment { score, athlete, mode, times, seed } =
             )
 
         newGame =
-            Assessment mode score athlete times (Queue.fromList ann anns)
+            Assessment mode score athlete played times (Queue.fromList ann anns)
     in
     ( newGame, newSeed )
 
@@ -581,11 +589,11 @@ checkDone seed words game =
         PlayWrong mode score athlete cnts times queue ->
             check queue (\newQueue -> PlayWrong mode score athlete cnts times newQueue)
 
-        RoundEnd mode score athlete times queue ->
-            check queue (\newQueue -> RoundEnd mode score athlete times newQueue)
+        RoundEnd mode score athlete played times queue ->
+            check queue (\newQueue -> RoundEnd mode score athlete played times newQueue)
 
-        Assessment mode score athlete times queue ->
-            check queue (\newQueue -> Assessment mode score athlete times newQueue)
+        Assessment mode score athlete played times queue ->
+            check queue (\newQueue -> Assessment mode score athlete played times newQueue)
 
         End mode athlete points times queue ->
             check queue (\newQueue -> End mode athlete points times newQueue)
@@ -644,6 +652,7 @@ nextStatus seed words game =
 
                     else
                         AthleteB
+                , played = []
                 , mode = mode
                 , seed = seed
                 }
@@ -697,22 +706,24 @@ nextStatus seed words game =
                 }
                 |> addMessage queue
 
-        PlayWrong mode score athlete _ times queue ->
+        PlayWrong mode score athlete cnts times queue ->
             endRound
                 { winner = Athlete.opposite athlete
                 , score = score
                 , mode = mode
+                , played = Constraints.getPlayed cnts
                 , times = times
                 , seed = seed
                 }
                 |> addMessage queue
 
-        RoundEnd mode score athlete times queue ->
+        RoundEnd mode score athlete played times queue ->
             case score of
                 PlayingScore playingScore ->
                     assessment
                         { score = playingScore
                         , athlete = athlete
+                        , played = played
                         , mode = mode
                         , times = times
                         , seed = seed
@@ -729,10 +740,11 @@ nextStatus seed words game =
                         }
                         |> addMessage queue
 
-        Assessment mode score athlete _ queue ->
+        Assessment mode score athlete played _ queue ->
             startRound
                 { score = score
                 , athlete = Athlete.opposite athlete
+                , played = played
                 , mode = mode
                 , seed = seed
                 }
