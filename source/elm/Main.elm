@@ -490,7 +490,7 @@ inputEl layout inputFocused athleteM =
         , Events.onLoseFocus (InputFocusChange False)
         , Events.onClick InputSelected
         , behindContent pressHere
-        , Font.size 5
+        , Font.size 16
         , Font.color Palette.transparent
         , Background.color Palette.transparent
         , width fill
