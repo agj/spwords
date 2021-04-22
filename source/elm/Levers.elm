@@ -70,7 +70,7 @@ computerWordErrorFactor =
 computerLetterDelay : { min : Ticks, max : Ticks }
 computerLetterDelay =
     { min = msToTicks 20
-    , max = msToTicks 150
+    , max = msToTicks 120
     }
 
 
