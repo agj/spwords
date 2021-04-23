@@ -2,6 +2,7 @@ module Main exposing (..)
 
 import Athlete exposing (..)
 import Browser
+import Browser.Dom as Dom
 import Browser.Events
 import Constraints exposing (Constraints)
 import Dict exposing (Dict)
@@ -30,6 +31,7 @@ import Palette
 import Random
 import Score exposing (..)
 import Speed exposing (Speed)
+import Task exposing (Task)
 import Texts
 import Ticker.Active as Active exposing (Active)
 import Ticker.Announcement as Announcement exposing (Announcement)
@@ -67,6 +69,7 @@ type alias Model =
     , speed : Speed
     , inputFocused : Bool
     , layout : Layout
+    , height : Int
     , randomSeed : Random.Seed
     }
 
@@ -94,6 +97,7 @@ init flags =
       , speed = Speed.Normal
       , inputFocused = False
       , layout = Layout.fromViewport flags.viewport
+      , height = flags.viewport.height
       , randomSeed = Random.initialSeed 64
       }
     , Cmd.batch
@@ -119,7 +123,7 @@ type Msg
     | SelectedRestart
     | InputFocusChange Bool
     | InputSelected
-    | Resized Int Int
+    | Resized Viewport
     | GotSeed Random.Seed
     | NoOp
 
@@ -221,9 +225,12 @@ update msg model =
 
         -- OTHERS
         --
-        Resized w h ->
-            ( { model | layout = Layout.fromViewport { width = w, height = h } }
-            , Cmd.none
+        Resized { width, height } ->
+            ( { model
+                | layout = Layout.fromViewport { width = width, height = height }
+                , height = height
+              }
+            , scrollTop
             )
 
         NoOp ->
@@ -299,8 +306,6 @@ tickStatus model =
 pressedEnter : Model -> Model
 pressedEnter model =
     case model.status of
-        -- Ready words passed ann ->
-        --     { model | status = Playing words (Passed.pushAnnouncement ann passed) (Game.startGame model.gameMode) }
         Playing words passed game ->
             let
                 ( newGame, newSeed, messageM ) =
@@ -371,7 +376,7 @@ mainScreen model =
                 _ ->
                     Times.start
     in
-    column [ height fill, width fill ]
+    column [ height (px model.height), width fill ]
         [ bar model.layout AthleteA (Times.get AthleteA times) (isAthlete AthleteA)
         , ticker model
         , bar model.layout AthleteB (Times.get AthleteB times) (isAthlete AthleteB)
@@ -792,8 +797,9 @@ athleteColorTransparent athlete =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Browser.Events.onResize Resized
+        [ Browser.Events.onResize (\w h -> Resized (Viewport w h))
         , Time.every (Levers.tickInterval model.speed) Ticked
+        , Viewport.visualViewportChanged Resized NoOp
         ]
 
 
@@ -828,3 +834,9 @@ playing status =
 
         _ ->
             False
+
+
+scrollTop : Cmd Msg
+scrollTop =
+    Dom.setViewport 0 0
+        |> Task.perform (always NoOp)

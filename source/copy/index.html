@@ -56,6 +56,15 @@
           },
         },
       });
+
+      if (visualViewport) {
+        visualViewport.addEventListener("resize", (e) => {
+          app.ports.visualViewport.send({
+            width: visualViewport.width,
+            height: visualViewport.height,
+          });
+        });
+      }
     </script>
   </body>
 </html>
