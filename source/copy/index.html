@@ -58,11 +58,18 @@
       });
 
       if (visualViewport) {
+        const getViewport = () => ({
+          width: visualViewport.width,
+          height: visualViewport.height,
+          top: visualViewport.offsetTop,
+          left: visualViewport.offsetLeft,
+        });
+
         visualViewport.addEventListener("resize", (e) => {
-          app.ports.visualViewport.send({
-            width: visualViewport.width,
-            height: visualViewport.height,
-          });
+          app.ports.visualViewport.send(getViewport());
+        });
+        visualViewport.addEventListener("scroll", (e) => {
+          app.ports.visualViewport.send(getViewport());
         });
       }
     </script>
