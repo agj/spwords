@@ -30,6 +30,7 @@ import Maybe.Extra as Maybe
 import Palette
 import Random
 import Score exposing (..)
+import Simple.Transition as Transition
 import Speed exposing (Speed)
 import Task exposing (Task)
 import Texts
@@ -702,6 +703,8 @@ bar layout athlete timeLeft active =
                  else
                     px (Palette.spaceNormal layout)
                 )
+            , transitionAll { duration = 200, options = [ Transition.easeOutQuad ] }
+                [ Transition.property "height" ]
             ]
             [ el
                 [ width (fillPortion emptyPortion)
@@ -846,3 +849,11 @@ scrollTop : Cmd Msg
 scrollTop =
     Dom.setViewport 0 0
         |> Task.perform (always NoOp)
+
+
+transitionAll :
+    { duration : Transition.Millis, options : List Transition.Option }
+    -> List (Transition.Millis -> List Transition.Option -> Transition.Property)
+    -> Element.Attribute msg
+transitionAll options =
+    Transition.all options >> htmlAttribute
