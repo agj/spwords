@@ -703,7 +703,7 @@ bar layout athlete timeLeft active =
                  else
                     px (Palette.spaceNormal layout)
                 )
-            , transitionAll { duration = 200, options = [ Transition.easeOutQuad ] }
+            , transitionAll { duration = 150, options = [ Transition.easeOutQuad ] }
                 [ Transition.property "height" ]
             ]
             [ el
