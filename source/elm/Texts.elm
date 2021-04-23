@@ -357,16 +357,17 @@ comments =
     , roundEnd =
         [ "brilliant point for `winner`{var}!"
         , "`winner`{var} scores!"
-        , "too bad for `loser`{var}!"
         , "close, but no dice!"
         , "it's `loser`{var}'s miss!"
         , "`winner`{var} takes this point!"
         , "the round goes to `winner`{var}!"
-        , "what a fine play!"
         , "what a slam dunk!"
+        , "what a fine play!"
+        , "it's in the net!"
         , "shoots and scores!"
+        , "well hit, `winner`{var}!"
+        , "swing and a miss!"
         , "it's `winner`{var}'s home run!"
-        , "`loser`{var}'s out of strikes!"
         , "`winner`{var} hits a strike!"
         , "`winner`{var} leaves `loser`{var} in the dust!"
         , "it's a goal!"
@@ -388,9 +389,10 @@ comments =
             ]
         , tie =
             [ "it's tied!"
-            , "`points`{var} all!"
             , "both sides equal!"
             , "both with `points`{var}!"
+            , "`points`{var} all!"
+            , "deuce!"
             ]
         }
     , newRound =
@@ -414,8 +416,12 @@ comments =
             ++ "today a new champion was born!"
         , "the sound of the horn and the crowd goes wild! "
             ++ "`winner`{var} triumphs over `loser`{var} `winnerPoints`{var} to `loserPoints`{var} and wins the championship! "
-            ++ "the bar's been raised higher than ever before for our sport! "
-            ++ "`loser`{var} sheds frustrated tears as `winner`{var} lifts the cup with pride!"
+            ++ "the bar's been raised tonight for our sport! "
+            ++ "`loser`{var} sheds frustrated tears as `winner`{var} lifts the cup to the heavens!"
+        , "game, set and match! "
+            ++ "`winner`{var} prevails with `winnerPoints`{var} to `loser`{var}'s `loserPoints`{var}! "
+            ++ "applause washes over the solemn court and `winner`{var} welcomes the embrace of victory! "
+            ++ "will we ever witness again a moment so grand?"
         ]
     }
 
