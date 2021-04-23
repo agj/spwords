@@ -119,8 +119,7 @@ type Msg
     | SelectedRestart
     | InputFocusChange Bool
     | InputSelected
-    | Resized
-    | GotViewport Viewport
+    | Resized Int Int
     | GotSeed Random.Seed
     | NoOp
 
@@ -222,13 +221,8 @@ update msg model =
 
         -- OTHERS
         --
-        Resized ->
-            ( model
-            , Viewport.get
-            )
-
-        GotViewport viewport ->
-            ( { model | layout = Layout.fromViewport viewport }
+        Resized w h ->
+            ( { model | layout = Layout.fromViewport { width = w, height = h } }
             , Cmd.none
             )
 
@@ -798,9 +792,7 @@ athleteColorTransparent athlete =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Browser.Events.onResize <|
-            \w h -> Resized
-        , Viewport.got GotViewport NoOp
+        [ Browser.Events.onResize Resized
         , Time.every (Levers.tickInterval model.speed) Ticked
         ]
 

@@ -56,13 +56,6 @@
           },
         },
       });
-
-      app.ports.getViewport.subscribe(() => {
-        app.ports.gotViewport.send({
-          width: document.body.clientWidth,
-          height: document.body.clientHeight,
-        });
-      });
     </script>
   </body>
 </html>
