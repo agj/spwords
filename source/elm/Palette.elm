@@ -178,14 +178,17 @@ athleteBTransparent_ =
 scalable : Int -> Layout -> Int
 scalable base layout =
     case layout of
-        Layout.Small ->
-            fraction 0.5 base
+        Layout.Large ->
+            base
 
         Layout.Medium ->
             fraction 0.73 base
 
-        Layout.Large ->
-            base
+        Layout.Small ->
+            fraction 0.5 base
+
+        Layout.Smaller ->
+            fraction 0.3 base
 
 
 toElmUi : Color -> Element.Color
