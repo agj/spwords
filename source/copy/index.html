@@ -58,19 +58,25 @@
       });
 
       if (visualViewport) {
-        const getViewport = () => ({
-          width: visualViewport.width,
-          height: visualViewport.height,
-          top: visualViewport.offsetTop,
-          left: visualViewport.offsetLeft,
+        visualViewport.addEventListener("resize", (e) => {
+          window.scrollTo(0, 0);
+          app.ports.visualViewport.send({
+            width: visualViewport.width,
+            height: visualViewport.height,
+          });
         });
 
-        visualViewport.addEventListener("resize", (e) => {
-          app.ports.visualViewport.send(getViewport());
+        document.addEventListener("scroll", (e) => {
+          window.scrollTo(0, 0);
         });
-        visualViewport.addEventListener("scroll", (e) => {
-          app.ports.visualViewport.send(getViewport());
-        });
+
+        document.body.addEventListener(
+          "touchmove",
+          (e) => {
+            e.preventDefault();
+          },
+          { passive: false }
+        );
       }
     </script>
   </body>

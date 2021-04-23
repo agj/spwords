@@ -198,18 +198,24 @@ update msg model =
             in
             case model.status of
                 Ready _ _ _ ->
-                    ( startPlay newModel, Cmd.none )
+                    ( startPlay newModel
+                    , Cmd.none
+                    )
 
                 _ ->
                     ( newModel, Cmd.none )
 
         InputSelected ->
-            case model.status of
-                Ready _ _ _ ->
-                    ( startPlay model, Cmd.none )
+            let
+                newModel =
+                    case model.status of
+                        Ready _ _ _ ->
+                            startPlay model
 
-                _ ->
-                    ignore
+                        _ ->
+                            model
+            in
+            ( newModel, scrollTop )
 
         -- INITIALIZATION STAGE
         --
@@ -230,7 +236,7 @@ update msg model =
                 | layout = Layout.fromViewport { width = width, height = height }
                 , height = height
               }
-            , scrollTop
+            , Cmd.none
             )
 
         NoOp ->
