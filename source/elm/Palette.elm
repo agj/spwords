@@ -23,6 +23,7 @@ import Color.Manipulate exposing (darken, desaturate, fadeOut, lighten)
 import Element
 import Element.Font as Font exposing (Font)
 import Layout exposing (Layout)
+import Util exposing (fraction)
 
 
 
@@ -91,34 +92,18 @@ font =
 
 
 textSizeNormal : Layout -> Int
-textSizeNormal layout =
-    case layout of
-        Layout.Small ->
-            17
-
-        Layout.Medium ->
-            23
-
-        Layout.Large ->
-            30
+textSizeNormal =
+    scalable 30
 
 
 textSizeLarge : Layout -> Int
-textSizeLarge layout =
-    case layout of
-        Layout.Small ->
-            55
-
-        Layout.Medium ->
-            80
-
-        Layout.Large ->
-            110
+textSizeLarge =
+    scalable 110
 
 
 textLineSpacing : Int -> Int
 textLineSpacing fontSize =
-    round (toFloat fontSize * 0.2)
+    fraction 0.2 fontSize
 
 
 
@@ -126,33 +111,18 @@ textLineSpacing fontSize =
 
 
 spaceLarge : Layout -> Int
-spaceLarge layout =
-    case layout of
-        Layout.Small ->
-            18
-
-        _ ->
-            30
+spaceLarge =
+    scalable 30
 
 
 spaceNormal : Layout -> Int
-spaceNormal layout =
-    case layout of
-        Layout.Small ->
-            6
-
-        _ ->
-            10
+spaceNormal =
+    scalable 10
 
 
 spaceSmall : Layout -> Int
-spaceSmall layout =
-    case layout of
-        Layout.Small ->
-            3
-
-        _ ->
-            5
+spaceSmall =
+    scalable 5
 
 
 
@@ -203,6 +173,19 @@ athleteBTransparent_ =
 
 
 -- INTERNAL UTILS
+
+
+scalable : Int -> Layout -> Int
+scalable base layout =
+    case layout of
+        Layout.Small ->
+            fraction 0.5 base
+
+        Layout.Medium ->
+            fraction 0.73 base
+
+        Layout.Large ->
+            base
 
 
 toElmUi : Color -> Element.Color

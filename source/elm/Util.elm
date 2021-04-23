@@ -1,7 +1,5 @@
 module Util exposing (..)
 
-import Athlete exposing (..)
-
 
 fraction : Float -> Int -> Int
 fraction frac num =
