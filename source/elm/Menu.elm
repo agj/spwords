@@ -122,34 +122,31 @@ setSpeed speed (Menu state data) =
 
 
 toTitle : Menu -> Menu
-toTitle ((Menu state data) as menu) =
-    if state == Title then
-        menu
-
-    else
-        Menu Title { data | transition = Transitioning 0 (lines menu) }
+toTitle menu =
+    toState Title menu
 
 
 toInGame : Menu -> Menu
-toInGame ((Menu state data) as menu) =
-    if state == InGame then
-        menu
-
-    else
-        Menu InGame { data | transition = Transitioning 0 (lines menu) }
+toInGame menu =
+    toState InGame menu
 
 
 toEnded : Menu -> Menu
-toEnded ((Menu state data) as menu) =
-    if state == Ended then
-        menu
-
-    else
-        Menu Ended { data | transition = Transitioning 0 (lines menu) }
+toEnded menu =
+    toState Ended menu
 
 
 
 -- INTERNAL
+
+
+toState : MenuState -> Menu -> Menu
+toState targetState ((Menu currentState data) as menu) =
+    if currentState == targetState then
+        menu
+
+    else
+        Menu targetState { data | transition = Transitioning 0 (lines menu) }
 
 
 transitionDone : Int -> List MenuLine -> List MenuLine -> Bool
