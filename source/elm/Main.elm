@@ -288,13 +288,22 @@ tickStatus : Model -> Model
 tickStatus model =
     case model.status of
         Loading ann ->
-            { model | status = Loading (Announcement.tick ann) }
+            { model
+                | status = Loading (Announcement.tick ann)
+                , menu = Menu.tick model.menu
+            }
 
         WordsLoadError err passed ann ->
-            { model | status = WordsLoadError err passed (Announcement.tick ann) }
+            { model
+                | status = WordsLoadError err passed (Announcement.tick ann)
+                , menu = Menu.tick model.menu
+            }
 
         Ready words passed ann ->
-            { model | status = Ready words passed (Announcement.tick ann) }
+            { model
+                | status = Ready words passed (Announcement.tick ann)
+                , menu = Menu.tick model.menu
+            }
 
         Playing words passed game ->
             let
@@ -310,11 +319,12 @@ tickStatus model =
                             passed
 
                 newMenu =
-                    if Game.ended game then
-                        Menu.toEnded model.menu
+                    Menu.tick <|
+                        if Game.ended game then
+                            Menu.toEnded model.menu
 
-                    else
-                        model.menu
+                        else
+                            model.menu
             in
             { model
                 | status = Playing words newPassed newGame

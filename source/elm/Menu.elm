@@ -10,6 +10,7 @@ module Menu exposing
     , setMode
     , setSpeed
     , start
+    , tick
     , toEnded
     , toInGame
     , toTitle
@@ -58,7 +59,7 @@ type MenuAction
 
 type Transition
     = Stable
-    | Transitioning Float (List MenuLine)
+    | Transitioning Int (List MenuLine)
 
 
 start : Menu
@@ -101,6 +102,27 @@ lines (Menu state { mode, speed }) =
 -- SETTERS
 
 
+tick : Menu -> Menu
+tick ((Menu state data) as menu) =
+    case data.transition of
+        Stable ->
+            menu
+
+        Transitioning t ls ->
+            let
+                newTicks =
+                    t + 1
+
+                newTransition =
+                    if transitionDone newTicks ls (lines menu) then
+                        Stable
+
+                    else
+                        Transitioning newTicks ls
+            in
+            Menu state { data | transition = newTransition }
+
+
 setMode : GameMode -> Menu -> Menu
 setMode mode (Menu state data) =
     Menu state { data | mode = mode }
@@ -112,22 +134,63 @@ setSpeed speed (Menu state data) =
 
 
 toTitle : Menu -> Menu
-toTitle (Menu _ data) =
-    Menu Title data
+toTitle ((Menu state data) as menu) =
+    if state == Title then
+        menu
+
+    else
+        Menu Title data
 
 
 toInGame : Menu -> Menu
-toInGame (Menu _ data) =
-    Menu InGame data
+toInGame ((Menu state data) as menu) =
+    if state == InGame then
+        menu
+
+    else
+        Menu InGame data
 
 
 toEnded : Menu -> Menu
-toEnded (Menu _ data) =
-    Menu Ended data
+toEnded ((Menu state data) as menu) =
+    if state == Ended then
+        menu
+
+    else
+        Menu Ended data
 
 
 
 -- INTERNAL
+
+
+transitionDone : Int -> List MenuLine -> List MenuLine -> Bool
+transitionDone ticks oldLines newLines =
+    allLinesDone ticks oldLines && allLinesDone ticks newLines
+
+
+allLinesDone : Int -> List MenuLine -> Bool
+allLinesDone ticks ls =
+    ls
+        |> List.map lineLength
+        |> List.all ((>=) ticks)
+
+
+lineLength : MenuLine -> Int
+lineLength line =
+    line
+        |> List.map (getText >> String.length)
+        |> List.foldl (+) 0
+
+
+getText : MenuText -> String
+getText mt =
+    case mt of
+        PlainText str _ ->
+            str
+
+        PressableText str _ _ ->
+            str
 
 
 titleLines : GameMode -> Speed -> List MenuLine
