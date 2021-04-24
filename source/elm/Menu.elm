@@ -191,14 +191,14 @@ endedLines =
 titleLine : MenuLine
 titleLine =
     [ PlainText "SPWORDS" boldDark
-    , PlainText " BY " boldDark
-    , PressableText "AGJ. " AuthorLink boldDark
+    , PlainText " BY " dark
+    , PressableText "AGJ. " AuthorLink dark
     ]
 
 
 restartLine : MenuLine
 restartLine =
-    [ PressableText "[RESTART]" Restart normal
+    [ PressableText "[RESTART] " Restart normal
     ]
 
 
@@ -210,3 +210,8 @@ normal =
 boldDark : MenuTextOptions
 boldDark =
     { bold = True, dark = True }
+
+
+dark : MenuTextOptions
+dark =
+    { bold = False, dark = True }

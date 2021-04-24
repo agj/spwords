@@ -184,7 +184,10 @@ update msg model =
         SelectedRestart ->
             case model.status of
                 Playing words _ _ ->
-                    ( { model | status = ready words Passed.empty }
+                    ( { model
+                        | status = ready words Passed.empty
+                        , menu = Menu.toTitle model.menu
+                      }
                     , Cmd.none
                     )
 
@@ -272,7 +275,10 @@ startPlay : Model -> Model
 startPlay model =
     case model.status of
         Ready words passed ann ->
-            { model | status = Playing words (Passed.pushAnnouncement ann passed) (Game.startGame (Menu.getMode model.menu)) }
+            { model
+                | status = Playing words (Passed.pushAnnouncement ann passed) (Game.startGame (Menu.getMode model.menu))
+                , menu = Menu.toInGame model.menu
+            }
 
         _ ->
             model
@@ -302,10 +308,18 @@ tickStatus model =
 
                         Nothing ->
                             passed
+
+                newMenu =
+                    if Game.ended game then
+                        Menu.toEnded model.menu
+
+                    else
+                        model.menu
             in
             { model
                 | status = Playing words newPassed newGame
                 , randomSeed = newSeed
+                , menu = newMenu
             }
 
 
