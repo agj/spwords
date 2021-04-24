@@ -1,9 +1,5 @@
 module Menu exposing
     ( Menu
-    , MenuAction(..)
-    , MenuLine
-    , MenuText(..)
-    , MenuTextOptions
     , getMode
     , getSpeed
     , lines
@@ -17,6 +13,9 @@ module Menu exposing
     )
 
 import Game.GameMode exposing (GameMode(..))
+import List.Extra
+import Menu.MenuLine as MenuLine exposing (MenuLine)
+import Menu.MenuText as MenuText exposing (MenuAction(..), MenuText(..), MenuTextOptions)
 import Speed exposing (Speed)
 
 
@@ -35,26 +34,6 @@ type alias MenuData =
     , speed : Speed
     , transition : Transition
     }
-
-
-type alias MenuLine =
-    List MenuText
-
-
-type MenuText
-    = PlainText String MenuTextOptions
-    | PressableText String MenuAction MenuTextOptions
-
-
-type alias MenuTextOptions =
-    { bold : Bool, dark : Bool }
-
-
-type MenuAction
-    = AuthorLink
-    | ChangeGameMode GameMode
-    | ChangeSpeed Speed
-    | Restart
 
 
 type Transition
@@ -86,16 +65,25 @@ getSpeed (Menu _ { speed }) =
 
 
 lines : Menu -> List MenuLine
-lines (Menu state { mode, speed }) =
-    case state of
-        Title ->
-            titleLines mode speed
+lines (Menu state { mode, speed, transition }) =
+    let
+        curLines =
+            case state of
+                Title ->
+                    titleLines mode speed
 
-        InGame ->
-            inGameLines
+                InGame ->
+                    inGameLines
 
-        Ended ->
-            endedLines
+                Ended ->
+                    endedLines
+    in
+    case transition of
+        Stable ->
+            curLines
+
+        Transitioning t oldLines ->
+            transitionLines t oldLines curLines
 
 
 
@@ -139,7 +127,7 @@ toTitle ((Menu state data) as menu) =
         menu
 
     else
-        Menu Title data
+        Menu Title { data | transition = Transitioning 0 (lines menu) }
 
 
 toInGame : Menu -> Menu
@@ -148,7 +136,7 @@ toInGame ((Menu state data) as menu) =
         menu
 
     else
-        Menu InGame data
+        Menu InGame { data | transition = Transitioning 0 (lines menu) }
 
 
 toEnded : Menu -> Menu
@@ -157,7 +145,7 @@ toEnded ((Menu state data) as menu) =
         menu
 
     else
-        Menu Ended data
+        Menu Ended { data | transition = Transitioning 0 (lines menu) }
 
 
 
@@ -172,25 +160,38 @@ transitionDone ticks oldLines newLines =
 allLinesDone : Int -> List MenuLine -> Bool
 allLinesDone ticks ls =
     ls
-        |> List.map lineLength
-        |> List.all ((>=) ticks)
+        |> List.map MenuLine.length
+        |> List.all (\l -> l >= ticks)
 
 
-lineLength : MenuLine -> Int
-lineLength line =
-    line
-        |> List.map (getText >> String.length)
-        |> List.foldl (+) 0
+transitionLines : Int -> List MenuLine -> List MenuLine -> List MenuLine
+transitionLines t from to =
+    let
+        maxHeight =
+            max (List.length from) (List.length to)
+
+        left =
+            elongate maxHeight from
+                |> List.map (MenuLine.dropRight t)
+
+        right =
+            elongate maxHeight to
+                |> List.map (MenuLine.right t)
+
+        join ( l, r ) =
+            l ++ r
+    in
+    List.Extra.zip left right
+        |> List.map join
 
 
-getText : MenuText -> String
-getText mt =
-    case mt of
-        PlainText str _ ->
-            str
+elongate : Int -> List MenuLine -> List MenuLine
+elongate len ls =
+    List.repeat (len - List.length ls) [] ++ ls
 
-        PressableText str _ _ ->
-            str
+
+
+--
 
 
 titleLines : GameMode -> Speed -> List MenuLine

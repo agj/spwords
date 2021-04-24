@@ -27,7 +27,9 @@ import Http
 import Layout exposing (Layout)
 import Levers
 import Maybe.Extra as Maybe
-import Menu exposing (Menu, MenuAction(..), MenuLine, MenuText, MenuTextOptions)
+import Menu exposing (Menu)
+import Menu.MenuLine exposing (MenuLine)
+import Menu.MenuText as MenuText exposing (MenuText, MenuTextOptions)
 import Palette
 import Random
 import Score exposing (..)
@@ -562,16 +564,16 @@ menuLine layout line =
 menuText : Layout -> MenuText -> Element Msg
 menuText layout mt =
     case mt of
-        Menu.PlainText txt opts ->
+        MenuText.PlainText txt opts ->
             el (menuTextStyle opts)
                 (text txt)
 
-        Menu.PressableText txt action opts ->
+        MenuText.PressableText txt action opts ->
             case action of
-                AuthorLink ->
+                MenuText.AuthorLink ->
                     newTabLink (menuTextStyle opts) { label = text txt, url = "http://agj.cl" }
 
-                ChangeGameMode mode ->
+                MenuText.ChangeGameMode mode ->
                     el
                         (menuTextStyle opts
                             ++ [ Events.onClick (SelectedMode mode)
@@ -580,7 +582,7 @@ menuText layout mt =
                         )
                         (text txt)
 
-                ChangeSpeed speed ->
+                MenuText.ChangeSpeed speed ->
                     el
                         (menuTextStyle opts
                             ++ [ Events.onClick (SelectedSpeed speed)
@@ -589,7 +591,7 @@ menuText layout mt =
                         )
                         (text txt)
 
-                Restart ->
+                MenuText.Restart ->
                     el
                         (menuTextStyle opts
                             ++ [ Events.onClick SelectedRestart
@@ -610,85 +612,6 @@ menuTextStyle { bold, dark } =
         )
     ]
         |> consWhen bold Font.bold
-
-
-
--- let
---     nextMode =
---         case gameMode of
---             HotseatMode ->
---                 SingleMode
---             SingleMode ->
---                 HotseatMode
---     nextSpeed =
---         case speed of
---             Speed.Normal ->
---                 Speed.Slow
---             Speed.Slow ->
---                 Speed.Normal
---     titleText =
---         [ el [ Font.bold ] (text "SPWORDS")
---         , text " BY "
---         , newTabLink [] { label = text "AGJ", url = "http://agj.cl" }
---         , text ". "
---         ]
---     modeSelection =
---         [ el
---             [ Events.onClick (SelectedMode nextMode)
---             , Cursor.pointer
---             ]
---             (text
---                 (case gameMode of
---                     HotseatMode ->
---                         "[2P HOTSEAT]"
---                     SingleMode ->
---                         "[SOLO]"
---                 )
---             )
---         , text " MODE. "
---         ]
---     speedSelection =
---         [ el
---             [ Events.onClick (SelectedSpeed nextSpeed)
---             , Cursor.pointer
---             ]
---             (text
---                 (case speed of
---                     Speed.Normal ->
---                         "[TOURNAMENT]"
---                     Speed.Slow ->
---                         "[AMATEUR]"
---                 )
---             )
---         , text " SPEED. "
---         ]
---     restart =
---         [ el
---             [ Events.onClick SelectedRestart
---             , Cursor.pointer
---             ]
---             (text "[RESTART]")
---         , text " "
---         ]
---     optionsOrRestart =
---         List.map (row [ alignRight, Font.color Palette.darkish ]) <|
---             if playing_ || ended then
---                 [ restart ]
---             else
---                 [ modeSelection
---                 , speedSelection
---                 ]
--- in
--- column
---     [ alignRight
---     , Cursor.default
---     , moveDown (1.5 * toFloat (Palette.textSizeNormal layout))
---     , spacing (Palette.textLineSpacing (Palette.textSizeNormal layout))
---     ]
---     (optionsOrRestart
---         |> consWhen (not playing_)
---             (row [ alignRight ] titleText)
---     )
 
 
 tickerActive : Bool -> Maybe Active -> Element Msg
