@@ -20,7 +20,7 @@ const developElm = () =>
     {
       "path-to-elm": "./node_modules/.bin/elm",
       dir: "output/",
-      open: true,
+      open: false,
       hot: true,
     },
     {
