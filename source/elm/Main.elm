@@ -27,7 +27,7 @@ import Http
 import Layout exposing (Layout)
 import Levers
 import Maybe.Extra as Maybe
-import Menu exposing (Menu)
+import Menu exposing (Menu, MenuAction(..), MenuLine, MenuText, MenuTextOptions)
 import Palette
 import Random
 import Score exposing (..)
@@ -434,13 +434,7 @@ ticker model =
                 [ centerY
                 , width fill
                 , Cursor.default
-                , above
-                    (title model.layout
-                        (Menu.getMode model.menu)
-                        (Menu.getSpeed model.menu)
-                        (playing model.status)
-                        gameEnded
-                    )
+                , above (menu model.layout (Menu.lines model.menu))
                 ]
                 [ el
                     [ inFront (inputEl model.layout model.inputFocused athleteM)
@@ -520,95 +514,157 @@ inputEl layout inputFocused athleteM =
         }
 
 
-title : Layout -> GameMode -> Speed -> Bool -> Bool -> Element Msg
-title layout gameMode speed playing_ ended =
-    let
-        nextMode =
-            case gameMode of
-                HotseatMode ->
-                    SingleMode
-
-                SingleMode ->
-                    HotseatMode
-
-        nextSpeed =
-            case speed of
-                Speed.Normal ->
-                    Speed.Slow
-
-                Speed.Slow ->
-                    Speed.Normal
-
-        titleText =
-            [ el [ Font.bold ] (text "SPWORDS")
-            , text " BY "
-            , newTabLink [] { label = text "AGJ", url = "http://agj.cl" }
-            , text ". "
-            ]
-
-        modeSelection =
-            [ el
-                [ Events.onClick (SelectedMode nextMode)
-                , Cursor.pointer
-                ]
-                (text
-                    (case gameMode of
-                        HotseatMode ->
-                            "[2P HOTSEAT]"
-
-                        SingleMode ->
-                            "[SOLO]"
-                    )
-                )
-            , text " MODE. "
-            ]
-
-        speedSelection =
-            [ el
-                [ Events.onClick (SelectedSpeed nextSpeed)
-                , Cursor.pointer
-                ]
-                (text
-                    (case speed of
-                        Speed.Normal ->
-                            "[TOURNAMENT]"
-
-                        Speed.Slow ->
-                            "[AMATEUR]"
-                    )
-                )
-            , text " SPEED. "
-            ]
-
-        restart =
-            [ el
-                [ Events.onClick SelectedRestart
-                , Cursor.pointer
-                ]
-                (text "[RESTART]")
-            , text " "
-            ]
-
-        optionsOrRestart =
-            List.map (row [ alignRight, Font.color Palette.darkish ]) <|
-                if playing_ || ended then
-                    [ restart ]
-
-                else
-                    [ modeSelection
-                    , speedSelection
-                    ]
-    in
+menu : Layout -> List MenuLine -> Element Msg
+menu layout lines =
     column
         [ alignRight
         , Cursor.default
         , moveDown (1.5 * toFloat (Palette.textSizeNormal layout))
         , spacing (Palette.textLineSpacing (Palette.textSizeNormal layout))
         ]
-        (optionsOrRestart
-            |> consWhen (not playing_)
-                (row [ alignRight ] titleText)
+        (lines
+            |> List.map (menuLine layout)
         )
+
+
+menuLine : Layout -> MenuLine -> Element Msg
+menuLine layout line =
+    row [ alignRight ]
+        (line
+            |> List.map (menuText layout)
+        )
+
+
+menuText : Layout -> MenuText -> Element Msg
+menuText layout mt =
+    case mt of
+        Menu.PlainText txt opts ->
+            el (menuTextStyle opts)
+                (text txt)
+
+        Menu.PressableText txt action opts ->
+            case action of
+                AuthorLink ->
+                    newTabLink (menuTextStyle opts) { label = text txt, url = "http://agj.cl" }
+
+                ChangeGameMode mode ->
+                    el
+                        (menuTextStyle opts
+                            ++ [ Events.onClick (SelectedMode mode)
+                               , Cursor.pointer
+                               ]
+                        )
+                        (text txt)
+
+                ChangeSpeed speed ->
+                    el
+                        (menuTextStyle opts
+                            ++ [ Events.onClick (SelectedSpeed speed)
+                               , Cursor.pointer
+                               ]
+                        )
+                        (text txt)
+
+                Restart ->
+                    el
+                        (menuTextStyle opts
+                            ++ [ Events.onClick SelectedRestart
+                               , Cursor.pointer
+                               ]
+                        )
+                        (text txt)
+
+
+menuTextStyle : MenuTextOptions -> List (Element.Attribute Msg)
+menuTextStyle { bold, dark } =
+    [ Font.color
+        (if dark then
+            Palette.dark
+
+         else
+            Palette.darkish
+        )
+    ]
+        |> consWhen bold Font.bold
+
+
+
+-- let
+--     nextMode =
+--         case gameMode of
+--             HotseatMode ->
+--                 SingleMode
+--             SingleMode ->
+--                 HotseatMode
+--     nextSpeed =
+--         case speed of
+--             Speed.Normal ->
+--                 Speed.Slow
+--             Speed.Slow ->
+--                 Speed.Normal
+--     titleText =
+--         [ el [ Font.bold ] (text "SPWORDS")
+--         , text " BY "
+--         , newTabLink [] { label = text "AGJ", url = "http://agj.cl" }
+--         , text ". "
+--         ]
+--     modeSelection =
+--         [ el
+--             [ Events.onClick (SelectedMode nextMode)
+--             , Cursor.pointer
+--             ]
+--             (text
+--                 (case gameMode of
+--                     HotseatMode ->
+--                         "[2P HOTSEAT]"
+--                     SingleMode ->
+--                         "[SOLO]"
+--                 )
+--             )
+--         , text " MODE. "
+--         ]
+--     speedSelection =
+--         [ el
+--             [ Events.onClick (SelectedSpeed nextSpeed)
+--             , Cursor.pointer
+--             ]
+--             (text
+--                 (case speed of
+--                     Speed.Normal ->
+--                         "[TOURNAMENT]"
+--                     Speed.Slow ->
+--                         "[AMATEUR]"
+--                 )
+--             )
+--         , text " SPEED. "
+--         ]
+--     restart =
+--         [ el
+--             [ Events.onClick SelectedRestart
+--             , Cursor.pointer
+--             ]
+--             (text "[RESTART]")
+--         , text " "
+--         ]
+--     optionsOrRestart =
+--         List.map (row [ alignRight, Font.color Palette.darkish ]) <|
+--             if playing_ || ended then
+--                 [ restart ]
+--             else
+--                 [ modeSelection
+--                 , speedSelection
+--                 ]
+-- in
+-- column
+--     [ alignRight
+--     , Cursor.default
+--     , moveDown (1.5 * toFloat (Palette.textSizeNormal layout))
+--     , spacing (Palette.textLineSpacing (Palette.textSizeNormal layout))
+--     ]
+--     (optionsOrRestart
+--         |> consWhen (not playing_)
+--             (row [ alignRight ] titleText)
+--     )
 
 
 tickerActive : Bool -> Maybe Active -> Element Msg
