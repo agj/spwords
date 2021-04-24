@@ -409,7 +409,7 @@ ticker model =
 
         toTickerTexts act passed =
             (act
-                :: tickerPassed passed
+                :: tickerPassed model.inputFocused passed
             )
                 |> List.reverse
 
@@ -453,16 +453,16 @@ ticker model =
     in
     case model.status of
         Loading ann ->
-            tickerEl (tickerAnnouncement ann) Passed.empty
+            tickerEl (tickerAnnouncement model.inputFocused ann) Passed.empty
 
         WordsLoadError _ passed ann ->
-            tickerEl (tickerAnnouncement ann) passed
+            tickerEl (tickerAnnouncement model.inputFocused ann) passed
 
         Ready _ passed ann ->
-            tickerEl (tickerAnnouncement ann) passed
+            tickerEl (tickerAnnouncement model.inputFocused ann) passed
 
         Playing _ passed game ->
-            tickerEl (tickerActive (Game.getActive game)) passed
+            tickerEl (tickerActive model.inputFocused (Game.getActive game)) passed
 
 
 inputEl : Layout -> Bool -> Maybe Athlete -> Element Msg
@@ -606,8 +606,8 @@ title layout gameMode speed playing_ ended =
         )
 
 
-tickerActive : Maybe Active -> Element Msg
-tickerActive activeM =
+tickerActive : Bool -> Maybe Active -> Element Msg
+tickerActive inputFocused activeM =
     case activeM of
         Just (Active.AthleteInput athlete input) ->
             el
@@ -618,32 +618,32 @@ tickerActive activeM =
                 (text (String.toUpper input))
 
         Just (Active.Announcement ann) ->
-            tickerAnnouncement ann
+            tickerAnnouncement inputFocused ann
 
         Nothing ->
             none
 
 
-tickerAnnouncement : Announcement -> Element Msg
-tickerAnnouncement ann =
+tickerAnnouncement : Bool -> Announcement -> Element Msg
+tickerAnnouncement inputFocused ann =
     Announcement.getCurrent ann
-        |> fromDocParagraph
+        |> fromDocParagraph inputFocused
 
 
-tickerPassed : Passed -> List (Element Msg)
-tickerPassed passed =
+tickerPassed : Bool -> Passed -> List (Element Msg)
+tickerPassed inputFocused passed =
     Passed.toList passed
-        |> List.map tickerMessage
+        |> List.map (tickerMessage inputFocused)
 
 
-tickerMessage : Message -> Element Msg
-tickerMessage tt =
+tickerMessage : Bool -> Message -> Element Msg
+tickerMessage inputFocused tt =
     case tt of
         Message.InterruptedAnnouncement txt ticks ->
-            fromDocParagraph (Doc.Util.paragraphAppend "—" (Doc.Util.paragraphLeft ticks txt))
+            fromDocParagraph inputFocused (Doc.Util.paragraphAppend "—" (Doc.Util.paragraphLeft ticks txt))
 
         Message.FinishedAnnouncement txt ->
-            fromDocParagraph txt
+            fromDocParagraph inputFocused txt
 
         Message.CorrectAthleteInput athlete txt ->
             let
@@ -722,14 +722,14 @@ bar layout athlete timeLeft active =
         )
 
 
-fromDocParagraph : Paragraph.Paragraph -> Element msg
-fromDocParagraph par =
+fromDocParagraph : Bool -> Paragraph.Paragraph -> Element msg
+fromDocParagraph inputFocused par =
     row [] <|
-        List.map fromDocText (Paragraph.content par)
+        List.map (fromDocText inputFocused) (Paragraph.content par)
 
 
-fromDocText : Doc.Text.Text -> Element msg
-fromDocText txt =
+fromDocText : Bool -> Doc.Text.Text -> Element msg
+fromDocText inputFocused txt =
     let
         textContent =
             Doc.Text.content txt
@@ -737,13 +737,13 @@ fromDocText txt =
 
         style =
             Doc.Text.format txt
-                |> getStyle
+                |> getStyle inputFocused
     in
     el style (text textContent)
 
 
-getStyle : Doc.Format.Format -> List (Element.Attribute msg)
-getStyle format =
+getStyle : Bool -> Doc.Format.Format -> List (Element.Attribute msg)
+getStyle inputFocused format =
     let
         color =
             case Doc.Format.athlete format of
@@ -751,7 +751,11 @@ getStyle format =
                     athleteColor athlete
 
                 Nothing ->
-                    Palette.light
+                    if inputFocused then
+                        Palette.light
+
+                    else
+                        Palette.lightish
 
         colors =
             if Doc.Format.isInverted format then
