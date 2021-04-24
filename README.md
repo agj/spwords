@@ -1,4 +1,3 @@
-
 ## Compilation
 
 Run the following commands in the command line to compile the source.
