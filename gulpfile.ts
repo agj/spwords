@@ -29,9 +29,6 @@ const developElm = () =>
     }
   );
 
-const watchElm = () =>
-  gulp.watch(`${cfg.elmDir}**/*.elm`, gulp.series(formatElm, debugElm));
-
 // Static files copy
 
 const copy = () =>
@@ -39,30 +36,42 @@ const copy = () =>
 
 const watchCopy = () => gulp.watch(`${cfg.copyDir}**`, copy);
 
-// Formatting
+// Elm formatting
 
-const formatElm = () => run(`npx elm-format ${cfg.elmDir}`, { yes: true });
+const runElmFormat = (path: string) =>
+  run(`npx elm-format "${path}"`, { yes: true });
 
-const watchFormatElm = () => gulp.watch(`${cfg.elmDir}**/*.elm`, formatElm);
+const formatElm = () => runElmFormat(cfg.elmDir);
 
-const formatOther = () => run("npx prettier .", { write: true });
+const watchFormatElm = () => {
+  const watcher = gulp.watch(`${cfg.elmDir}**/*.elm`);
+  watcher.on("change", (path) => {
+    runElmFormat(path);
+  });
+};
 
-const watchFormatOther = () =>
-  gulp.watch(
-    [
-      "./*.(js|html|css|json|md|yaml)",
-      "./source/**/*.(js|html|css|json|md|yaml)",
-    ],
-    formatOther
-  );
+// Other file formatting
+
+const runPrettier = (path: string) =>
+  run(`npx prettier ${path}`, { write: true });
+
+const formatOther = () => runPrettier(".");
+
+const watchFormatOther = () => {
+  const watcher = gulp.watch([
+    "./*.(js|html|css|json|md|yaml)",
+    "./source/**/*.(js|html|css|json|md|yaml)",
+  ]);
+  watcher.on("change", (path) => {
+    runPrettier(path);
+  });
+};
 
 // Combined tasks
 
 export const build = gulp.parallel(copy, buildElm);
 
 export const debug = gulp.parallel(copy, debugElm);
-
-export const watch = gulp.parallel(watchCopy, watchElm);
 
 export const format = gulp.parallel(formatElm, formatOther);
 
