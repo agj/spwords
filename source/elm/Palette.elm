@@ -6,9 +6,9 @@ module Palette exposing
     , athleteBDark
     , athleteBTransparent
     , dark
+    , darkish
     , font
     , light
-    , lightish
     , spaceLarge
     , spaceNormal
     , spaceSmall
@@ -30,19 +30,19 @@ import Util exposing (fraction)
 -- COLOR
 
 
-light : Element.Color
-light =
-    toElmUi light_
-
-
-lightish : Element.Color
-lightish =
-    toElmUi lightish_
-
-
 dark : Element.Color
 dark =
     toElmUi dark_
+
+
+darkish : Element.Color
+darkish =
+    toElmUi darkish_
+
+
+light : Element.Color
+light =
+    toElmUi light_
 
 
 athleteA : Element.Color
@@ -129,16 +129,16 @@ spaceSmall =
 -- INTERNAL COLORS
 
 
-light_ =
+dark_ =
     Color.hsl 0 0 0
 
 
-dark_ =
+light_ =
     Color.hsl (deg 46.7) (pc 32.5) (pc 95.9)
 
 
-lightish_ =
-    dark_
+darkish_ =
+    light_
         |> darken 0.4
         |> desaturate 0.7
 

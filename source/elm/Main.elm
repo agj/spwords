@@ -352,8 +352,8 @@ view model =
         [ layout
             [ Font.family Palette.font
             , Font.size (Palette.textSizeNormal model.layout)
-            , Font.color Palette.light
-            , Background.color Palette.dark
+            , Font.color Palette.dark
+            , Background.color Palette.light
             , padding 0
             ]
             (mainScreen model)
@@ -474,7 +474,7 @@ inputEl layout inputFocused athleteM =
                     if not inputFocused then
                         el
                             [ Background.color (athleteColorTransparent athlete)
-                            , Font.color Palette.dark
+                            , Font.color Palette.light
                             , Font.size (Palette.textSizeNormal layout)
                             , Font.bold
                             , Font.center
@@ -585,7 +585,7 @@ title layout gameMode speed playing_ ended =
             ]
 
         optionsOrRestart =
-            List.map (row [ alignRight, Font.color Palette.lightish ]) <|
+            List.map (row [ alignRight, Font.color Palette.darkish ]) <|
                 if playing_ || ended then
                     [ restart ]
 
@@ -659,7 +659,7 @@ tickerMessage inputFocused tt =
                 ]
                 [ text (String.dropRight 1 txtUpper)
                 , el
-                    [ Font.color Palette.dark
+                    [ Font.color Palette.light
                     , Background.color color
                     ]
                     (text (String.right 1 txtUpper))
@@ -670,7 +670,7 @@ tickerMessage inputFocused tt =
                 [ Font.color (athleteColor athlete)
                 , Font.strike
                 , Font.bold
-                , Attribute.style "text-decoration-color" (toCssColor Palette.light)
+                , Attribute.style "text-decoration-color" (toCssColor Palette.dark)
                 ]
                 (text (String.toUpper txt))
 
@@ -752,14 +752,14 @@ getStyle inputFocused format =
 
                 Nothing ->
                     if inputFocused then
-                        Palette.light
+                        Palette.dark
 
                     else
-                        Palette.lightish
+                        Palette.darkish
 
         colors =
             if Doc.Format.isInverted format then
-                [ Font.color Palette.dark
+                [ Font.color Palette.light
                 , Background.color color
                 ]
 
