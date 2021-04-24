@@ -27,6 +27,7 @@ import Http
 import Layout exposing (Layout)
 import Levers
 import Maybe.Extra as Maybe
+import Menu exposing (Menu)
 import Palette
 import Random
 import Score exposing (..)
@@ -66,8 +67,7 @@ main =
 
 type alias Model =
     { status : Status
-    , gameMode : GameMode
-    , speed : Speed
+    , menu : Menu
     , inputFocused : Bool
     , layout : Layout
     , height : Int
@@ -94,8 +94,7 @@ type alias Flags =
 init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { status = Loading (Announcement.create Texts.loading)
-      , gameMode = SingleMode
-      , speed = Speed.Normal
+      , menu = Menu.start
       , inputFocused = False
       , layout = Layout.fromViewport flags.viewport
       , height = flags.viewport.height
@@ -173,12 +172,12 @@ update msg model =
                         ignore
 
         SelectedMode mode ->
-            ( { model | gameMode = mode }
+            ( { model | menu = Menu.setMode mode model.menu }
             , Cmd.none
             )
 
         SelectedSpeed speed ->
-            ( { model | speed = speed }
+            ( { model | menu = Menu.setSpeed speed model.menu }
             , Cmd.none
             )
 
@@ -273,7 +272,7 @@ startPlay : Model -> Model
 startPlay model =
     case model.status of
         Ready words passed ann ->
-            { model | status = Playing words (Passed.pushAnnouncement ann passed) (Game.startGame model.gameMode) }
+            { model | status = Playing words (Passed.pushAnnouncement ann passed) (Game.startGame (Menu.getMode model.menu)) }
 
         _ ->
             model
@@ -425,7 +424,7 @@ ticker model =
             case model.status of
                 Playing _ _ game ->
                     Game.getActiveAthlete game
-                        |> Maybe.filter (isHumanAthlete model.gameMode)
+                        |> Maybe.filter (isHumanAthlete (Menu.getMode model.menu))
 
                 _ ->
                     Nothing
@@ -435,7 +434,13 @@ ticker model =
                 [ centerY
                 , width fill
                 , Cursor.default
-                , above (title model.layout model.gameMode model.speed (playing model.status) gameEnded)
+                , above
+                    (title model.layout
+                        (Menu.getMode model.menu)
+                        (Menu.getSpeed model.menu)
+                        (playing model.status)
+                        gameEnded
+                    )
                 ]
                 [ el
                     [ inFront (inputEl model.layout model.inputFocused athleteM)
@@ -811,7 +816,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ Browser.Events.onResize (\w h -> Resized (Viewport w h))
-        , Time.every (Levers.tickInterval model.speed) Ticked
+        , Time.every (Levers.tickInterval (Menu.getSpeed model.menu)) Ticked
         , Viewport.visualViewportChanged Resized NoOp
         ]
 

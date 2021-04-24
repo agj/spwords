@@ -4,7 +4,11 @@ module Menu exposing
     , MenuLine
     , MenuText(..)
     , MenuTextOptions
+    , getMode
+    , getSpeed
     , lines
+    , setMode
+    , setSpeed
     , start
     , toEnded
     , toInGame
@@ -16,9 +20,20 @@ import Speed exposing (Speed)
 
 
 type Menu
-    = Title GameMode Speed Transition
-    | InGame Transition
-    | Ended Transition
+    = Menu MenuState MenuData
+
+
+type MenuState
+    = Title
+    | InGame
+    | Ended
+
+
+type alias MenuData =
+    { mode : GameMode
+    , speed : Speed
+    , transition : Transition
+    }
 
 
 type alias MenuLine =
@@ -48,35 +63,67 @@ type Transition
 
 start : Menu
 start =
-    Title SingleMode Speed.Normal Stable
+    Menu Title
+        { mode = SingleMode
+        , speed = Speed.Normal
+        , transition = Stable
+        }
 
 
-toTitle : GameMode -> Speed -> Menu -> Menu
-toTitle mode speed menu =
-    Title mode speed Stable
+
+-- ACCESSORS
 
 
-toInGame : Menu -> Menu
-toInGame menu =
-    InGame Stable
+getMode : Menu -> GameMode
+getMode (Menu _ { mode }) =
+    mode
 
 
-toEnded : Menu -> Menu
-toEnded menu =
-    Ended Stable
+getSpeed : Menu -> Speed
+getSpeed (Menu _ { speed }) =
+    speed
 
 
 lines : Menu -> List MenuLine
-lines menu =
-    case menu of
-        Title mode speed _ ->
+lines (Menu state { mode, speed }) =
+    case state of
+        Title ->
             titleLines mode speed
 
-        InGame _ ->
+        InGame ->
             inGameLines
 
-        Ended _ ->
+        Ended ->
             endedLines
+
+
+
+-- SETTERS
+
+
+setMode : GameMode -> Menu -> Menu
+setMode mode (Menu state data) =
+    Menu state { data | mode = mode }
+
+
+setSpeed : Speed -> Menu -> Menu
+setSpeed speed (Menu state data) =
+    Menu state { data | speed = speed }
+
+
+toTitle : Menu -> Menu
+toTitle (Menu _ data) =
+    Menu Title data
+
+
+toInGame : Menu -> Menu
+toInGame (Menu _ data) =
+    Menu InGame data
+
+
+toEnded : Menu -> Menu
+toEnded (Menu _ data) =
+    Menu Ended data
 
 
 
