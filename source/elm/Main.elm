@@ -46,7 +46,7 @@ import Ticker.Message as Message exposing (Message)
 import Ticker.Passed as Passed exposing (Passed)
 import Time
 import Util exposing (fraction, ifElse)
-import Util.Element exposing (toCssColor)
+import Util.Element exposing (sides, toCssColor)
 import Util.List as List exposing (appendWhen, consMaybe, consWhen)
 import Viewport exposing (Viewport)
 import Words exposing (Words)
@@ -665,16 +665,20 @@ menu layout lines =
         , moveDown (0.4 * toFloat (Palette.textSizeLarge layout))
         , spacing (Palette.textLineSpacing (Palette.textSizeNormal layout))
         , Attribute.raise 1
+        , paddingEach { sides | right = fraction 0.5 (Palette.textSizeNormal layout) }
         ]
         (lines
-            |> List.padLeft 3 [ MenuText.plain "" ]
+            |> List.padLeft 3 []
             |> List.map (menuLine layout)
         )
 
 
 menuLine : Layout -> MenuLine -> Element Msg
 menuLine layout line =
-    row [ alignRight ]
+    row
+        [ alignRight
+        , height (px (Palette.textSizeNormal layout))
+        ]
         (line
             |> List.map (menuText layout)
         )

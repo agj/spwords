@@ -304,10 +304,10 @@ titleLines mode speed =
     in
     [ titleLine
     , [ MenuText.pressable ("[" ++ modeName ++ "]") (MenuAction.ChangeGameMode nextMode)
-      , MenuText.plain " MODE. "
+      , MenuText.plain " MODE."
       ]
     , [ MenuText.pressable ("[" ++ speedName ++ "]") (MenuAction.ChangeSpeed nextSpeed)
-      , MenuText.plain " SPEED. "
+      , MenuText.plain " SPEED."
       ]
     ]
 
@@ -329,11 +329,11 @@ titleLine : MenuLine
 titleLine =
     [ MenuText.plain "SPWORDS" |> MenuText.setColor MenuText.Dark |> MenuText.setBold True
     , MenuText.plain " BY " |> MenuText.setColor MenuText.Dark
-    , MenuText.pressable "AGJ. " MenuAction.AuthorLink |> MenuText.setColor MenuText.Dark
+    , MenuText.pressable "AGJ." MenuAction.AuthorLink |> MenuText.setColor MenuText.Dark
     ]
 
 
 restartLine : MenuLine
 restartLine =
-    [ MenuText.pressable "[RESTART] " MenuAction.Restart
+    [ MenuText.pressable "[RESTART]" MenuAction.Restart
     ]
