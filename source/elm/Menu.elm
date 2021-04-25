@@ -13,7 +13,8 @@ module Menu exposing
     )
 
 import Game.GameMode exposing (GameMode(..))
-import List.Extra
+import Levers exposing (Ticks)
+import List.Extra as List
 import Menu.MenuLine as MenuLine exposing (MenuLine)
 import Menu.MenuText as MenuText exposing (MenuAction(..), MenuText(..), MenuTextOptions)
 import Speed exposing (Speed)
@@ -91,7 +92,7 @@ tick ((Menu state data) as menu) =
         Transitioning t oldLines ->
             let
                 newTicks =
-                    t + 2
+                    t + transitionSpeed
 
                 newTransition =
                     if transitionDone newTicks oldLines (currentLines menu) then
@@ -191,6 +192,31 @@ currentLines (Menu state { mode, speed }) =
 transitionLines : Int -> List MenuLine -> List MenuLine -> List MenuLine
 transitionLines t from to =
     let
+        cur =
+            stateLines t from to
+
+        processMl ml =
+            ml
+                |> List.foldr processMt []
+
+        processMt : MenuText -> MenuLine -> MenuLine
+        processMt mt res =
+            if MenuLine.length res + MenuText.length mt == t && MenuText.length mt >= 1 then
+                (MenuText.left 1 mt
+                    |> MenuText.setColor MenuText.Highlit
+                )
+                    :: (MenuText.dropLeft 1 mt :: res)
+
+            else
+                mt :: res
+    in
+    cur
+        |> List.map processMl
+
+
+stateLines : Int -> List MenuLine -> List MenuLine -> List MenuLine
+stateLines t from to =
+    let
         maxHeight =
             max (List.length from) (List.length to)
 
@@ -206,7 +232,7 @@ transitionLines t from to =
         join ( l, r ) =
             l ++ r
     in
-    List.Extra.zip left right
+    List.zip left right
         |> List.map join
 
 
@@ -215,8 +241,13 @@ elongate len ls =
     List.repeat (len - List.length ls) [] ++ ls
 
 
+transitionSpeed : Ticks
+transitionSpeed =
+    2
 
---
+
+
+-- LINES
 
 
 titleLines : GameMode -> Speed -> List MenuLine
@@ -255,11 +286,11 @@ titleLines mode speed =
                     Speed.Normal
     in
     [ titleLine
-    , [ PressableText ("[" ++ modeName ++ "]") (ChangeGameMode nextMode) normal
-      , PlainText " MODE. " normal
+    , [ MenuText.pressableText ("[" ++ modeName ++ "]") (ChangeGameMode nextMode)
+      , MenuText.plainText " MODE. "
       ]
-    , [ PressableText ("[" ++ speedName ++ "]") (ChangeSpeed nextSpeed) normal
-      , PlainText " SPEED. " normal
+    , [ MenuText.pressableText ("[" ++ speedName ++ "]") (ChangeSpeed nextSpeed)
+      , MenuText.plainText " SPEED. "
       ]
     ]
 
@@ -279,28 +310,13 @@ endedLines =
 
 titleLine : MenuLine
 titleLine =
-    [ PlainText "SPWORDS" boldDark
-    , PlainText " BY " dark
-    , PressableText "AGJ. " AuthorLink dark
+    [ MenuText.plainText "SPWORDS" |> MenuText.setColor MenuText.Dark |> MenuText.setBold True
+    , MenuText.plainText " BY " |> MenuText.setColor MenuText.Dark
+    , MenuText.pressableText "AGJ. " AuthorLink |> MenuText.setColor MenuText.Dark
     ]
 
 
 restartLine : MenuLine
 restartLine =
-    [ PressableText "[RESTART] " Restart normal
+    [ MenuText.pressableText "[RESTART] " Restart
     ]
-
-
-normal : MenuTextOptions
-normal =
-    { bold = False, dark = False }
-
-
-boldDark : MenuTextOptions
-boldDark =
-    { bold = True, dark = True }
-
-
-dark : MenuTextOptions
-dark =
-    { bold = False, dark = True }

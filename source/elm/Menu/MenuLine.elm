@@ -62,7 +62,7 @@ padLeft len ch ml =
             String.repeat (len - length ml) (String.fromChar ch)
     in
     if String.length padding > 0 then
-        PlainText padding { bold = False, dark = False } :: ml
+        MenuText.plainText padding :: ml
 
     else
         ml

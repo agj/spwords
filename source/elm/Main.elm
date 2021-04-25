@@ -602,13 +602,17 @@ menuText layout mt =
 
 
 menuTextStyle : MenuTextOptions -> List (Element.Attribute Msg)
-menuTextStyle { bold, dark } =
+menuTextStyle { bold, color } =
     [ Font.color
-        (if dark then
-            Palette.dark
+        (case color of
+            MenuText.Dark ->
+                Palette.dark
 
-         else
-            Palette.darkish
+            MenuText.Gray ->
+                Palette.darkish
+
+            MenuText.Highlit ->
+                Palette.athleteA
         )
     ]
         |> consWhen bold Font.bold
