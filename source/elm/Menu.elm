@@ -192,30 +192,22 @@ currentLines (Menu state { mode, speed }) =
 transitionLines : Int -> List MenuLine -> List MenuLine -> List MenuLine
 transitionLines t from to =
     let
-        cur =
-            stateLines t from to
+        transformer ml =
+            let
+                highlit =
+                    MenuLine.left transitionSpeed ml
+                        |> List.map (MenuText.setColor MenuText.Highlit)
 
-        processMl ml =
-            ml
-                |> List.foldr processMt []
-
-        processMt : MenuText -> MenuLine -> MenuLine
-        processMt mt res =
-            if MenuLine.length res + MenuText.length mt == t && MenuText.length mt >= 1 then
-                (MenuText.left 1 mt
-                    |> MenuText.setColor MenuText.Highlit
-                )
-                    :: (MenuText.dropLeft 1 mt :: res)
-
-            else
-                mt :: res
+                rest =
+                    MenuLine.dropLeft transitionSpeed ml
+            in
+            highlit ++ rest
     in
-    cur
-        |> List.map processMl
+    stateLines transformer t from to
 
 
-stateLines : Int -> List MenuLine -> List MenuLine -> List MenuLine
-stateLines t from to =
+stateLines : (MenuLine -> MenuLine) -> Int -> List MenuLine -> List MenuLine -> List MenuLine
+stateLines rightTransformer t from to =
     let
         maxHeight =
             max (List.length from) (List.length to)
@@ -226,8 +218,11 @@ stateLines t from to =
 
         right =
             elongate maxHeight to
-                |> List.map (MenuLine.right t)
-                |> List.map (MenuLine.padLeft t ' ')
+                |> List.map
+                    (MenuLine.right t
+                        >> MenuLine.padLeft t ' '
+                        >> rightTransformer
+                    )
 
         join ( l, r ) =
             l ++ r

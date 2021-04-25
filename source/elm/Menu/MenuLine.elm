@@ -50,6 +50,11 @@ right len ml =
     List.foldr process [] ml
 
 
+dropLeft : Int -> MenuLine -> MenuLine
+dropLeft len ml =
+    right (length ml - len) ml
+
+
 dropRight : Int -> MenuLine -> MenuLine
 dropRight len ml =
     left (length ml - len) ml
