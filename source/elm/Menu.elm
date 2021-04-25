@@ -16,8 +16,9 @@ module Menu exposing
 import Game.GameMode exposing (GameMode(..))
 import Levers exposing (Ticks)
 import List.Extra as List
+import Menu.MenuAction as MenuAction exposing (MenuAction)
 import Menu.MenuLine as MenuLine exposing (MenuLine)
-import Menu.MenuText as MenuText exposing (MenuAction(..), MenuText(..), MenuTextOptions)
+import Menu.MenuText as MenuText exposing (MenuText(..), MenuTextOptions)
 import Speed exposing (Speed)
 import Util.List as List
 
@@ -302,10 +303,10 @@ titleLines mode speed =
                     Speed.Normal
     in
     [ titleLine
-    , [ MenuText.pressable ("[" ++ modeName ++ "]") (ChangeGameMode nextMode)
+    , [ MenuText.pressable ("[" ++ modeName ++ "]") (MenuAction.ChangeGameMode nextMode)
       , MenuText.plain " MODE. "
       ]
-    , [ MenuText.pressable ("[" ++ speedName ++ "]") (ChangeSpeed nextSpeed)
+    , [ MenuText.pressable ("[" ++ speedName ++ "]") (MenuAction.ChangeSpeed nextSpeed)
       , MenuText.plain " SPEED. "
       ]
     ]
@@ -328,11 +329,11 @@ titleLine : MenuLine
 titleLine =
     [ MenuText.plain "SPWORDS" |> MenuText.setColor MenuText.Dark |> MenuText.setBold True
     , MenuText.plain " BY " |> MenuText.setColor MenuText.Dark
-    , MenuText.pressable "AGJ. " AuthorLink |> MenuText.setColor MenuText.Dark
+    , MenuText.pressable "AGJ. " MenuAction.AuthorLink |> MenuText.setColor MenuText.Dark
     ]
 
 
 restartLine : MenuLine
 restartLine =
-    [ MenuText.pressable "[RESTART] " Restart
+    [ MenuText.pressable "[RESTART] " MenuAction.Restart
     ]

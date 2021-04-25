@@ -1,6 +1,5 @@
 module Menu.MenuText exposing
-    ( MenuAction(..)
-    , MenuText(..)
+    ( MenuText(..)
     , MenuTextColor(..)
     , MenuTextOptions
     , dropLeft
@@ -16,6 +15,7 @@ module Menu.MenuText exposing
     )
 
 import Game.GameMode exposing (GameMode)
+import Menu.MenuAction exposing (MenuAction)
 import Speed exposing (Speed)
 
 
@@ -34,13 +34,6 @@ type MenuTextColor
     = Dark
     | Gray
     | Highlit
-
-
-type MenuAction
-    = AuthorLink
-    | ChangeGameMode GameMode
-    | ChangeSpeed Speed
-    | Restart
 
 
 plain : String -> MenuText

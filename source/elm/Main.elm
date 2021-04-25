@@ -30,7 +30,8 @@ import Layout exposing (Layout(..))
 import Levers
 import Maybe.Extra as Maybe
 import Menu exposing (Menu)
-import Menu.MenuLine exposing (MenuLine)
+import Menu.MenuAction as MenuAction exposing (MenuAction)
+import Menu.MenuLine as MenuLine exposing (MenuLine)
 import Menu.MenuText as MenuText exposing (MenuText, MenuTextOptions)
 import Palette
 import Random
@@ -688,10 +689,10 @@ menuText layout mt =
 
         MenuText.PressableText txt action opts ->
             case action of
-                MenuText.AuthorLink ->
+                MenuAction.AuthorLink ->
                     newTabLink (menuTextStyle opts) { label = text txt, url = "http://agj.cl" }
 
-                MenuText.ChangeGameMode mode ->
+                MenuAction.ChangeGameMode mode ->
                     el
                         (menuTextStyle opts
                             ++ [ Pointer.onPrimaryDown NoOp (SelectedMode mode)
@@ -700,7 +701,7 @@ menuText layout mt =
                         )
                         (text txt)
 
-                MenuText.ChangeSpeed speed ->
+                MenuAction.ChangeSpeed speed ->
                     el
                         (menuTextStyle opts
                             ++ [ Pointer.onPrimaryDown NoOp (SelectedSpeed speed)
@@ -709,7 +710,7 @@ menuText layout mt =
                         )
                         (text txt)
 
-                MenuText.Restart ->
+                MenuAction.Restart ->
                     el
                         (menuTextStyle opts
                             ++ [ Pointer.onPrimaryDown NoOp SelectedRestart
