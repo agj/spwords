@@ -65,18 +65,10 @@ getSpeed (Menu _ { speed }) =
 
 
 lines : Menu -> List MenuLine
-lines (Menu state { mode, speed, transition }) =
+lines ((Menu _ { transition }) as menu) =
     let
         curLines =
-            case state of
-                Title ->
-                    titleLines mode speed
-
-                InGame ->
-                    inGameLines
-
-                Ended ->
-                    endedLines
+            currentLines menu
     in
     case transition of
         Stable ->
@@ -96,17 +88,17 @@ tick ((Menu state data) as menu) =
         Stable ->
             menu
 
-        Transitioning t ls ->
+        Transitioning t oldLines ->
             let
                 newTicks =
                     t + 1
 
                 newTransition =
-                    if transitionDone newTicks ls (lines menu) then
+                    if transitionDone newTicks oldLines (currentLines menu) then
                         Stable
 
                     else
-                        Transitioning newTicks ls
+                        Transitioning newTicks oldLines
             in
             Menu state { data | transition = newTransition }
 
@@ -151,14 +143,28 @@ toState targetState ((Menu currentState data) as menu) =
 
 transitionDone : Int -> List MenuLine -> List MenuLine -> Bool
 transitionDone ticks oldLines newLines =
-    allLinesDone ticks oldLines && allLinesDone ticks newLines
+    Debug.log "allLinesDone newLines" (allLinesDone ticks newLines)
+        && Debug.log "allLinesDone oldLines" (allLinesDone ticks oldLines)
 
 
 allLinesDone : Int -> List MenuLine -> Bool
 allLinesDone ticks ls =
     ls
         |> List.map MenuLine.length
-        |> List.all (\l -> l >= ticks)
+        |> List.all (\lineLength -> ticks >= lineLength)
+
+
+currentLines : Menu -> List MenuLine
+currentLines (Menu state { mode, speed }) =
+    case state of
+        Title ->
+            titleLines mode speed
+
+        InGame ->
+            inGameLines
+
+        Ended ->
+            endedLines
 
 
 transitionLines : Int -> List MenuLine -> List MenuLine -> List MenuLine
@@ -174,6 +180,7 @@ transitionLines t from to =
         right =
             elongate maxHeight to
                 |> List.map (MenuLine.right t)
+                |> List.map (MenuLine.padLeft t ' ')
 
         join ( l, r ) =
             l ++ r

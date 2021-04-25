@@ -1,6 +1,6 @@
 module Menu.MenuLine exposing (..)
 
-import Menu.MenuText as MenuText exposing (MenuText)
+import Menu.MenuText as MenuText exposing (MenuText(..))
 
 
 type alias MenuLine =
@@ -53,3 +53,16 @@ right len ml =
 dropRight : Int -> MenuLine -> MenuLine
 dropRight len ml =
     left (length ml - len) ml
+
+
+padLeft : Int -> Char -> MenuLine -> MenuLine
+padLeft len ch ml =
+    let
+        padding =
+            String.repeat (len - length ml) (String.fromChar ch)
+    in
+    if String.length padding > 0 then
+        PlainText padding { bold = False, dark = False } :: ml
+
+    else
+        ml
