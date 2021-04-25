@@ -152,7 +152,7 @@ toEnded menu =
 
 
 
--- INTERNAL
+---------------------- INTERNAL
 
 
 toState : MenuState -> Menu -> Menu
@@ -178,7 +178,10 @@ allLinesDone : Int -> List MenuLine -> Bool
 allLinesDone ticks ls =
     ls
         |> List.map MenuLine.length
-        |> List.all (\lineLength -> ticks - Levers.menuTransitionTrail >= lineLength)
+        |> List.all
+            (\lineLength ->
+                ticks - (Levers.menuTransitionTrail + 2 * Levers.menuTransitionInclination) >= lineLength
+            )
 
 
 currentLines : Menu -> List MenuLine
@@ -200,37 +203,56 @@ transitionLines t from to =
         take =
             Levers.menuTransitionTrail
 
-        transformer ml =
+        transformer pos ml =
             let
                 highlit =
-                    MenuLine.dropRight (t - take) ml
+                    MenuLine.dropRight (pos - take) ml
                         |> List.map (MenuText.setColor MenuText.Highlit)
 
                 rest =
-                    MenuLine.right (t - take) ml
+                    MenuLine.right (pos - take) ml
             in
             highlit ++ rest
     in
     stateLines transformer t from to
 
 
-stateLines : (MenuLine -> MenuLine) -> Int -> List MenuLine -> List MenuLine -> List MenuLine
+stateLines : (Int -> MenuLine -> MenuLine) -> Int -> List MenuLine -> List MenuLine -> List MenuLine
 stateLines rightTransformer t from to =
     let
         maxHeight =
             max (List.length from) (List.length to)
 
+        indices =
+            List.range 0 (maxHeight - 1)
+                |> List.reverse
+
         left =
-            elongate maxHeight from
-                |> List.map (MenuLine.dropRight t)
+            from
+                |> elongate maxHeight
+                |> List.zip indices
+                |> List.map processLeft
+
+        processLeft ( i, ml ) =
+            MenuLine.dropRight
+                (t - i * Levers.menuTransitionInclination)
+                ml
 
         right =
-            elongate maxHeight to
-                |> List.map
-                    (MenuLine.right t
-                        >> MenuLine.padLeft t ' '
-                        >> rightTransformer
-                    )
+            to
+                |> elongate maxHeight
+                |> List.zip indices
+                |> List.map processRight
+
+        processRight ( i, ml ) =
+            let
+                take =
+                    t - i * Levers.menuTransitionInclination
+            in
+            ml
+                |> MenuLine.right take
+                |> MenuLine.padLeft take ' '
+                |> rightTransformer take
 
         join ( l, r ) =
             l ++ r

@@ -7,6 +7,7 @@ module Levers exposing
     , computerWordDelay
     , computerWordErrorFactor
     , menuTickInterval
+    , menuTransitionInclination
     , menuTransitionTrail
     , tickInterval
     , timeDepletionRate
@@ -96,6 +97,11 @@ menuTickInterval =
 menuTransitionTrail : Int
 menuTransitionTrail =
     6
+
+
+menuTransitionInclination : Int
+menuTransitionInclination =
+    3
 
 
 
