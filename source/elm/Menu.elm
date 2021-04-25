@@ -91,7 +91,7 @@ tick ((Menu state data) as menu) =
         Transitioning t oldLines ->
             let
                 newTicks =
-                    t + 1
+                    t + 2
 
                 newTransition =
                     if transitionDone newTicks oldLines (currentLines menu) then
@@ -104,13 +104,29 @@ tick ((Menu state data) as menu) =
 
 
 setMode : GameMode -> Menu -> Menu
-setMode mode (Menu state data) =
-    Menu state { data | mode = mode }
+setMode mode ((Menu state data) as menu) =
+    if data.mode == mode then
+        menu
+
+    else
+        Menu state
+            { data
+                | mode = mode
+                , transition = startTransition menu
+            }
 
 
 setSpeed : Speed -> Menu -> Menu
-setSpeed speed (Menu state data) =
-    Menu state { data | speed = speed }
+setSpeed speed ((Menu state data) as menu) =
+    if data.speed == speed then
+        menu
+
+    else
+        Menu state
+            { data
+                | speed = speed
+                , transition = startTransition menu
+            }
 
 
 toTitle : Menu -> Menu
@@ -138,7 +154,12 @@ toState targetState ((Menu currentState data) as menu) =
         menu
 
     else
-        Menu targetState { data | transition = Transitioning 0 (lines menu) }
+        Menu targetState { data | transition = startTransition menu }
+
+
+startTransition : Menu -> Transition
+startTransition menu =
+    Transitioning 0 (lines menu)
 
 
 transitionDone : Int -> List MenuLine -> List MenuLine -> Bool
