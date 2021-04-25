@@ -20,6 +20,7 @@ import Element.Events as Events
 import Element.Events.Pointer as Pointer
 import Element.Font as Font
 import Element.Input as Input
+import Element.Keyed as Keyed
 import Game exposing (Game)
 import Game.GameMode exposing (GameMode(..))
 import Game.Times as Times exposing (Times)
@@ -472,19 +473,24 @@ ticker model =
 
         tickerMenu act passed =
             let
-                compressedLayout =
-                    column
+                wrapper =
+                    Keyed.column
                         [ centerY
                         , width fill
                         , Cursor.default
                         ]
-                        [ menuEl
-                        , row
-                            [ width fill
-                            ]
-                            [ tickerEl act passed
-                            , cursor
-                            ]
+
+                compressedLayout =
+                    wrapper
+                        [ ( "menu", menuEl )
+                        , ( "ticker"
+                          , row
+                                [ width fill
+                                ]
+                                [ tickerEl act passed
+                                , cursor
+                                ]
+                          )
                         ]
             in
             case model.layout of
@@ -495,14 +501,16 @@ ticker model =
                     compressedLayout
 
                 _ ->
-                    row
-                        [ centerY
-                        , width fill
-                        , Cursor.default
-                        , above menuEl
-                        ]
-                        [ tickerEl act passed
-                        , cursor
+                    wrapper
+                        [ ( "ticker"
+                          , row
+                                [ width fill
+                                , above menuEl
+                                ]
+                                [ tickerEl act passed
+                                , cursor
+                                ]
+                          )
                         ]
     in
     case model.status of
