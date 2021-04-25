@@ -165,15 +165,14 @@ startTransition menu =
 
 transitionDone : Int -> List MenuLine -> List MenuLine -> Bool
 transitionDone ticks oldLines newLines =
-    Debug.log "allLinesDone newLines" (allLinesDone ticks newLines)
-        && Debug.log "allLinesDone oldLines" (allLinesDone ticks oldLines)
+    allLinesDone ticks newLines && allLinesDone ticks oldLines
 
 
 allLinesDone : Int -> List MenuLine -> Bool
 allLinesDone ticks ls =
     ls
         |> List.map MenuLine.length
-        |> List.all (\lineLength -> ticks >= lineLength)
+        |> List.all (\lineLength -> ticks - 1 >= lineLength)
 
 
 currentLines : Menu -> List MenuLine
@@ -231,14 +230,14 @@ stateLines rightTransformer t from to =
         |> List.map join
 
 
-elongate : Int -> List MenuLine -> List MenuLine
+elongate : Int -> List (List a) -> List (List a)
 elongate len ls =
     List.repeat (len - List.length ls) [] ++ ls
 
 
 transitionSpeed : Ticks
 transitionSpeed =
-    2
+    4
 
 
 
