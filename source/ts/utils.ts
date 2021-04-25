@@ -7,7 +7,7 @@ export const prepend = curry((prep, text) => prep + text);
 
 export const toJson = (data: any) => JSON.stringify(data, null, "\t");
 
-export const run = async (
+export const run = (
   program: string,
   options: Record<string, string | boolean> = {},
   furtherOptions?: Record<string, string | boolean>
@@ -18,17 +18,12 @@ export const run = async (
     ? append("--", opts).concat(optionsToArray(furtherOptions))
     : opts;
 
-  return new Promise((resolve, reject) => {
-    const proc = spawn(cmd ?? "echo", allOpts, {
-      shell: true,
-      stdio: "inherit",
-    });
-
-    proc.on("exit", (code) => {
-      if (code === 0) resolve(code);
-      else reject(code);
-    });
+  const proc = spawn(cmd ?? "echo", allOpts, {
+    shell: true,
+    stdio: "inherit",
   });
+
+  return proc;
 };
 
 // Internal

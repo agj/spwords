@@ -48,6 +48,8 @@ const watchFormatElm = () => {
   watcher.on("change", (path) => {
     runElmFormat(path);
   });
+  watcher.on("error", () => {});
+  return watcher;
 };
 
 // Other file formatting
@@ -65,6 +67,7 @@ const watchFormatOther = () => {
   watcher.on("change", (path) => {
     runPrettier(path);
   });
+  return watcher;
 };
 
 // Combined tasks
