@@ -17,6 +17,7 @@ import Element.Cursor as Cursor
 import Element.Custom.Attribute as Attribute
 import Element.Custom.Input as Input
 import Element.Events as Events
+import Element.Events.Pointer as Pointer
 import Element.Font as Font
 import Element.Input as Input
 import Game exposing (Game)
@@ -655,7 +656,7 @@ menuText layout mt =
                 MenuText.ChangeGameMode mode ->
                     el
                         (menuTextStyle opts
-                            ++ [ Events.onClick (SelectedMode mode)
+                            ++ [ Pointer.onPrimaryDown NoOp (SelectedMode mode)
                                , Cursor.pointer
                                ]
                         )
@@ -664,7 +665,7 @@ menuText layout mt =
                 MenuText.ChangeSpeed speed ->
                     el
                         (menuTextStyle opts
-                            ++ [ Events.onClick (SelectedSpeed speed)
+                            ++ [ Pointer.onPrimaryDown NoOp (SelectedSpeed speed)
                                , Cursor.pointer
                                ]
                         )
@@ -673,7 +674,7 @@ menuText layout mt =
                 MenuText.Restart ->
                     el
                         (menuTextStyle opts
-                            ++ [ Events.onClick SelectedRestart
+                            ++ [ Pointer.onPrimaryDown NoOp SelectedRestart
                                , Cursor.pointer
                                ]
                         )
