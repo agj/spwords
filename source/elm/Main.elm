@@ -356,6 +356,12 @@ pressedEnter model =
             model
 
 
+scrollTop : Cmd Msg
+scrollTop =
+    Dom.setViewport 0 0
+        |> Task.perform (always NoOp)
+
+
 
 -- VIEW
 
@@ -409,6 +415,10 @@ mainScreen model =
         , ticker model
         , bar model.layout AthleteB (Times.get AthleteB times) (isAthlete AthleteB)
         ]
+
+
+
+-- Ticker
 
 
 ticker : Model -> Element Msg
@@ -536,6 +546,79 @@ inputEl layout inputFocused athleteM =
         }
 
 
+tickerActive : Bool -> Maybe Active -> Element Msg
+tickerActive inputFocused activeM =
+    case activeM of
+        Just (Active.AthleteInput athlete input) ->
+            el
+                [ Font.color (athleteColor athlete)
+                , Font.underline
+                , Font.bold
+                ]
+                (text (String.toUpper input))
+
+        Just (Active.Announcement ann) ->
+            tickerAnnouncement inputFocused ann
+
+        Nothing ->
+            none
+
+
+tickerAnnouncement : Bool -> Announcement -> Element Msg
+tickerAnnouncement inputFocused ann =
+    Announcement.getCurrent ann
+        |> fromDocParagraph inputFocused
+
+
+tickerPassed : Bool -> Passed -> List (Element Msg)
+tickerPassed inputFocused passed =
+    Passed.toList passed
+        |> List.map (tickerMessage inputFocused)
+
+
+tickerMessage : Bool -> Message -> Element Msg
+tickerMessage inputFocused tt =
+    case tt of
+        Message.InterruptedAnnouncement txt ticks ->
+            fromDocParagraph inputFocused (Doc.Util.paragraphAppend "—" (Doc.Util.paragraphLeft ticks txt))
+
+        Message.FinishedAnnouncement txt ->
+            fromDocParagraph inputFocused txt
+
+        Message.CorrectAthleteInput athlete txt ->
+            let
+                txtUpper =
+                    String.toUpper txt
+
+                color =
+                    athleteColor athlete
+            in
+            row
+                [ Font.color color
+                , Font.bold
+                ]
+                [ text (String.dropRight 1 txtUpper)
+                , el
+                    [ Font.color Palette.light
+                    , Background.color color
+                    ]
+                    (text (String.right 1 txtUpper))
+                ]
+
+        Message.WrongAthleteInput athlete txt ->
+            el
+                [ Font.color (athleteColor athlete)
+                , Font.strike
+                , Font.bold
+                , Attribute.style "text-decoration-color" (toCssColor Palette.dark)
+                ]
+                (text (String.toUpper txt))
+
+
+
+-- Menu
+
+
 menu : Layout -> List MenuLine -> Element Msg
 menu layout lines =
     column
@@ -614,73 +697,8 @@ menuTextStyle { bold, color } =
         |> consWhen bold Font.bold
 
 
-tickerActive : Bool -> Maybe Active -> Element Msg
-tickerActive inputFocused activeM =
-    case activeM of
-        Just (Active.AthleteInput athlete input) ->
-            el
-                [ Font.color (athleteColor athlete)
-                , Font.underline
-                , Font.bold
-                ]
-                (text (String.toUpper input))
 
-        Just (Active.Announcement ann) ->
-            tickerAnnouncement inputFocused ann
-
-        Nothing ->
-            none
-
-
-tickerAnnouncement : Bool -> Announcement -> Element Msg
-tickerAnnouncement inputFocused ann =
-    Announcement.getCurrent ann
-        |> fromDocParagraph inputFocused
-
-
-tickerPassed : Bool -> Passed -> List (Element Msg)
-tickerPassed inputFocused passed =
-    Passed.toList passed
-        |> List.map (tickerMessage inputFocused)
-
-
-tickerMessage : Bool -> Message -> Element Msg
-tickerMessage inputFocused tt =
-    case tt of
-        Message.InterruptedAnnouncement txt ticks ->
-            fromDocParagraph inputFocused (Doc.Util.paragraphAppend "—" (Doc.Util.paragraphLeft ticks txt))
-
-        Message.FinishedAnnouncement txt ->
-            fromDocParagraph inputFocused txt
-
-        Message.CorrectAthleteInput athlete txt ->
-            let
-                txtUpper =
-                    String.toUpper txt
-
-                color =
-                    athleteColor athlete
-            in
-            row
-                [ Font.color color
-                , Font.bold
-                ]
-                [ text (String.dropRight 1 txtUpper)
-                , el
-                    [ Font.color Palette.light
-                    , Background.color color
-                    ]
-                    (text (String.right 1 txtUpper))
-                ]
-
-        Message.WrongAthleteInput athlete txt ->
-            el
-                [ Font.color (athleteColor athlete)
-                , Font.strike
-                , Font.bold
-                , Attribute.style "text-decoration-color" (toCssColor Palette.dark)
-                ]
-                (text (String.toUpper txt))
+-- Time bar
 
 
 bar : Layout -> Athlete -> Float -> Bool -> Element Msg
@@ -728,6 +746,10 @@ bar layout athlete timeLeft active =
                 none
             ]
         )
+
+
+
+-- Other view
 
 
 fromDocParagraph : Bool -> Paragraph.Paragraph -> Element msg
@@ -811,6 +833,14 @@ athleteColorTransparent athlete =
             Palette.athleteBTransparent
 
 
+transitionAll :
+    { duration : Transition.Millis, options : List Transition.Option }
+    -> List (Transition.Millis -> List Transition.Option -> Transition.Property)
+    -> Element.Attribute msg
+transitionAll options =
+    Transition.all options >> htmlAttribute
+
+
 
 -- SUBSCRIPTIONS
 
@@ -858,17 +888,3 @@ playing status =
 
         _ ->
             False
-
-
-scrollTop : Cmd Msg
-scrollTop =
-    Dom.setViewport 0 0
-        |> Task.perform (always NoOp)
-
-
-transitionAll :
-    { duration : Transition.Millis, options : List Transition.Option }
-    -> List (Transition.Millis -> List Transition.Option -> Transition.Property)
-    -> Element.Attribute msg
-transitionAll options =
-    Transition.all options >> htmlAttribute
