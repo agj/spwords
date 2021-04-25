@@ -10,7 +10,7 @@ type alias Event =
 
 onDown : (Pointer.Event -> msg) -> Element.Attribute msg
 onDown handler =
-    Pointer.onDown handler
+    Pointer.onWithOptions "pointerdown" { stopPropagation = False, preventDefault = False } handler
         |> htmlAttribute
 
 

@@ -212,7 +212,11 @@ update msg model =
             in
             case model.status of
                 Ready _ _ _ ->
-                    ( startPlay newModel
+                    ( if focused then
+                        startPlay newModel
+
+                      else
+                        newModel
                     , Cmd.none
                     )
 
@@ -563,7 +567,7 @@ inputEl layout inputFocused athleteM =
         (Input.fixedMultiline
             [ Events.onFocus (InputFocusChange True)
             , Events.onLoseFocus (InputFocusChange False)
-            , Events.onClick InputSelected
+            , Pointer.onPrimaryDown NoOp InputSelected
             , Font.size 16
             , Font.color Palette.transparent
             , Background.color Palette.transparent
@@ -571,8 +575,8 @@ inputEl layout inputFocused athleteM =
             , height fill
             , padding 0
             , Border.width 0
-            , focused [ Border.glow Palette.transparent 0 ]
             , Border.rounded 0
+            , focused [ Border.glow Palette.transparent 0 ]
             , Cursor.default
             ]
             { text = ""
