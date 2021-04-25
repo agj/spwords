@@ -48,7 +48,6 @@ const watchFormatElm = () => {
   watcher.on("change", (path) => {
     runElmFormat(path);
   });
-  watcher.on("error", () => {});
   return watcher;
 };
 
