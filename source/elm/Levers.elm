@@ -6,6 +6,8 @@ module Levers exposing
     , computerLetterErrorProbability
     , computerWordDelay
     , computerWordErrorFactor
+    , menuTickInterval
+    , menuTransitionTrail
     , tickInterval
     , timeDepletionRate
     )
@@ -80,6 +82,20 @@ computerLetterDelay =
 computerLetterErrorProbability : Float
 computerLetterErrorProbability =
     0.005
+
+
+
+-- MENU
+
+
+menuTickInterval : Milliseconds
+menuTickInterval =
+    20
+
+
+menuTransitionTrail : Int
+menuTransitionTrail =
+    6
 
 
 

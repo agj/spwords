@@ -1,5 +1,6 @@
 module Menu exposing
     ( Menu
+    , animating
     , getMode
     , getSpeed
     , lines
@@ -79,6 +80,11 @@ lines ((Menu _ { transition }) as menu) =
             transitionLines t oldLines curLines
 
 
+animating : Menu -> Bool
+animating (Menu _ { transition }) =
+    transition /= Stable
+
+
 
 -- SETTERS
 
@@ -92,7 +98,7 @@ tick ((Menu state data) as menu) =
         Transitioning t oldLines ->
             let
                 newTicks =
-                    t + transitionSpeed
+                    t + 1
 
                 newTransition =
                     if transitionDone newTicks oldLines (currentLines menu) then
@@ -172,7 +178,7 @@ allLinesDone : Int -> List MenuLine -> Bool
 allLinesDone ticks ls =
     ls
         |> List.map MenuLine.length
-        |> List.all (\lineLength -> ticks - 1 >= lineLength)
+        |> List.all (\lineLength -> ticks - Levers.menuTransitionTrail >= lineLength)
 
 
 currentLines : Menu -> List MenuLine
@@ -191,14 +197,17 @@ currentLines (Menu state { mode, speed }) =
 transitionLines : Int -> List MenuLine -> List MenuLine -> List MenuLine
 transitionLines t from to =
     let
+        take =
+            Levers.menuTransitionTrail
+
         transformer ml =
             let
                 highlit =
-                    MenuLine.left transitionSpeed ml
+                    MenuLine.dropRight (t - take) ml
                         |> List.map (MenuText.setColor MenuText.Highlit)
 
                 rest =
-                    MenuLine.dropLeft transitionSpeed ml
+                    MenuLine.right (t - take) ml
             in
             highlit ++ rest
     in
@@ -233,11 +242,6 @@ stateLines rightTransformer t from to =
 elongate : Int -> List (List a) -> List (List a)
 elongate len ls =
     List.repeat (len - List.length ls) [] ++ ls
-
-
-transitionSpeed : Ticks
-transitionSpeed =
-    4
 
 
 

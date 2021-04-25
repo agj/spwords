@@ -118,6 +118,7 @@ init flags =
 
 type Msg
     = Ticked Time.Posix
+    | TickedMenu Time.Posix
     | Inputted String
     | GotWords (Result Http.Error String)
     | SelectedMode GameMode
@@ -139,6 +140,11 @@ update msg model =
     case msg of
         Ticked _ ->
             ( tickStatus model
+            , Cmd.none
+            )
+
+        TickedMenu _ ->
+            ( { model | menu = Menu.tick model.menu }
             , Cmd.none
             )
 
@@ -290,22 +296,13 @@ tickStatus : Model -> Model
 tickStatus model =
     case model.status of
         Loading ann ->
-            { model
-                | status = Loading (Announcement.tick ann)
-                , menu = Menu.tick model.menu
-            }
+            { model | status = Loading (Announcement.tick ann) }
 
         WordsLoadError err passed ann ->
-            { model
-                | status = WordsLoadError err passed (Announcement.tick ann)
-                , menu = Menu.tick model.menu
-            }
+            { model | status = WordsLoadError err passed (Announcement.tick ann) }
 
         Ready words passed ann ->
-            { model
-                | status = Ready words passed (Announcement.tick ann)
-                , menu = Menu.tick model.menu
-            }
+            { model | status = Ready words passed (Announcement.tick ann) }
 
         Playing words passed game ->
             let
@@ -321,12 +318,11 @@ tickStatus model =
                             passed
 
                 newMenu =
-                    Menu.tick <|
-                        if Game.ended game then
-                            Menu.toEnded model.menu
+                    if Game.ended game then
+                        Menu.toEnded model.menu
 
-                        else
-                            model.menu
+                    else
+                        model.menu
             in
             { model
                 | status = Playing words newPassed newGame
@@ -822,10 +818,13 @@ athleteColorTransparent athlete =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Browser.Events.onResize (\w h -> Resized (Viewport w h))
-        , Time.every (Levers.tickInterval (Menu.getSpeed model.menu)) Ticked
-        , Viewport.visualViewportChanged Resized NoOp
-        ]
+        ([ Browser.Events.onResize (\w h -> Resized (Viewport w h))
+         , Time.every (Levers.tickInterval (Menu.getSpeed model.menu)) Ticked
+         , Viewport.visualViewportChanged Resized NoOp
+         ]
+            |> consWhen (Menu.animating model.menu)
+                (Time.every Levers.menuTickInterval TickedMenu)
+        )
 
 
 
