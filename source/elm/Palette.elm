@@ -93,12 +93,12 @@ font =
 
 textSizeNormal : Layout -> Int
 textSizeNormal =
-    scalable 30
+    scalable 0.6 30
 
 
 textSizeLarge : Layout -> Int
 textSizeLarge =
-    scalable 110
+    scalable 1 110
 
 
 textLineSpacing : Int -> Int
@@ -112,17 +112,17 @@ textLineSpacing fontSize =
 
 spaceLarge : Layout -> Int
 spaceLarge =
-    scalable 30
+    scalable 1 30
 
 
 spaceNormal : Layout -> Int
 spaceNormal =
-    scalable 10
+    scalable 1 10
 
 
 spaceSmall : Layout -> Int
 spaceSmall =
-    scalable 5
+    scalable 1 5
 
 
 
@@ -175,20 +175,27 @@ athleteBTransparent_ =
 -- INTERNAL UTILS
 
 
-scalable : Int -> Layout -> Int
-scalable base layout =
+scalable : Float -> Int -> Layout -> Int
+scalable range largest layout =
+    let
+        d n =
+            range * n + (1 - range)
+    in
     case layout of
         Layout.Large ->
-            base
+            largest
 
         Layout.Medium ->
-            fraction 0.73 base
+            fraction (d 0.73) largest
 
         Layout.Small ->
-            fraction 0.5 base
+            fraction (d 0.5) largest
 
-        Layout.Smaller ->
-            fraction 0.3 base
+        Layout.CompressedMedium ->
+            fraction (d 0.5) largest
+
+        Layout.CompressedSmall ->
+            fraction (d 0.3) largest
 
 
 toElmUi : Color -> Element.Color

@@ -67,7 +67,7 @@ padLeft len ch ml =
             String.repeat (len - length ml) (String.fromChar ch)
     in
     if String.length padding > 0 then
-        MenuText.plainText padding :: ml
+        MenuText.plain padding :: ml
 
     else
         ml

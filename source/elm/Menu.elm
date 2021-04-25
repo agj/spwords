@@ -19,6 +19,7 @@ import List.Extra as List
 import Menu.MenuLine as MenuLine exposing (MenuLine)
 import Menu.MenuText as MenuText exposing (MenuAction(..), MenuText(..), MenuTextOptions)
 import Speed exposing (Speed)
+import Util.List as List
 
 
 type Menu
@@ -229,7 +230,7 @@ stateLines rightTransformer t from to =
 
         left =
             from
-                |> elongate maxHeight
+                |> List.padLeft maxHeight []
                 |> List.zip indices
                 |> List.map processLeft
 
@@ -240,7 +241,7 @@ stateLines rightTransformer t from to =
 
         right =
             to
-                |> elongate maxHeight
+                |> List.padLeft maxHeight []
                 |> List.zip indices
                 |> List.map processRight
 
@@ -259,11 +260,6 @@ stateLines rightTransformer t from to =
     in
     List.zip left right
         |> List.map join
-
-
-elongate : Int -> List (List a) -> List (List a)
-elongate len ls =
-    List.repeat (len - List.length ls) [] ++ ls
 
 
 
@@ -306,11 +302,11 @@ titleLines mode speed =
                     Speed.Normal
     in
     [ titleLine
-    , [ MenuText.pressableText ("[" ++ modeName ++ "]") (ChangeGameMode nextMode)
-      , MenuText.plainText " MODE. "
+    , [ MenuText.pressable ("[" ++ modeName ++ "]") (ChangeGameMode nextMode)
+      , MenuText.plain " MODE. "
       ]
-    , [ MenuText.pressableText ("[" ++ speedName ++ "]") (ChangeSpeed nextSpeed)
-      , MenuText.plainText " SPEED. "
+    , [ MenuText.pressable ("[" ++ speedName ++ "]") (ChangeSpeed nextSpeed)
+      , MenuText.plain " SPEED. "
       ]
     ]
 
@@ -330,13 +326,13 @@ endedLines =
 
 titleLine : MenuLine
 titleLine =
-    [ MenuText.plainText "SPWORDS" |> MenuText.setColor MenuText.Dark |> MenuText.setBold True
-    , MenuText.plainText " BY " |> MenuText.setColor MenuText.Dark
-    , MenuText.pressableText "AGJ. " AuthorLink |> MenuText.setColor MenuText.Dark
+    [ MenuText.plain "SPWORDS" |> MenuText.setColor MenuText.Dark |> MenuText.setBold True
+    , MenuText.plain " BY " |> MenuText.setColor MenuText.Dark
+    , MenuText.pressable "AGJ. " AuthorLink |> MenuText.setColor MenuText.Dark
     ]
 
 
 restartLine : MenuLine
 restartLine =
-    [ MenuText.pressableText "[RESTART] " Restart
+    [ MenuText.pressable "[RESTART] " Restart
     ]

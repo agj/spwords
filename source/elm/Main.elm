@@ -25,7 +25,7 @@ import Game.GameMode exposing (GameMode(..))
 import Game.Times as Times exposing (Times)
 import Html exposing (Html)
 import Http
-import Layout exposing (Layout)
+import Layout exposing (Layout(..))
 import Levers
 import Maybe.Extra as Maybe
 import Menu exposing (Menu)
@@ -45,7 +45,7 @@ import Ticker.Passed as Passed exposing (Passed)
 import Time
 import Util exposing (fraction, ifElse)
 import Util.Element exposing (toCssColor)
-import Util.List exposing (appendWhen, consMaybe, consWhen)
+import Util.List as List exposing (appendWhen, consMaybe, consWhen)
 import Viewport exposing (Viewport)
 import Words exposing (Words)
 
@@ -445,14 +445,6 @@ ticker model =
             )
                 |> List.reverse
 
-        gameEnded =
-            case model.status of
-                Playing _ _ game ->
-                    Game.ended game
-
-                _ ->
-                    False
-
         athleteM =
             case model.status of
                 Playing _ _ game ->
@@ -463,38 +455,68 @@ ticker model =
                     Nothing
 
         tickerEl act passed =
-            row
-                [ centerY
+            el
+                [ inFront (inputEl model.layout model.inputFocused athleteM)
+                , Font.size (Palette.textSizeLarge model.layout)
+                , height (px (fraction 1.2 (Palette.textSizeLarge model.layout)))
                 , width fill
-                , Cursor.default
-                , above (menu model.layout (Menu.lines model.menu))
+                , clip
                 ]
-                [ el
-                    [ inFront (inputEl model.layout model.inputFocused athleteM)
-                    , Font.size (Palette.textSizeLarge model.layout)
-                    , height (px (fraction 1.2 (Palette.textSizeLarge model.layout)))
-                    , width fill
-                    , clip
-                    ]
-                    (row
-                        [ alignRight, centerY ]
-                        (toTickerTexts act passed)
-                    )
-                , cursor
-                ]
+                (row
+                    [ alignRight, centerY ]
+                    (toTickerTexts act passed)
+                )
+
+        menuEl =
+            menu model.layout (Menu.lines model.menu)
+
+        tickerMenu act passed =
+            let
+                compressedLayout =
+                    column
+                        [ centerY
+                        , width fill
+                        , Cursor.default
+                        ]
+                        [ menuEl
+                        , row
+                            [ width fill
+                            ]
+                            [ tickerEl act passed
+                            , cursor
+                            ]
+                        ]
+            in
+            case model.layout of
+                CompressedSmall ->
+                    compressedLayout
+
+                CompressedMedium ->
+                    compressedLayout
+
+                _ ->
+                    row
+                        [ centerY
+                        , width fill
+                        , Cursor.default
+                        , above menuEl
+                        ]
+                        [ tickerEl act passed
+                        , cursor
+                        ]
     in
     case model.status of
         Loading ann ->
-            tickerEl (tickerAnnouncement model.inputFocused ann) Passed.empty
+            tickerMenu (tickerAnnouncement model.inputFocused ann) Passed.empty
 
         WordsLoadError _ passed ann ->
-            tickerEl (tickerAnnouncement model.inputFocused ann) passed
+            tickerMenu (tickerAnnouncement model.inputFocused ann) passed
 
         Ready _ passed ann ->
-            tickerEl (tickerAnnouncement model.inputFocused ann) passed
+            tickerMenu (tickerAnnouncement model.inputFocused ann) passed
 
         Playing _ passed game ->
-            tickerEl (tickerActive model.inputFocused (Game.getActive game)) passed
+            tickerMenu (tickerActive model.inputFocused (Game.getActive game)) passed
 
 
 inputEl : Layout -> Bool -> Maybe Athlete -> Element Msg
@@ -523,28 +545,34 @@ inputEl layout inputFocused athleteM =
                 Nothing ->
                     el [] none
     in
-    Input.fixedMultiline
-        [ Events.onFocus (InputFocusChange True)
-        , Events.onLoseFocus (InputFocusChange False)
-        , Events.onClick InputSelected
-        , behindContent pressHere
-        , Font.size 16
-        , Font.color Palette.transparent
-        , Background.color Palette.transparent
+    el
+        [ behindContent pressHere
         , width fill
         , height fill
-        , padding 0
-        , Border.width 0
-        , focused [ Border.glow Palette.transparent 0 ]
-        , Border.rounded 0
-        , Cursor.default
+        , paddingXY 0 (fraction 0.15 (Palette.textSizeLarge layout))
         ]
-        { text = ""
-        , onChange = Inputted
-        , placeholder = Nothing
-        , label = Input.labelHidden ""
-        , spellcheck = False
-        }
+        (Input.fixedMultiline
+            [ Events.onFocus (InputFocusChange True)
+            , Events.onLoseFocus (InputFocusChange False)
+            , Events.onClick InputSelected
+            , Font.size 16
+            , Font.color Palette.transparent
+            , Background.color Palette.transparent
+            , width fill
+            , height fill
+            , padding 0
+            , Border.width 0
+            , focused [ Border.glow Palette.transparent 0 ]
+            , Border.rounded 0
+            , Cursor.default
+            ]
+            { text = ""
+            , onChange = Inputted
+            , placeholder = Nothing
+            , label = Input.labelHidden ""
+            , spellcheck = False
+            }
+        )
 
 
 tickerActive : Bool -> Maybe Active -> Element Msg
@@ -625,10 +653,12 @@ menu layout lines =
     column
         [ alignRight
         , Cursor.default
-        , moveDown (1.5 * toFloat (Palette.textSizeNormal layout))
+        , moveDown (0.4 * toFloat (Palette.textSizeLarge layout))
         , spacing (Palette.textLineSpacing (Palette.textSizeNormal layout))
+        , Attribute.raise 1
         ]
         (lines
+            |> List.padLeft 3 [ MenuText.plain "" ]
             |> List.map (menuLine layout)
         )
 

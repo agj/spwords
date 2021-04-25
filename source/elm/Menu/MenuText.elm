@@ -7,8 +7,8 @@ module Menu.MenuText exposing
     , dropRight
     , left
     , length
-    , plainText
-    , pressableText
+    , plain
+    , pressable
     , right
     , setBold
     , setColor
@@ -43,13 +43,13 @@ type MenuAction
     | Restart
 
 
-plainText : String -> MenuText
-plainText str =
+plain : String -> MenuText
+plain str =
     PlainText str standardOptions
 
 
-pressableText : String -> MenuAction -> MenuText
-pressableText str action =
+pressable : String -> MenuAction -> MenuText
+pressable str action =
     PressableText str action standardOptions
 
 

@@ -42,3 +42,8 @@ onKey key msg =
                     )
             )
         )
+
+
+raise : Int -> Attribute msg
+raise n =
+    style "z-index" (String.fromInt n)

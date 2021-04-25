@@ -32,3 +32,15 @@ appendWhen yes listA listB =
 
     else
         listB
+
+
+padLeft : Int -> a -> List a -> List a
+padLeft len filler list =
+    List.repeat (len - List.length list) filler
+        ++ list
+
+
+padRight : Int -> a -> List a -> List a
+padRight len filler list =
+    list
+        ++ List.repeat (len - List.length list) filler
