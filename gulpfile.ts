@@ -54,16 +54,19 @@ const watchFormatElm = () => {
 
 // Other file formatting
 
-const runPrettier = (path: string) =>
-  run(`npx prettier ${path}`, { write: true });
+const prettierGlobs = [
+  "./*.(js|ts|html|css|json|md|yaml)",
+  "./source/**/*.(js|ts|html|css|json|md|yaml)",
+];
 
-const formatOther = () => runPrettier(".");
+const runPrettier = (path: string) =>
+  run(`npx prettier "${path}"`, { write: true });
+
+const formatOther = () =>
+  Promise.all(prettierGlobs.map((glob) => runPrettier(glob)));
 
 const watchFormatOther = () => {
-  const watcher = gulp.watch([
-    "./*.(js|ts|html|css|json|md|yaml)",
-    "./source/**/*.(js|ts|html|css|json|md|yaml)",
-  ]);
+  const watcher = gulp.watch(prettierGlobs);
   watcher.on("change", (path) => {
     runPrettier(path);
   });
@@ -86,7 +89,7 @@ const watchFormat = gulp.parallel(watchFormatElm, watchFormatOther);
 
 export const develop = gulp.series(
   cleanUp,
-  format,
+  gulp.parallel(copy, format),
   gulp.parallel(watchCopy, watchFormat, developElm)
 );
 
