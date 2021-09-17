@@ -6,7 +6,7 @@ import { run } from "./source/ts/utils";
 
 const doElm = (debug: boolean) =>
   run(`npx elm make ${cfg.elmDir}Main.elm`, {
-    output: `${cfg.outputDir}js/script.js`,
+    output: `${cfg.outputDir}js/${cfg.elmFileName}.js`,
     debug,
   });
 
@@ -24,7 +24,7 @@ const developElm = () =>
       hot: true,
     },
     {
-      output: `${cfg.outputDir}js/script.js`,
+      output: `${cfg.outputDir}js/${cfg.elmFileName}.js`,
       debug: false,
     }
   );
