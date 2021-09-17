@@ -2,6 +2,7 @@ import gulp from "gulp";
 import del from "del";
 import cfg from "./source/ts/config";
 import { run } from "./source/ts/utils";
+import { copyFile, mkdir } from "fs/promises";
 
 // Elm compilation
 
@@ -20,7 +21,7 @@ const developElm = () =>
     `npx elm-go ${cfg.elmDir}Main.elm `,
     {
       "path-to-elm": "./node_modules/.bin/elm",
-      dir: "output/",
+      dir: cfg.outputDir,
       open: false,
       hot: true,
     },
@@ -29,6 +30,22 @@ const developElm = () =>
       debug: false,
     }
   );
+
+// Typescript compilation
+
+export const buildTs = async () => {
+  const outputFolder = `${cfg.outputDir}js/`;
+  await mkdir(outputFolder, { recursive: true });
+  return copyFile("source/ts/main.js", `${outputFolder}${cfg.initFileName}.js`);
+};
+
+export const watchTs = async () => {
+  const watcher = gulp.watch(`source/ts/**/*.(ts|js)`);
+  watcher.on("change", (path) => {
+    buildTs();
+  });
+  return watcher;
+};
 
 // Static files copy
 
@@ -79,9 +96,15 @@ const cleanUp = () => del(`${cfg.outputDir}**`);
 
 // Combined tasks
 
-export const build = gulp.series(cleanUp, gulp.parallel(copy, buildElm));
+export const build = gulp.series(
+  cleanUp,
+  gulp.parallel(copy, buildElm, buildTs)
+);
 
-export const debug = gulp.series(cleanUp, gulp.parallel(copy, debugElm));
+export const debug = gulp.series(
+  cleanUp,
+  gulp.parallel(copy, debugElm, buildTs)
+);
 
 export const format = gulp.parallel(formatElm, formatOther);
 
@@ -90,7 +113,7 @@ const watchFormat = gulp.parallel(watchFormatElm, watchFormatOther);
 export const develop = gulp.series(
   cleanUp,
   gulp.parallel(copy, format),
-  gulp.parallel(watchCopy, watchFormat, developElm)
+  gulp.parallel(watchCopy, watchFormat, developElm, buildTs, watchTs)
 );
 
 export default build;
