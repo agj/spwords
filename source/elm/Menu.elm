@@ -168,7 +168,28 @@ toState targetState ((Menu currentState data) as menu) =
 
 startTransition : Menu -> Transition
 startTransition menu =
-    Transitioning 0 (lines menu)
+    Transitioning 0 (makeOldLines menu)
+
+
+makeOldLines : Menu -> List MenuLine
+makeOldLines menu =
+    lines menu
+        |> List.map
+            (\menuLine ->
+                menuLine
+                    |> List.map
+                        (\menuText ->
+                            case menuText of
+                                PlainText str opts ->
+                                    PlainText str
+                                        { opts
+                                            | color = MenuText.Gray
+                                        }
+
+                                PressableText str _ opts ->
+                                    PlainText str { opts | color = MenuText.Gray }
+                        )
+            )
 
 
 transitionDone : Int -> List MenuLine -> List MenuLine -> Bool
