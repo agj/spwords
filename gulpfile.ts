@@ -1,4 +1,5 @@
 import gulp from "gulp";
+import del from "del";
 import cfg from "./source/ts/config";
 import { run } from "./source/ts/utils";
 
@@ -69,17 +70,22 @@ const watchFormatOther = () => {
   return watcher;
 };
 
+// Maintenance
+
+const cleanUp = () => del(`${cfg.outputDir}**`);
+
 // Combined tasks
 
-export const build = gulp.parallel(copy, buildElm);
+export const build = gulp.series(cleanUp, gulp.parallel(copy, buildElm));
 
-export const debug = gulp.parallel(copy, debugElm);
+export const debug = gulp.series(cleanUp, gulp.parallel(copy, debugElm));
 
 export const format = gulp.parallel(formatElm, formatOther);
 
 const watchFormat = gulp.parallel(watchFormatElm, watchFormatOther);
 
 export const develop = gulp.series(
+  cleanUp,
   format,
   gulp.parallel(watchCopy, watchFormat, developElm)
 );
