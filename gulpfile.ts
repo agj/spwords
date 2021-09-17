@@ -61,8 +61,8 @@ const formatOther = () => runPrettier(".");
 
 const watchFormatOther = () => {
   const watcher = gulp.watch([
-    "./*.(js|html|css|json|md|yaml)",
-    "./source/**/*.(js|html|css|json|md|yaml)",
+    "./*.(js|ts|html|css|json|md|yaml)",
+    "./source/**/*.(js|ts|html|css|json|md|yaml)",
   ]);
   watcher.on("change", (path) => {
     runPrettier(path);
