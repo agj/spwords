@@ -648,13 +648,24 @@ tickerMessage inputFocused tt =
                 ]
 
         Message.WrongAthleteInput athlete txt ->
-            el
-                [ Font.color (athleteColor athlete)
-                , Font.strike
-                , Font.bold
-                , Attribute.style "text-decoration-color" (toCssColor Palette.dark)
-                ]
-                (text (String.toUpper txt))
+            let
+                baseStyle =
+                    [ Font.color (athleteColor athlete)
+                    , Font.bold
+                    ]
+            in
+            case txt of
+                "" ->
+                    el baseStyle (text "✖")
+
+                _ ->
+                    el
+                        ([ Font.strike
+                         , Attribute.style "text-decoration-color" (toCssColor Palette.dark)
+                         ]
+                            ++ baseStyle
+                        )
+                        (text (String.toUpper txt))
 
 
 
