@@ -33,7 +33,7 @@ fromList list =
 
 push : Message -> Passed -> Passed
 push mes (Passed list) =
-    Passed (mes :: list)
+    Passed (mes :: List.take 5 list)
 
 
 pushAnnouncement : Announcement -> Passed -> Passed
