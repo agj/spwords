@@ -474,7 +474,7 @@ ticker model =
                 )
 
         menuEl =
-            menu model.layout (Menu.lines model.menu)
+            menu model.layout model.menu
 
         tickerMenu act passed =
             let
@@ -661,8 +661,8 @@ tickerMessage inputFocused tt =
 -- Menu
 
 
-menu : Layout -> List MenuLine -> Element Msg
-menu layout lines =
+menu : Layout -> Menu -> Element Msg
+menu layout menu_ =
     column
         [ alignRight
         , Cursor.default
@@ -671,39 +671,39 @@ menu layout lines =
         , Attribute.raise 1
         , paddingEach { sides | right = fraction 0.5 (Palette.textSizeNormal layout) }
         ]
-        (lines
+        (Menu.lines menu_
             |> List.padLeft 3 []
-            |> List.map (menuLine layout)
+            |> List.map (menuLine layout (Menu.getMode menu_))
         )
 
 
-menuLine : Layout -> MenuLine -> Element Msg
-menuLine layout line =
+menuLine : Layout -> GameMode -> MenuLine -> Element Msg
+menuLine layout mode line =
     row
         [ alignRight
         , height (px (Palette.textSizeNormal layout))
         ]
         (line
-            |> List.map (menuText layout)
+            |> List.map (menuText layout mode)
         )
 
 
-menuText : Layout -> MenuText -> Element Msg
-menuText layout mt =
+menuText : Layout -> GameMode -> MenuText -> Element Msg
+menuText layout mode mt =
     case mt of
         MenuText.PlainText txt opts ->
-            el (menuTextStyle opts)
+            el (menuTextStyle mode opts)
                 (text txt)
 
         MenuText.PressableText txt action opts ->
             case action of
                 MenuAction.AuthorLink ->
-                    newTabLink (menuTextStyle opts) { label = text txt, url = "http://agj.cl" }
+                    newTabLink (menuTextStyle mode opts) { label = text txt, url = "http://agj.cl" }
 
-                MenuAction.ChangeGameMode mode ->
+                MenuAction.ChangeGameMode newMode ->
                     el
-                        (menuTextStyle opts
-                            ++ [ Pointer.onPrimaryDown NoOp (SelectedMode mode)
+                        (menuTextStyle mode opts
+                            ++ [ Pointer.onPrimaryDown NoOp (SelectedMode newMode)
                                , Cursor.pointer
                                ]
                         )
@@ -711,7 +711,7 @@ menuText layout mt =
 
                 MenuAction.ChangeSpeed speed ->
                     el
-                        (menuTextStyle opts
+                        (menuTextStyle mode opts
                             ++ [ Pointer.onPrimaryDown NoOp (SelectedSpeed speed)
                                , Cursor.pointer
                                ]
@@ -720,7 +720,7 @@ menuText layout mt =
 
                 MenuAction.Restart ->
                     el
-                        (menuTextStyle opts
+                        (menuTextStyle mode opts
                             ++ [ Pointer.onPrimaryDown NoOp SelectedRestart
                                , Cursor.pointer
                                ]
@@ -728,8 +728,8 @@ menuText layout mt =
                         (text txt)
 
 
-menuTextStyle : MenuTextOptions -> List (Element.Attribute Msg)
-menuTextStyle { bold, color } =
+menuTextStyle : GameMode -> MenuTextOptions -> List (Element.Attribute Msg)
+menuTextStyle mode { bold, color } =
     [ Font.color
         (case color of
             MenuText.Dark ->
@@ -739,7 +739,12 @@ menuTextStyle { bold, color } =
                 Palette.darkish
 
             MenuText.Highlit ->
-                Palette.athleteA
+                case mode of
+                    HotseatMode ->
+                        Palette.athleteA
+
+                    SingleMode ->
+                        Palette.athleteB
         )
     ]
         |> consWhen bold Font.bold
