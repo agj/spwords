@@ -122,8 +122,8 @@ interjection =
         |> Random.map addLastSpace
 
 
-roundEnd : { winner : Athlete, mode : GameMode, seed : Random.Seed } -> ( Paragraph, Random.Seed )
-roundEnd { winner, mode, seed } =
+roundEnd : { winner : Athlete, mode : GameMode } -> Generator Paragraph
+roundEnd { winner, mode } =
     let
         loser =
             Athlete.opposite winner
@@ -146,11 +146,12 @@ roundEnd { winner, mode, seed } =
                 ]
     in
     comments.roundEnd
-        |> emuRandomString seed setStyles vars
+        |> Random.itemGeneratorWithDefault ""
+        |> Random.map (emu setStyles vars)
 
 
-tally : { mode : GameMode, pointsA : Points, pointsB : Points, seed : Random.Seed } -> ( Paragraph, Random.Seed )
-tally { mode, pointsA, pointsB, seed } =
+tally : { mode : GameMode, pointsA : Points, pointsB : Points } -> Generator Paragraph
+tally { mode, pointsA, pointsB } =
     let
         setStyles txt =
             case Text.content txt of
@@ -172,11 +173,12 @@ tally { mode, pointsA, pointsB, seed } =
                 ]
     in
     comments.tally
-        |> emuRandomString seed setStyles vars
+        |> Random.itemGeneratorWithDefault ""
+        |> Random.map (emu setStyles vars)
 
 
-assessment : { winner : Athlete, mode : GameMode, seed : Random.Seed } -> ( Paragraph, Random.Seed )
-assessment { winner, mode, seed } =
+assessment : { winner : Athlete, mode : GameMode } -> Generator Paragraph
+assessment { winner, mode } =
     let
         loser =
             Athlete.opposite winner
@@ -199,7 +201,8 @@ assessment { winner, mode, seed } =
                 ]
     in
     comments.assessment
-        |> emuRandomString seed setStyles vars
+        |> Random.itemGeneratorWithDefault ""
+        |> Random.map (emu setStyles vars)
 
 
 tallyAssessmentTied : { points : Points, seed : Random.Seed } -> ( Paragraph, Random.Seed )

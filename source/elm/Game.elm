@@ -475,11 +475,13 @@ endRound : { winner : Athlete, score : Score, mode : GameMode, played : Played, 
 endRound { winner, score, played, mode, seed } =
     let
         ( message, newSeed ) =
-            Texts.roundEnd
-                { winner = winner
-                , mode = mode
-                , seed = seed
-                }
+            Random.step
+                (Texts.roundEnd
+                    { winner = winner
+                    , mode = mode
+                    }
+                )
+                seed
 
         newGame =
             RoundEnd mode score winner played (Queue.singleton (message |> Announcement.create))
@@ -500,24 +502,28 @@ assessment { score, athlete, played, mode, seed } =
             if pointsA /= pointsB then
                 let
                     ( tallyMsg, s1 ) =
-                        Texts.tally
-                            { mode = mode
-                            , pointsA = pointsA
-                            , pointsB = pointsB
-                            , seed = seed1
-                            }
+                        Random.step
+                            (Texts.tally
+                                { mode = mode
+                                , pointsA = pointsA
+                                , pointsB = pointsB
+                                }
+                            )
+                            seed1
 
                     ( assessmentMsg, s2 ) =
-                        Texts.assessment
-                            { winner =
-                                if (pointsA |> Score.intFromPoints) > (pointsB |> Score.intFromPoints) then
-                                    AthleteA
+                        Random.step
+                            (Texts.assessment
+                                { winner =
+                                    if (pointsA |> Score.intFromPoints) > (pointsB |> Score.intFromPoints) then
+                                        AthleteA
 
-                                else
-                                    AthleteB
-                            , mode = mode
-                            , seed = s1
-                            }
+                                    else
+                                        AthleteB
+                                , mode = mode
+                                }
+                            )
+                            s1
                 in
                 ( tallyMsg |> Announcement.create
                 , [ assessmentMsg |> Announcement.create
