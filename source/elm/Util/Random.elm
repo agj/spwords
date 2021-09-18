@@ -14,6 +14,13 @@ itemGenerator list =
         |> Random.map (indexToItem list)
 
 
+itemGeneratorWithDefault : a -> List a -> Random.Generator a
+itemGeneratorWithDefault default list =
+    Random.int 0 (List.length list - 1)
+        |> Random.map (indexToItem list)
+        |> Random.map (Maybe.withDefault default)
+
+
 indexToItem : List a -> Int -> Maybe a
 indexToItem list index =
     list
