@@ -496,7 +496,7 @@ assessment { score, athlete, played, mode, seed } =
             score
 
         ( newRoundMsg, seed1 ) =
-            Texts.newRound seed
+            Random.step Texts.newRound seed
 
         ( ann, anns, newSeed ) =
             if pointsA /= pointsB then
@@ -535,10 +535,12 @@ assessment { score, athlete, played, mode, seed } =
             else
                 let
                     ( tiedMsg, s1 ) =
-                        Texts.tallyAssessmentTied
-                            { points = pointsA
-                            , seed = seed1
-                            }
+                        Random.step
+                            (Texts.tallyAssessmentTied
+                                { points = pointsA
+                                }
+                            )
+                            seed1
                 in
                 ( tiedMsg |> Announcement.create
                 , [ newRoundMsg |> Announcement.create ]
@@ -555,12 +557,14 @@ endGame : { winner : Athlete, loserPoints : Points, mode : GameMode, seed : Rand
 endGame { winner, loserPoints, mode, seed } =
     let
         ( message, newSeed ) =
-            Texts.gameEnd
-                { winner = winner
-                , loserPoints = loserPoints
-                , mode = mode
-                , seed = seed
-                }
+            Random.step
+                (Texts.gameEnd
+                    { winner = winner
+                    , loserPoints = loserPoints
+                    , mode = mode
+                    }
+                )
+                seed
                 |> Tuple.mapFirst Announcement.createUnskippable
     in
     ( End mode winner loserPoints (Queue.singleton message)

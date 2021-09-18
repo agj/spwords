@@ -205,8 +205,8 @@ assessment { winner, mode } =
         |> Random.map (emu setStyles vars)
 
 
-tallyAssessmentTied : { points : Points, seed : Random.Seed } -> ( Paragraph, Random.Seed )
-tallyAssessmentTied { points, seed } =
+tallyAssessmentTied : { points : Points } -> Generator Paragraph
+tallyAssessmentTied { points } =
     let
         setStyles =
             Text.mapFormat (Format.setBold True)
@@ -217,17 +217,19 @@ tallyAssessmentTied { points, seed } =
                 ]
     in
     comments.tallyAssessmentTied
-        |> emuRandomString seed setStyles vars
+        |> Random.itemGeneratorWithDefault ""
+        |> Random.map (emu setStyles vars)
 
 
-newRound : Random.Seed -> ( Paragraph, Random.Seed )
-newRound seed =
+newRound : Generator Paragraph
+newRound =
     comments.newRound
-        |> emuRandomString seed identity Dict.empty
+        |> Random.itemGeneratorWithDefault ""
+        |> Random.map (emu identity Dict.empty)
 
 
-gameEnd : { winner : Athlete, mode : GameMode, loserPoints : Points, seed : Random.Seed } -> ( Paragraph, Random.Seed )
-gameEnd { winner, mode, loserPoints, seed } =
+gameEnd : { winner : Athlete, mode : GameMode, loserPoints : Points } -> Generator Paragraph
+gameEnd { winner, mode, loserPoints } =
     let
         loser =
             Athlete.opposite winner
@@ -252,7 +254,8 @@ gameEnd { winner, mode, loserPoints, seed } =
                 ]
     in
     comments.gameEnd
-        |> emuRandomString seed setStyles vars
+        |> Random.itemGeneratorWithDefault ""
+        |> Random.map (emu setStyles vars)
 
 
 
