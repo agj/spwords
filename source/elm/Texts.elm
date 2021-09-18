@@ -31,7 +31,7 @@ import Doc.Paragraph as Paragraph exposing (Paragraph)
 import Doc.Text as Text exposing (Text)
 import Game.GameMode exposing (GameMode(..))
 import List.Extra as List
-import Random
+import Random exposing (Generator)
 import Score exposing (Points)
 import Util.Random as Random
 
@@ -88,8 +88,8 @@ rules =
         |> emu identity Dict.empty
 
 
-roundStart : { turnAthlete : Athlete, mode : GameMode, initial : Char, seed : Random.Seed } -> ( Paragraph, Random.Seed )
-roundStart { turnAthlete, mode, initial, seed } =
+roundStart : { turnAthlete : Athlete, mode : GameMode, initial : Char } -> Generator Paragraph
+roundStart { turnAthlete, mode, initial } =
     let
         setStyles txt =
             case Text.content txt of
@@ -109,16 +109,17 @@ roundStart { turnAthlete, mode, initial, seed } =
                 ]
     in
     comments.roundStart
-        |> randomString seed
-        |> Tuple.mapFirst (emu setStyles vars)
-        |> Tuple.mapFirst addLastSpace
+        |> Random.itemGeneratorWithDefault ""
+        |> Random.map (emu setStyles vars)
+        |> Random.map addLastSpace
 
 
-interjection : Random.Seed -> ( Paragraph, Random.Seed )
-interjection seed =
+interjection : Generator Paragraph
+interjection =
     comments.interjection
-        |> emuRandomString seed identity Dict.empty
-        |> Tuple.mapFirst addLastSpace
+        |> Random.itemGeneratorWithDefault ""
+        |> Random.map (emu identity Dict.empty)
+        |> Random.map addLastSpace
 
 
 roundEnd : { winner : Athlete, mode : GameMode, seed : Random.Seed } -> ( Paragraph, Random.Seed )

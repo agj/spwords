@@ -299,12 +299,14 @@ startRound { athlete, score, played, mode, seed } =
             randomLetter seed Texts.alphabet
 
         ( roundStartMsg, newSeed ) =
-            Texts.roundStart
-                { turnAthlete = athlete
-                , seed = seed1
-                , mode = mode
-                , initial = initial
-                }
+            Random.step
+                (Texts.roundStart
+                    { turnAthlete = athlete
+                    , mode = mode
+                    , initial = initial
+                    }
+                )
+                seed1
 
         ann =
             roundStartMsg |> Announcement.createUnskippable
@@ -777,7 +779,7 @@ playCorrect { constraints, score, athlete, mode, times, seed } =
                 }
 
         ( message, newSeed ) =
-            Texts.interjection seed
+            Random.step Texts.interjection seed
 
         newGame =
             PlayCorrect
