@@ -108,16 +108,14 @@ roundStart { turnAthlete, mode, initial } =
                 , ( "letter", initial |> String.fromChar )
                 ]
     in
-    comments.roundStart
-        |> Random.itemGeneratorWithDefault ""
+    randomString comments.roundStart
         |> Random.map (emu setStyles vars)
         |> Random.map addLastSpace
 
 
 interjection : Generator Paragraph
 interjection =
-    comments.interjection
-        |> Random.itemGeneratorWithDefault ""
+    randomString comments.interjection
         |> Random.map (emu identity Dict.empty)
         |> Random.map addLastSpace
 
@@ -145,8 +143,7 @@ roundEnd { winner, mode } =
                 , ( "loser", athleteName mode loser )
                 ]
     in
-    comments.roundEnd
-        |> Random.itemGeneratorWithDefault ""
+    randomString comments.roundEnd
         |> Random.map (emu setStyles vars)
 
 
@@ -172,8 +169,7 @@ tally { mode, pointsA, pointsB } =
                 , ( "pointsB", pointsB |> Score.stringFromPoints )
                 ]
     in
-    comments.tally
-        |> Random.itemGeneratorWithDefault ""
+    randomString comments.tally
         |> Random.map (emu setStyles vars)
 
 
@@ -200,8 +196,7 @@ assessment { winner, mode } =
                 , ( "loser", athleteName mode loser )
                 ]
     in
-    comments.assessment
-        |> Random.itemGeneratorWithDefault ""
+    randomString comments.assessment
         |> Random.map (emu setStyles vars)
 
 
@@ -216,15 +211,13 @@ tallyAssessmentTied { points } =
                 [ ( "points", points |> Score.stringFromPoints )
                 ]
     in
-    comments.tallyAssessmentTied
-        |> Random.itemGeneratorWithDefault ""
+    randomString comments.tallyAssessmentTied
         |> Random.map (emu setStyles vars)
 
 
 newRound : Generator Paragraph
 newRound =
-    comments.newRound
-        |> Random.itemGeneratorWithDefault ""
+    randomString comments.newRound
         |> Random.map (emu identity Dict.empty)
 
 
@@ -253,8 +246,7 @@ gameEnd { winner, mode, loserPoints } =
                 , ( "loserPoints", loserPoints |> Score.stringFromPoints )
                 ]
     in
-    comments.gameEnd
-        |> Random.itemGeneratorWithDefault ""
+    randomString comments.gameEnd
         |> Random.map (emu setStyles vars)
 
 
@@ -467,16 +459,9 @@ replaceVars formatter vars par =
         |> Paragraph.mapContent (List.map replaceVar)
 
 
-emuRandomString : Random.Seed -> (Text -> Text) -> Dict String String -> List String -> ( Paragraph, Random.Seed )
-emuRandomString seed formatter vars strings =
-    randomString seed strings
-        |> Tuple.mapFirst (emu formatter vars)
-
-
-randomString : Random.Seed -> List String -> ( String, Random.Seed )
-randomString seed strings =
-    Random.item seed strings
-        |> Tuple.mapFirst (Maybe.withDefault "")
+randomString : List String -> Generator String
+randomString strings =
+    Random.itemGeneratorWithDefault "" strings
 
 
 mistake : List String -> MistakeArguments -> Generator Paragraph
@@ -498,8 +483,7 @@ mistake texts { initial, incorporates } =
         setStyles =
             Text.mapFormat (Format.setBold True)
     in
-    texts
-        |> Random.itemGeneratorWithDefault ""
+    randomString texts
         |> Random.map (emu setStyles vars)
 
 
