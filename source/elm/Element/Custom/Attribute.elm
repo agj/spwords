@@ -47,3 +47,8 @@ onKey key msg =
 raise : Int -> Attribute msg
 raise n =
     style "z-index" (String.fromInt n)
+
+
+blur : Float -> Attribute msg
+blur amount =
+    style "filter" ("blur(" ++ String.fromFloat amount ++ "px)")
