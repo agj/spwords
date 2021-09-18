@@ -469,7 +469,10 @@ ticker model =
                 , clip
                 ]
                 (row
-                    [ alignRight, centerY ]
+                    ([ alignRight, centerY ]
+                        |> consWhen (not model.inputFocused && Maybe.isJust athleteM)
+                            (Attribute.blur 5)
+                    )
                     (toTickerTexts act passed)
                 )
 
@@ -865,6 +868,11 @@ getStyle inputFocused format =
             Font.bold
         |> consWhen (Doc.Format.isItalic format)
             Font.italic
+
+
+
+-- |> consWhen (not inputFocused)
+--     (Attribute.blur 10)
 
 
 athleteColor : Athlete -> Color
