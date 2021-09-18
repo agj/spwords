@@ -387,11 +387,10 @@ comments =
         , "`loser`{var} is not looking good!"
         ]
     , tallyAssessmentTied =
-        [ "it's tied!"
-        , "both sides equal!"
+        [ "it's tied at `points`{var}!"
+        , "both sides equal at `points`{var}!"
         , "both with `points`{var}!"
-        , "`points`{var} all!"
-        , "deuce!"
+        , "deuce! `points`{var} all!"
         ]
     , newRound =
         [ "let's see who comes out victorious in the next round!"
