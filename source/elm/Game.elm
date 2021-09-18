@@ -16,7 +16,7 @@ import Constraints exposing (Constraints)
 import Doc.Paragraph exposing (Paragraph)
 import Game.GameMode exposing (GameMode(..))
 import Game.Times as Times exposing (Times)
-import Random
+import Random exposing (Generator)
 import Score exposing (PlayingScore, Points, Score(..))
 import Texts
 import Ticker.Active as Active exposing (Active)
@@ -803,18 +803,20 @@ playCorrect { constraints, score, athlete, mode, times, seed } =
     ( newGame, newSeed )
 
 
-playWrong : { messageFn : Texts.MistakeArguments -> ( Paragraph, Random.Seed ), score : PlayingScore, mode : GameMode, athlete : Athlete, constraints : Constraints, times : Times, seed : Random.Seed } -> ( Game, Random.Seed )
+playWrong : { messageFn : Texts.MistakeArguments -> Generator Paragraph, score : PlayingScore, mode : GameMode, athlete : Athlete, constraints : Constraints, times : Times, seed : Random.Seed } -> ( Game, Random.Seed )
 playWrong { messageFn, score, athlete, constraints, mode, times, seed } =
     let
         newScore =
             Score.increaseScore (Athlete.opposite athlete) score
 
         ( message, newSeed ) =
-            messageFn
-                { initial = constraints |> Constraints.getInitial
-                , incorporates = constraints |> Constraints.getIncorporates
-                , seed = seed
-                }
+            Random.step
+                (messageFn
+                    { initial = constraints |> Constraints.getInitial
+                    , incorporates = constraints |> Constraints.getIncorporates
+                    }
+                )
+                seed
 
         newGame =
             PlayWrong

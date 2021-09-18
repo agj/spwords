@@ -262,27 +262,33 @@ gameEnd { winner, mode, loserPoints } =
 -- MISTAKES
 
 
-initialWrong : MistakeArguments -> ( Paragraph, Random.Seed )
+type alias MistakeArguments =
+    { initial : Char
+    , incorporates : Maybe Char
+    }
+
+
+initialWrong : MistakeArguments -> Generator Paragraph
 initialWrong arguments =
     mistake comments.mistake.initial arguments
 
 
-incorporatesWrong : MistakeArguments -> ( Paragraph, Random.Seed )
+incorporatesWrong : MistakeArguments -> Generator Paragraph
 incorporatesWrong arguments =
     mistake comments.mistake.incorporates arguments
 
 
-alreadyPlayed : MistakeArguments -> ( Paragraph, Random.Seed )
+alreadyPlayed : MistakeArguments -> Generator Paragraph
 alreadyPlayed arguments =
     mistake comments.mistake.alreadyPlayed arguments
 
 
-notAWord : MistakeArguments -> ( Paragraph, Random.Seed )
+notAWord : MistakeArguments -> Generator Paragraph
 notAWord arguments =
     mistake comments.mistake.notAWord arguments
 
 
-timeUp : MistakeArguments -> ( Paragraph, Random.Seed )
+timeUp : MistakeArguments -> Generator Paragraph
 timeUp arguments =
     mistake comments.mistake.timeUp arguments
 
@@ -473,15 +479,8 @@ randomString seed strings =
         |> Tuple.mapFirst (Maybe.withDefault "")
 
 
-type alias MistakeArguments =
-    { initial : Char
-    , incorporates : Maybe Char
-    , seed : Random.Seed
-    }
-
-
-mistake : List String -> MistakeArguments -> ( Paragraph, Random.Seed )
-mistake texts { initial, incorporates, seed } =
+mistake : List String -> MistakeArguments -> Generator Paragraph
+mistake texts { initial, incorporates } =
     let
         vars =
             case incorporates of
@@ -500,7 +499,8 @@ mistake texts { initial, incorporates, seed } =
             Text.mapFormat (Format.setBold True)
     in
     texts
-        |> emuRandomString seed setStyles vars
+        |> Random.itemGeneratorWithDefault ""
+        |> Random.map (emu setStyles vars)
 
 
 addLastSpace : Paragraph -> Paragraph
