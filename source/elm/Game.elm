@@ -488,25 +488,25 @@ endRound { winner, score, played, mode, seed } =
 assessment : { score : PlayingScore, athlete : Athlete, played : Played, mode : GameMode, seed : Random.Seed } -> ( Game, Random.Seed )
 assessment { score, athlete, played, mode, seed } =
     let
-        ( tallyMsg, seed1 ) =
-            Texts.tally
-                { mode = mode
-                , pointsA = Tuple.first score
-                , pointsB = Tuple.second score
-                , seed = seed
-                }
+        ( pointsA, pointsB ) =
+            score
 
-        ( comparisonMsg, seed2 ) =
-            case score of
-                ( pointsA, pointsB ) ->
-                    if pointsA == pointsB then
-                        Texts.tie
-                            { points = pointsA
+        ( newRoundMsg, seed1 ) =
+            Texts.newRound seed
+
+        ( ann, anns, newSeed ) =
+            if pointsA /= pointsB then
+                let
+                    ( tallyMsg, s1 ) =
+                        Texts.tally
+                            { mode = mode
+                            , pointsA = pointsA
+                            , pointsB = pointsB
                             , seed = seed1
                             }
 
-                    else
-                        Texts.winning
+                    ( assessmentMsg, s2 ) =
+                        Texts.assessment
                             { winner =
                                 if (pointsA |> Score.intFromPoints) > (pointsB |> Score.intFromPoints) then
                                     AthleteA
@@ -514,18 +514,28 @@ assessment { score, athlete, played, mode, seed } =
                                 else
                                     AthleteB
                             , mode = mode
+                            , seed = s1
+                            }
+                in
+                ( tallyMsg |> Announcement.create
+                , [ assessmentMsg |> Announcement.create
+                  , newRoundMsg |> Announcement.create
+                  ]
+                , s2
+                )
+
+            else
+                let
+                    ( tiedMsg, s1 ) =
+                        Texts.tallyAssessmentTied
+                            { points = pointsA
                             , seed = seed1
                             }
-
-        ( newRoundMsg, newSeed ) =
-            Texts.newRound seed2
-
-        ( ann, anns ) =
-            ( tallyMsg |> Announcement.create
-            , [ comparisonMsg |> Announcement.create
-              , newRoundMsg |> Announcement.create
-              ]
-            )
+                in
+                ( tiedMsg |> Announcement.create
+                , [ newRoundMsg |> Announcement.create ]
+                , s1
+                )
 
         newGame =
             Assessment mode score athlete played (Queue.fromList ann anns)

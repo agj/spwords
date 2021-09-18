@@ -2,6 +2,7 @@ module Texts exposing
     ( MistakeArguments
     , alphabet
     , alreadyPlayed
+    , assessment
     , gameEnd
     , gameStart
     , incorporatesWrong
@@ -16,10 +17,9 @@ module Texts exposing
     , roundStart
     , rules
     , tally
-    , tie
+    , tallyAssessmentTied
     , timeUp
     , title
-    , winning
     )
 
 import Athlete exposing (..)
@@ -174,8 +174,8 @@ tally { mode, pointsA, pointsB, seed } =
         |> emuRandomString seed setStyles vars
 
 
-winning : { winner : Athlete, mode : GameMode, seed : Random.Seed } -> ( Paragraph, Random.Seed )
-winning { winner, mode, seed } =
+assessment : { winner : Athlete, mode : GameMode, seed : Random.Seed } -> ( Paragraph, Random.Seed )
+assessment { winner, mode, seed } =
     let
         loser =
             Athlete.opposite winner
@@ -197,12 +197,12 @@ winning { winner, mode, seed } =
                 , ( "loser", athleteName mode loser )
                 ]
     in
-    comments.assessment.winning
+    comments.assessment
         |> emuRandomString seed setStyles vars
 
 
-tie : { points : Points, seed : Random.Seed } -> ( Paragraph, Random.Seed )
-tie { points, seed } =
+tallyAssessmentTied : { points : Points, seed : Random.Seed } -> ( Paragraph, Random.Seed )
+tallyAssessmentTied { points, seed } =
     let
         setStyles =
             Text.mapFormat (Format.setBold True)
@@ -212,7 +212,7 @@ tie { points, seed } =
                 [ ( "points", points |> Score.stringFromPoints )
                 ]
     in
-    comments.assessment.tie
+    comments.tallyAssessmentTied
         |> emuRandomString seed setStyles vars
 
 
@@ -381,20 +381,18 @@ comments =
         , "score's at `athleteA`{var} with `pointsA`{var}, `athleteB`{var} with `pointsB`{var}!"
         ]
     , assessment =
-        { winning =
-            [ "`winner`{var} has the lead!"
-            , "`winner`{var} is ahead!"
-            , "`loser`{var} needs to step up!"
-            , "`loser`{var} is not looking good!"
-            ]
-        , tie =
-            [ "it's tied!"
-            , "both sides equal!"
-            , "both with `points`{var}!"
-            , "`points`{var} all!"
-            , "deuce!"
-            ]
-        }
+        [ "`winner`{var} has the lead!"
+        , "`winner`{var} is ahead!"
+        , "`loser`{var} needs to step up!"
+        , "`loser`{var} is not looking good!"
+        ]
+    , tallyAssessmentTied =
+        [ "it's tied!"
+        , "both sides equal!"
+        , "both with `points`{var}!"
+        , "`points`{var} all!"
+        , "deuce!"
+        ]
     , newRound =
         [ "let's see who comes out victorious in the next round!"
         , "now for another round full of suspense!"
