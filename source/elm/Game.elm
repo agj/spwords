@@ -495,57 +495,51 @@ assessment { score, athlete, played, mode, seed } =
         ( pointsA, pointsB ) =
             score
 
-        ( newRoundMsg, seed1 ) =
-            Random.step Texts.newRound seed
+        ( newRoundAnn, seed1 ) =
+            Random.get seed Texts.newRound
+                |> Tuple.mapFirst Announcement.create
 
-        ( ann, anns, newSeed ) =
+        ( ( ann, anns ), newSeed ) =
             if pointsA /= pointsB then
-                let
-                    ( tallyMsg, s1 ) =
-                        Random.step
-                            (Texts.tally
-                                { mode = mode
-                                , pointsA = pointsA
-                                , pointsB = pointsB
-                                }
-                            )
-                            seed1
-
-                    ( assessmentMsg, s2 ) =
-                        Random.step
-                            (Texts.assessment
-                                { winner =
-                                    if (pointsA |> Score.intFromPoints) > (pointsB |> Score.intFromPoints) then
-                                        AthleteA
-
-                                    else
-                                        AthleteB
-                                , mode = mode
-                                }
-                            )
-                            s1
-                in
-                ( tallyMsg |> Announcement.create
-                , [ assessmentMsg |> Announcement.create
-                  , newRoundMsg |> Announcement.create
-                  ]
-                , s2
+                (\tallyMsg assessmentMsg ->
+                    ( tallyMsg |> Announcement.create
+                    , [ assessmentMsg |> Announcement.create
+                      , newRoundAnn
+                      ]
+                    )
                 )
+                    |> Random.from seed1
+                    |> Random.with
+                        (Texts.tally
+                            { mode = mode
+                            , pointsA = pointsA
+                            , pointsB = pointsB
+                            }
+                        )
+                    |> Random.with
+                        (Texts.assessment
+                            { winner =
+                                if (pointsA |> Score.intFromPoints) > (pointsB |> Score.intFromPoints) then
+                                    AthleteA
+
+                                else
+                                    AthleteB
+                            , mode = mode
+                            }
+                        )
 
             else
-                let
-                    ( tiedMsg, s1 ) =
-                        Random.step
-                            (Texts.tallyAssessmentTied
-                                { points = pointsA
-                                }
-                            )
-                            seed1
-                in
-                ( tiedMsg |> Announcement.create
-                , [ newRoundMsg |> Announcement.create ]
-                , s1
+                (\tiedMsg ->
+                    ( tiedMsg |> Announcement.create
+                    , [ newRoundAnn ]
+                    )
                 )
+                    |> Random.from seed1
+                    |> Random.with
+                        (Texts.tallyAssessmentTied
+                            { points = pointsA
+                            }
+                        )
 
         newGame =
             Assessment mode score athlete played (Queue.fromList ann anns)
