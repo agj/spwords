@@ -495,20 +495,17 @@ assessment { score, athlete, played, mode, seed } =
         ( pointsA, pointsB ) =
             score
 
-        ( newRoundAnn, seed1 ) =
-            Random.get seed Texts.newRound
-                |> Tuple.mapFirst Announcement.create
-
         ( ( ann, anns ), newSeed ) =
             if pointsA /= pointsB then
-                (\tallyMsg assessmentMsg ->
+                (\newRoundMsg tallyMsg assessmentMsg ->
                     ( tallyMsg |> Announcement.create
                     , [ assessmentMsg |> Announcement.create
-                      , newRoundAnn
+                      , newRoundMsg |> Announcement.create
                       ]
                     )
                 )
-                    |> Random.from seed1
+                    |> Random.from seed
+                    |> Random.with Texts.newRound
                     |> Random.with
                         (Texts.tally
                             { mode = mode
@@ -529,12 +526,13 @@ assessment { score, athlete, played, mode, seed } =
                         )
 
             else
-                (\tiedMsg ->
+                (\newRoundMsg tiedMsg ->
                     ( tiedMsg |> Announcement.create
-                    , [ newRoundAnn ]
+                    , [ newRoundMsg |> Announcement.create ]
                     )
                 )
-                    |> Random.from seed1
+                    |> Random.from seed
+                    |> Random.with Texts.newRound
                     |> Random.with
                         (Texts.tallyAssessmentTied
                             { points = pointsA
