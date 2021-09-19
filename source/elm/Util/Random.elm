@@ -26,3 +26,22 @@ indexToItem list index =
     list
         |> List.drop index
         |> List.head
+
+
+with2 : Generator a -> (a -> Generator b) -> ( a -> b -> c, Seed ) -> ( c, Seed )
+with2 gen fn ( receiver, seed ) =
+    let
+        ( first, seed1 ) =
+            Random.step gen seed
+
+        ( second, seed2 ) =
+            Random.step (fn first) seed1
+    in
+    ( receiver first second
+    , seed2
+    )
+
+
+get : Seed -> Generator a -> ( a, Seed )
+get seed gen =
+    Random.step gen seed
