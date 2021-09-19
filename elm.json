@@ -4,6 +4,7 @@
   "elm-version": "0.19.1",
   "dependencies": {
     "direct": {
+      "Chadtech/random-pipeline": "1.0.2",
       "Fresheyeball/elm-return": "7.1.0",
       "NoRedInk/elm-json-decode-pipeline": "1.0.0",
       "andrewMacmurray/elm-simple-animation": "2.0.1",

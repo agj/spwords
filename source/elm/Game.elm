@@ -17,12 +17,14 @@ import Doc.Paragraph exposing (Paragraph)
 import Game.GameMode exposing (GameMode(..))
 import Game.Times as Times exposing (Times)
 import Random exposing (Generator)
+import Random.Pipeline as Random
 import Score exposing (PlayingScore, Points, Score(..))
 import Texts
 import Ticker.Active as Active exposing (Active)
 import Ticker.Announcement as Announcement exposing (Announcement)
 import Ticker.Message as Message exposing (Message)
 import Ticker.Queue as Queue exposing (Queue)
+import Util.Random as Random
 import Util.String as String
 import Words exposing (Words)
 
@@ -295,18 +297,17 @@ userInput input seed words game =
 startRound : { athlete : Athlete, score : PlayingScore, played : Played, mode : GameMode, seed : Random.Seed } -> ( Game, Random.Seed )
 startRound { athlete, score, played, mode, seed } =
     let
-        ( initial, seed1 ) =
-            randomLetter seed Texts.alphabet
-
-        ( roundStartMsg, newSeed ) =
-            Random.step
-                (Texts.roundStart
-                    { turnAthlete = athlete
-                    , mode = mode
-                    , initial = initial
-                    }
-                )
-                seed1
+        ( ( initial, roundStartMsg ), newSeed ) =
+            Random.from seed Tuple.pair
+                |> Random.with2
+                    (letterGenerator Texts.alphabet)
+                    (\init ->
+                        Texts.roundStart
+                            { turnAthlete = athlete
+                            , mode = mode
+                            , initial = init
+                            }
+                    )
 
         ann =
             roundStartMsg |> Announcement.createUnskippable
@@ -475,13 +476,12 @@ endRound : { winner : Athlete, score : Score, mode : GameMode, played : Played, 
 endRound { winner, score, played, mode, seed } =
     let
         ( message, newSeed ) =
-            Random.step
+            Random.get seed
                 (Texts.roundEnd
                     { winner = winner
                     , mode = mode
                     }
                 )
-                seed
 
         newGame =
             RoundEnd mode score winner played (Queue.singleton (message |> Announcement.create))
