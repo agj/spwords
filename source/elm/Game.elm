@@ -549,14 +549,13 @@ endGame : { winner : Athlete, loserPoints : Points, mode : GameMode, seed : Rand
 endGame { winner, loserPoints, mode, seed } =
     let
         ( message, newSeed ) =
-            Random.step
+            Random.get seed
                 (Texts.gameEnd
                     { winner = winner
                     , loserPoints = loserPoints
                     , mode = mode
                     }
                 )
-                seed
                 |> Tuple.mapFirst Announcement.createUnskippable
     in
     ( End mode winner loserPoints (Queue.singleton message)
@@ -781,7 +780,7 @@ playCorrect { constraints, score, athlete, mode, times, seed } =
                 }
 
         ( message, newSeed ) =
-            Random.step Texts.interjection seed
+            Random.get seed Texts.interjection
 
         newGame =
             PlayCorrect
@@ -802,13 +801,12 @@ playWrong { messageFn, score, athlete, constraints, mode, times, seed } =
             Score.increaseScore (Athlete.opposite athlete) score
 
         ( message, newSeed ) =
-            Random.step
+            Random.get seed
                 (messageFn
                     { initial = constraints |> Constraints.getInitial
                     , incorporates = constraints |> Constraints.getIncorporates
                     }
                 )
-                seed
 
         newGame =
             PlayWrong
@@ -820,11 +818,6 @@ playWrong { messageFn, score, athlete, constraints, mode, times, seed } =
                 (Queue.singleton (message |> Announcement.createUnskippable))
     in
     ( newGame, newSeed )
-
-
-randomLetter : Random.Seed -> String -> ( Char, Random.Seed )
-randomLetter seed alphabet =
-    Random.step (letterGenerator alphabet) seed
 
 
 letterGenerator : String -> Random.Generator Char
