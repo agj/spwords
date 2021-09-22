@@ -418,9 +418,9 @@ mainScreen model =
                     Times.start
     in
     column [ height (px model.height), width fill ]
-        [ bar model.layout AthleteA (Times.get AthleteA times) (isAthlete AthleteA)
+        [ bar model.layout AthleteA (Times.get AthleteA times) (Menu.getSpeed model.menu) (isAthlete AthleteA)
         , ticker model
-        , bar model.layout AthleteB (Times.get AthleteB times) (isAthlete AthleteB)
+        , bar model.layout AthleteB (Times.get AthleteB times) (Menu.getSpeed model.menu) (isAthlete AthleteB)
         ]
 
 
@@ -768,8 +768,8 @@ menuTextStyle mode { bold, color } =
 -- Time bar
 
 
-bar : Layout -> Athlete -> Float -> Bool -> Element Msg
-bar layout athlete timeLeft active =
+bar : Layout -> Athlete -> Float -> Speed -> Bool -> Element Msg
+bar layout athlete timeLeft speed active =
     let
         filledPortion =
             round (timeLeft * 10000)
@@ -796,19 +796,24 @@ bar layout athlete timeLeft active =
                  else
                     px (Palette.spaceNormal layout)
                 )
-            , transitionAll { duration = 150, options = [ Transition.easeOutQuad ] }
-                [ Transition.property "height" ]
+            , transitionEach
+                [ Transition.property "height" 150 [ Transition.easeOutQuad ]
+                ]
             ]
             [ el
                 [ width (fillPortion emptyPortion)
                 , height fill
                 , Background.color (athleteColorDark athlete)
+                , transitionEach
+                    [ Transition.property "flex-grow" (Levers.tickInterval speed |> round) [ Transition.linear ] ]
                 ]
                 none
             , el
                 [ width (fillPortion filledPortion)
                 , height fill
                 , Background.color (athleteColor athlete)
+                , transitionEach
+                    [ Transition.property "flex-grow" (Levers.tickInterval speed |> round) [ Transition.linear ] ]
                 ]
                 none
             ]
@@ -911,6 +916,12 @@ transitionAll :
     -> Element.Attribute msg
 transitionAll options =
     Transition.all options >> htmlAttribute
+
+
+transitionEach : List Transition.Property -> Element.Attribute msg
+transitionEach props =
+    Transition.properties props
+        |> htmlAttribute
 
 
 
