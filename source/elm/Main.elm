@@ -47,6 +47,7 @@ import Ticker.Passed as Passed exposing (Passed)
 import Time
 import Util exposing (fraction, ifElse)
 import Util.Element exposing (sides, toCssColor)
+import Util.Element.Transition as Transition
 import Util.List as List exposing (appendWhen, consMaybe, consWhen)
 import Viewport exposing (Viewport)
 import Words exposing (Words)
@@ -796,7 +797,7 @@ bar layout athlete timeLeft speed active =
                  else
                     px (Palette.spaceNormal layout)
                 )
-            , transitionEach
+            , Transition.each
                 [ Transition.property "height" 150 [ Transition.easeOutQuad ]
                 ]
             ]
@@ -804,7 +805,7 @@ bar layout athlete timeLeft speed active =
                 [ width (fillPortion emptyPortion)
                 , height fill
                 , Background.color (athleteColorDark athlete)
-                , transitionEach
+                , Transition.each
                     [ Transition.property "flex-grow" (Levers.tickInterval speed |> round) [ Transition.linear ] ]
                 ]
                 none
@@ -812,7 +813,7 @@ bar layout athlete timeLeft speed active =
                 [ width (fillPortion filledPortion)
                 , height fill
                 , Background.color (athleteColor athlete)
-                , transitionEach
+                , Transition.each
                     [ Transition.property "flex-grow" (Levers.tickInterval speed |> round) [ Transition.linear ] ]
                 ]
                 none
@@ -908,20 +909,6 @@ athleteColorTransparent athlete =
 
         AthleteB ->
             Palette.athleteBTransparent
-
-
-transitionAll :
-    { duration : Transition.Millis, options : List Transition.Option }
-    -> List (Transition.Millis -> List Transition.Option -> Transition.Property)
-    -> Element.Attribute msg
-transitionAll options =
-    Transition.all options >> htmlAttribute
-
-
-transitionEach : List Transition.Property -> Element.Attribute msg
-transitionEach props =
-    Transition.properties props
-        |> htmlAttribute
 
 
 
