@@ -920,7 +920,6 @@ subscriptions model =
     Sub.batch
         ([ Browser.Events.onResize (\w h -> Resized (Viewport w h))
          , Time.every (Levers.tickInterval (Menu.getSpeed model.menu)) Ticked
-         , Viewport.visualViewportChanged Resized NoOp
          ]
             |> consWhen (Menu.animating model.menu)
                 (Time.every Levers.menuTickInterval TickedMenu)

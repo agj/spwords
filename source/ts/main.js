@@ -11,10 +11,6 @@ var app = Elm.Main.init({
 if (visualViewport) {
   visualViewport.addEventListener("resize", (e) => {
     window.scrollTo(0, 0);
-    app.ports.visualViewport.send({
-      width: visualViewport.width,
-      height: visualViewport.height,
-    });
   });
 
   document.addEventListener("scroll", (e) => {
