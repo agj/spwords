@@ -26,6 +26,8 @@ import Game.GameMode exposing (GameMode(..))
 import Game.Times as Times exposing (Times)
 import Html exposing (Html)
 import Http
+import Js
+import Json.Decode as Decode exposing (Value)
 import Layout exposing (Layout(..))
 import Levers
 import Maybe.Extra as Maybe
@@ -35,6 +37,7 @@ import Menu.MenuLine as MenuLine exposing (MenuLine)
 import Menu.MenuText as MenuText exposing (MenuText, MenuTextOptions)
 import Palette
 import Random
+import SaveState
 import Score exposing (..)
 import Simple.Transition as Transition
 import Speed exposing (Speed)
@@ -94,13 +97,21 @@ type Status
 
 type alias Flags =
     { viewport : Viewport
+    , saveState : Value
     }
 
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
+    let
+        { mode, speed } =
+            flags.saveState
+                |> Decode.decodeValue SaveState.decoder
+                |> Result.withDefault { mode = SingleMode, speed = Speed.Normal }
+    in
     ( { status = Loading (Announcement.create Texts.loading)
-      , menu = Menu.start
+      , menu =
+            Menu.start mode speed
       , inputFocused = False
       , layout = Layout.fromViewport flags.viewport
       , height = flags.viewport.height
@@ -185,12 +196,18 @@ update msg model =
 
         SelectedMode mode ->
             ( { model | menu = Menu.setMode mode model.menu }
-            , Cmd.none
+            , Js.saveState
+                { mode = mode
+                , speed = Menu.getSpeed model.menu
+                }
             )
 
         SelectedSpeed speed ->
             ( { model | menu = Menu.setSpeed speed model.menu }
-            , Cmd.none
+            , Js.saveState
+                { mode = Menu.getMode model.menu
+                , speed = speed
+                }
             )
 
         SelectedRestart ->

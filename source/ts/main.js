@@ -1,3 +1,5 @@
+const saveStateKey = "spwords-state";
+
 var app = Elm.Main.init({
   node: document.getElementById("elm"),
   flags: {
@@ -5,7 +7,17 @@ var app = Elm.Main.init({
       width: window.innerWidth,
       height: window.innerHeight,
     },
+    saveState: localStorage.getItem(saveStateKey),
   },
+});
+
+app.ports.command.subscribe(({ kind, value }) => {
+  console.log(kind, value);
+  switch (kind) {
+    case "saveState":
+      localStorage.setItem(saveStateKey, value);
+      break;
+  }
 });
 
 if (visualViewport) {

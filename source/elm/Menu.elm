@@ -45,11 +45,11 @@ type Transition
     | Transitioning Int (List MenuLine)
 
 
-start : Menu
-start =
+start : GameMode -> Speed -> Menu
+start mode speed =
     Menu Title
-        { mode = SingleMode
-        , speed = Speed.Normal
+        { mode = mode
+        , speed = speed
         , transition = Stable
         }
 
