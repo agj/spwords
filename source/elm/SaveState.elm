@@ -19,10 +19,27 @@ encode state =
         [ ( "speed", Speed.encode state.speed )
         , ( "mode", GameMode.encode state.mode )
         ]
+        |> Encode.encode 0
+        |> Encode.string
 
 
 decoder : Decoder SaveState
 decoder =
-    Decode.succeed SaveState
-        |> required "speed" Speed.decoder
-        |> required "mode" GameMode.decoder
+    let
+        toResult =
+            Decode.decodeString
+                (Decode.succeed SaveState
+                    |> required "speed" Speed.decoder
+                    |> required "mode" GameMode.decoder
+                )
+
+        resultDecoder res =
+            case res of
+                Ok ss ->
+                    Decode.succeed ss
+
+                Err _ ->
+                    Decode.fail "error"
+    in
+    Decode.string
+        |> Decode.andThen (toResult >> resultDecoder)
