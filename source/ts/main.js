@@ -12,7 +12,6 @@ var app = Elm.Main.init({
 });
 
 app.ports.command.subscribe(({ kind, value }) => {
-  console.log(kind, value);
   switch (kind) {
     case "saveState":
       localStorage.setItem(saveStateKey, value);
