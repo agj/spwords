@@ -163,7 +163,7 @@ update msg model =
             )
 
         TickedMenu _ ->
-            ( { model | menu = Menu.tick model.menu }
+            ( { model | menu = Menu.tick model.mode model.speed model.menu }
             , Cmd.none
             )
 
@@ -201,7 +201,6 @@ update msg model =
         SelectedMode mode ->
             ( { model
                 | mode = mode
-                , menu = Menu.setMode mode model.menu
               }
             , Js.saveState
                 { mode = mode
@@ -212,7 +211,6 @@ update msg model =
         SelectedSpeed speed ->
             ( { model
                 | speed = speed
-                , menu = Menu.setSpeed speed model.menu
               }
             , Js.saveState
                 { mode = model.mode
@@ -505,7 +503,7 @@ ticker model =
                 )
 
         menuEl =
-            menu model.layout model.menu
+            menu model.layout model.mode model.menu
 
         tickerMenu act passed =
             let
@@ -703,8 +701,8 @@ tickerMessage inputFocused tt =
 -- Menu
 
 
-menu : Layout -> Menu -> Element Msg
-menu layout menu_ =
+menu : Layout -> GameMode -> Menu -> Element Msg
+menu layout mode menu_ =
     column
         [ alignRight
         , Cursor.default
@@ -715,7 +713,7 @@ menu layout menu_ =
         ]
         (Menu.lines menu_
             |> List.padLeft 3 []
-            |> List.map (menuLine layout (Menu.getMode menu_))
+            |> List.map (menuLine layout mode)
         )
 
 
@@ -945,12 +943,10 @@ athleteColorTransparent athlete =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        ([ Browser.Events.onResize (\w h -> Resized (Viewport w h))
-         , Time.every (Levers.tickInterval model.speed) Ticked
-         ]
-            |> consWhen (Menu.animating model.menu)
-                (Time.every Levers.menuTickInterval TickedMenu)
-        )
+        [ Browser.Events.onResize (\w h -> Resized (Viewport w h))
+        , Time.every (Levers.tickInterval model.speed) Ticked
+        , Time.every Levers.menuTickInterval TickedMenu
+        ]
 
 
 
