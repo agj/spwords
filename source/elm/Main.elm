@@ -205,7 +205,7 @@ update msg model =
               }
             , Js.saveState
                 { mode = mode
-                , speed = Menu.getSpeed model.menu
+                , speed = model.speed
                 }
             )
 
@@ -215,7 +215,7 @@ update msg model =
                 , menu = Menu.setSpeed speed model.menu
               }
             , Js.saveState
-                { mode = Menu.getMode model.menu
+                { mode = model.mode
                 , speed = speed
                 }
             )
@@ -319,7 +319,7 @@ startPlay model =
     case model.status of
         Ready words passed ann ->
             { model
-                | status = Playing words (Passed.pushAnnouncement ann passed) (Game.startGame (Menu.getMode model.menu))
+                | status = Playing words (Passed.pushAnnouncement ann passed) (Game.startGame model.mode)
                 , menu = Menu.toInGame model.menu
             }
 
@@ -446,9 +446,9 @@ mainScreen model =
                     Times.start
     in
     column [ height (px model.height), width fill ]
-        [ bar model.layout AthleteA (Times.get AthleteA times) (Menu.getSpeed model.menu) (isAthlete AthleteA)
+        [ bar model.layout AthleteA (Times.get AthleteA times) model.speed (isAthlete AthleteA)
         , ticker model
-        , bar model.layout AthleteB (Times.get AthleteB times) (Menu.getSpeed model.menu) (isAthlete AthleteB)
+        , bar model.layout AthleteB (Times.get AthleteB times) model.speed (isAthlete AthleteB)
         ]
 
 
@@ -483,7 +483,7 @@ ticker model =
             case model.status of
                 Playing _ _ game ->
                     Game.getActiveAthlete game
-                        |> Maybe.filter (isHumanAthlete (Menu.getMode model.menu))
+                        |> Maybe.filter (isHumanAthlete model.mode)
 
                 _ ->
                     Nothing
@@ -946,7 +946,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         ([ Browser.Events.onResize (\w h -> Resized (Viewport w h))
-         , Time.every (Levers.tickInterval (Menu.getSpeed model.menu)) Ticked
+         , Time.every (Levers.tickInterval model.speed) Ticked
          ]
             |> consWhen (Menu.animating model.menu)
                 (Time.every Levers.menuTickInterval TickedMenu)
