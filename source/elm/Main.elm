@@ -76,6 +76,8 @@ main =
 
 type alias Model =
     { status : Status
+    , mode : GameMode
+    , speed : Speed
     , menu : Menu
     , inputFocused : Bool
     , layout : Layout
@@ -88,6 +90,7 @@ type Status
     = Loading Announcement
     | Ready Words Passed Announcement
     | Playing Words Passed Game
+    | Ended Words Passed
     | WordsLoadError Http.Error Passed Announcement
 
 
@@ -110,8 +113,10 @@ init flags =
                 |> Result.withDefault { mode = SingleMode, speed = Speed.Normal }
     in
     ( { status = Loading (Announcement.create Texts.loading)
+      , mode = mode
+      , speed = speed
       , menu =
-            Menu.start mode speed
+            Menu.start Menu.Title mode speed
       , inputFocused = False
       , layout = Layout.fromViewport flags.viewport
       , height = flags.viewport.height
@@ -159,7 +164,7 @@ update msg model =
             )
 
         TickedMenu _ ->
-            ( { model | menu = Menu.tick model.menu }
+            ( { model | menu = Menu.tick (getMenuState model.status) model.mode model.speed model.menu }
             , Cmd.none
             )
 
@@ -195,30 +200,40 @@ update msg model =
                         ignore
 
         SelectedMode mode ->
-            ( { model | menu = Menu.setMode mode model.menu }
+            ( { model
+                | mode = mode
+              }
             , Js.saveState
                 { mode = mode
-                , speed = Menu.getSpeed model.menu
+                , speed = model.speed
                 }
             )
 
         SelectedSpeed speed ->
-            ( { model | menu = Menu.setSpeed speed model.menu }
+            ( { model
+                | speed = speed
+              }
             , Js.saveState
-                { mode = Menu.getMode model.menu
+                { mode = model.mode
                 , speed = speed
                 }
             )
 
         SelectedRestart ->
-            case model.status of
-                Playing words _ _ ->
+            let
+                restart words =
                     ( { model
                         | status = ready words Passed.empty
-                        , menu = Menu.toTitle model.menu
                       }
                     , Cmd.none
                     )
+            in
+            case model.status of
+                Playing words _ _ ->
+                    restart words
+
+                Ended words _ ->
+                    restart words
 
                 _ ->
                     ignore
@@ -309,8 +324,7 @@ startPlay model =
     case model.status of
         Ready words passed ann ->
             { model
-                | status = Playing words (Passed.pushAnnouncement ann passed) (Game.startGame (Menu.getMode model.menu))
-                , menu = Menu.toInGame model.menu
+                | status = Playing words (Passed.pushAnnouncement ann passed) (Game.startGame model.mode)
             }
 
         _ ->
@@ -342,18 +356,20 @@ tickStatus model =
                         Nothing ->
                             passed
 
-                newMenu =
-                    if Game.ended game then
-                        Menu.toEnded model.menu
+                newStatus =
+                    if Game.ended newGame then
+                        Ended words newPassed
 
                     else
-                        model.menu
+                        Playing words newPassed newGame
             in
             { model
-                | status = Playing words newPassed newGame
+                | status = newStatus
                 , randomSeed = newSeed
-                , menu = newMenu
             }
+
+        Ended _ _ ->
+            model
 
 
 pressedEnter : Model -> Model
@@ -436,9 +452,9 @@ mainScreen model =
                     Times.start
     in
     column [ height (px model.height), width fill ]
-        [ bar model.layout AthleteA (Times.get AthleteA times) (Menu.getSpeed model.menu) (isAthlete AthleteA)
+        [ bar model.layout AthleteA (Times.get AthleteA times) model.speed (isAthlete AthleteA)
         , ticker model
-        , bar model.layout AthleteB (Times.get AthleteB times) (Menu.getSpeed model.menu) (isAthlete AthleteB)
+        , bar model.layout AthleteB (Times.get AthleteB times) model.speed (isAthlete AthleteB)
         ]
 
 
@@ -461,7 +477,7 @@ ticker model =
                         Nothing ->
                             Palette.transparent
                 ]
-                none
+                Element.none
 
         toTickerTexts act passed =
             (act
@@ -473,7 +489,7 @@ ticker model =
             case model.status of
                 Playing _ _ game ->
                     Game.getActiveAthlete game
-                        |> Maybe.filter (isHumanAthlete (Menu.getMode model.menu))
+                        |> Maybe.filter (isHumanAthlete model.mode)
 
                 _ ->
                     Nothing
@@ -495,7 +511,7 @@ ticker model =
                 )
 
         menuEl =
-            menu model.layout model.menu
+            menu model.layout model.mode model.menu
 
         tickerMenu act passed =
             let
@@ -552,6 +568,9 @@ ticker model =
         Playing _ passed game ->
             tickerMenu (tickerActive model.inputFocused (Game.getActive game)) passed
 
+        Ended _ passed ->
+            tickerMenu Element.none passed
+
 
 inputEl : Layout -> Bool -> Maybe Athlete -> Element Msg
 inputEl layout inputFocused athleteM =
@@ -574,10 +593,10 @@ inputEl layout inputFocused athleteM =
                             )
 
                     else
-                        el [] none
+                        el [] Element.none
 
                 Nothing ->
-                    el [] none
+                    el [] Element.none
     in
     el
         [ behindContent pressHere
@@ -624,7 +643,7 @@ tickerActive inputFocused activeM =
             tickerAnnouncement inputFocused ann
 
         Nothing ->
-            none
+            Element.none
 
 
 tickerAnnouncement : Bool -> Announcement -> Element Msg
@@ -693,8 +712,8 @@ tickerMessage inputFocused tt =
 -- Menu
 
 
-menu : Layout -> Menu -> Element Msg
-menu layout menu_ =
+menu : Layout -> GameMode -> Menu -> Element Msg
+menu layout mode menu_ =
     column
         [ alignRight
         , Cursor.default
@@ -705,7 +724,7 @@ menu layout menu_ =
         ]
         (Menu.lines menu_
             |> List.padLeft 3 []
-            |> List.map (menuLine layout (Menu.getMode menu_))
+            |> List.map (menuLine layout mode)
         )
 
 
@@ -825,7 +844,7 @@ bar layout athlete timeLeft speed active =
                 , Transition.each
                     [ Transition.property "flex-grow" (Levers.tickInterval speed |> round) [ Transition.linear ] ]
                 ]
-                none
+                Element.none
             , el
                 [ width (fillPortion filledPortion)
                 , height fill
@@ -833,7 +852,7 @@ bar layout athlete timeLeft speed active =
                 , Transition.each
                     [ Transition.property "flex-grow" (Levers.tickInterval speed |> round) [ Transition.linear ] ]
                 ]
-                none
+                Element.none
             ]
         )
 
@@ -935,12 +954,10 @@ athleteColorTransparent athlete =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        ([ Browser.Events.onResize (\w h -> Resized (Viewport w h))
-         , Time.every (Levers.tickInterval (Menu.getSpeed model.menu)) Ticked
-         ]
-            |> consWhen (Menu.animating model.menu)
-                (Time.every Levers.menuTickInterval TickedMenu)
-        )
+        [ Browser.Events.onResize (\w h -> Resized (Viewport w h))
+        , Time.every (Levers.tickInterval model.speed) Ticked
+        , Time.every Levers.menuTickInterval TickedMenu
+        ]
 
 
 
@@ -974,3 +991,16 @@ playing status =
 
         _ ->
             False
+
+
+getMenuState : Status -> Menu.MenuState
+getMenuState status =
+    case status of
+        Playing _ _ _ ->
+            Menu.InGame
+
+        Ended _ _ ->
+            Menu.Ended
+
+        _ ->
+            Menu.Title
