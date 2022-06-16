@@ -469,7 +469,7 @@ ticker model =
                         Nothing ->
                             Palette.transparent
                 ]
-                none
+                Element.none
 
         toTickerTexts act passed =
             (act
@@ -582,10 +582,10 @@ inputEl layout inputFocused athleteM =
                             )
 
                     else
-                        el [] none
+                        el [] Element.none
 
                 Nothing ->
-                    el [] none
+                    el [] Element.none
     in
     el
         [ behindContent pressHere
@@ -632,7 +632,7 @@ tickerActive inputFocused activeM =
             tickerAnnouncement inputFocused ann
 
         Nothing ->
-            none
+            Element.none
 
 
 tickerAnnouncement : Bool -> Announcement -> Element Msg
@@ -833,7 +833,7 @@ bar layout athlete timeLeft speed active =
                 , Transition.each
                     [ Transition.property "flex-grow" (Levers.tickInterval speed |> round) [ Transition.linear ] ]
                 ]
-                none
+                Element.none
             , el
                 [ width (fillPortion filledPortion)
                 , height fill
@@ -841,7 +841,7 @@ bar layout athlete timeLeft speed active =
                 , Transition.each
                     [ Transition.property "flex-grow" (Levers.tickInterval speed |> round) [ Transition.linear ] ]
                 ]
-                none
+                Element.none
             ]
         )
 
