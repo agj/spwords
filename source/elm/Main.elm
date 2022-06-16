@@ -76,6 +76,8 @@ main =
 
 type alias Model =
     { status : Status
+    , mode : GameMode
+    , speed : Speed
     , menu : Menu
     , inputFocused : Bool
     , layout : Layout
@@ -110,6 +112,8 @@ init flags =
                 |> Result.withDefault { mode = SingleMode, speed = Speed.Normal }
     in
     ( { status = Loading (Announcement.create Texts.loading)
+      , mode = mode
+      , speed = speed
       , menu =
             Menu.start mode speed
       , inputFocused = False
@@ -195,7 +199,10 @@ update msg model =
                         ignore
 
         SelectedMode mode ->
-            ( { model | menu = Menu.setMode mode model.menu }
+            ( { model
+                | mode = mode
+                , menu = Menu.setMode mode model.menu
+              }
             , Js.saveState
                 { mode = mode
                 , speed = Menu.getSpeed model.menu
@@ -203,7 +210,10 @@ update msg model =
             )
 
         SelectedSpeed speed ->
-            ( { model | menu = Menu.setSpeed speed model.menu }
+            ( { model
+                | speed = speed
+                , menu = Menu.setSpeed speed model.menu
+              }
             , Js.saveState
                 { mode = Menu.getMode model.menu
                 , speed = speed
