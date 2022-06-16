@@ -116,7 +116,7 @@ init flags =
       , mode = mode
       , speed = speed
       , menu =
-            Menu.start mode speed
+            Menu.start Menu.Title mode speed
       , inputFocused = False
       , layout = Layout.fromViewport flags.viewport
       , height = flags.viewport.height
@@ -164,7 +164,7 @@ update msg model =
             )
 
         TickedMenu _ ->
-            ( { model | menu = Menu.tick model.mode model.speed model.menu }
+            ( { model | menu = Menu.tick (getMenuState model.status) model.mode model.speed model.menu }
             , Cmd.none
             )
 
@@ -224,7 +224,6 @@ update msg model =
                 restart words =
                     ( { model
                         | status = ready words Passed.empty
-                        , menu = Menu.toTitle model.menu
                       }
                     , Cmd.none
                     )
@@ -326,7 +325,6 @@ startPlay model =
         Ready words passed ann ->
             { model
                 | status = Playing words (Passed.pushAnnouncement ann passed) (Game.startGame model.mode)
-                , menu = Menu.toInGame model.menu
             }
 
         _ ->

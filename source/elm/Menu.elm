@@ -5,9 +5,6 @@ module Menu exposing
     , lines
     , start
     , tick
-    , toEnded
-    , toInGame
-    , toTitle
     )
 
 import Game.GameMode exposing (GameMode(..))
@@ -21,7 +18,7 @@ import Util.List as List
 
 
 type Menu
-    = Menu MenuState MenuData
+    = Menu MenuData
 
 
 type MenuState
@@ -32,6 +29,7 @@ type MenuState
 
 type alias MenuData =
     { transition : Transition
+    , state : MenuState
     , mode : GameMode
     , speed : Speed
     }
@@ -42,10 +40,11 @@ type Transition
     | Transitioning Int (List MenuLine)
 
 
-start : GameMode -> Speed -> Menu
-start mode speed =
-    Menu Title
+start : MenuState -> GameMode -> Speed -> Menu
+start state mode speed =
+    Menu
         { transition = Stable
+        , state = state
         , mode = mode
         , speed = speed
         }
@@ -56,7 +55,7 @@ start mode speed =
 
 
 lines : Menu -> List MenuLine
-lines ((Menu _ { transition }) as menu) =
+lines ((Menu { transition }) as menu) =
     let
         curLines =
             currentLines menu
@@ -70,7 +69,7 @@ lines ((Menu _ { transition }) as menu) =
 
 
 animating : Menu -> Bool
-animating (Menu _ { transition }) =
+animating (Menu { transition }) =
     transition /= Stable
 
 
@@ -78,13 +77,14 @@ animating (Menu _ { transition }) =
 -- SETTERS
 
 
-tick : GameMode -> Speed -> Menu -> Menu
-tick mode speed ((Menu state data) as menu) =
-    if mode /= data.mode || speed /= data.speed then
-        Menu state
+tick : MenuState -> GameMode -> Speed -> Menu -> Menu
+tick state mode speed ((Menu data) as menu) =
+    if state /= data.state || mode /= data.mode || speed /= data.speed then
+        Menu
             { data
                 | mode = mode
                 , speed = speed
+                , state = state
                 , transition = startTransition menu
             }
 
@@ -105,35 +105,11 @@ tick mode speed ((Menu state data) as menu) =
                         else
                             Transitioning newTicks oldLines
                 in
-                Menu state { data | transition = newTransition }
-
-
-toTitle : Menu -> Menu
-toTitle menu =
-    toState Title menu
-
-
-toInGame : Menu -> Menu
-toInGame menu =
-    toState InGame menu
-
-
-toEnded : Menu -> Menu
-toEnded menu =
-    toState Ended menu
+                Menu { data | transition = newTransition }
 
 
 
 ---------------------- INTERNAL
-
-
-toState : MenuState -> Menu -> Menu
-toState targetState ((Menu currentState data) as menu) =
-    if currentState == targetState then
-        menu
-
-    else
-        Menu targetState { data | transition = startTransition menu }
 
 
 startTransition : Menu -> Transition
@@ -178,7 +154,7 @@ allLinesDone ticks ls =
 
 
 currentLines : Menu -> List MenuLine
-currentLines (Menu state { mode, speed }) =
+currentLines (Menu { mode, speed, state }) =
     case state of
         Title ->
             titleLines mode speed
