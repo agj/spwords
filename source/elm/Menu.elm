@@ -1,5 +1,6 @@
 module Menu exposing
     ( Menu
+    , MenuState(..)
     , animating
     , lines
     , start

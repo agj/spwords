@@ -90,6 +90,7 @@ type Status
     = Loading Announcement
     | Ready Words Passed Announcement
     | Playing Words Passed Game
+    | Ended Words Passed
     | WordsLoadError Http.Error Passed Announcement
 
 
@@ -219,14 +220,21 @@ update msg model =
             )
 
         SelectedRestart ->
-            case model.status of
-                Playing words _ _ ->
+            let
+                restart words =
                     ( { model
                         | status = ready words Passed.empty
                         , menu = Menu.toTitle model.menu
                       }
                     , Cmd.none
                     )
+            in
+            case model.status of
+                Playing words _ _ ->
+                    restart words
+
+                Ended words _ ->
+                    restart words
 
                 _ ->
                     ignore
@@ -350,18 +358,20 @@ tickStatus model =
                         Nothing ->
                             passed
 
-                newMenu =
-                    if Game.ended game then
-                        Menu.toEnded model.menu
+                newStatus =
+                    if Game.ended newGame then
+                        Ended words newPassed
 
                     else
-                        model.menu
+                        Playing words newPassed newGame
             in
             { model
-                | status = Playing words newPassed newGame
+                | status = newStatus
                 , randomSeed = newSeed
-                , menu = newMenu
             }
+
+        Ended _ _ ->
+            model
 
 
 pressedEnter : Model -> Model
@@ -559,6 +569,9 @@ ticker model =
 
         Playing _ passed game ->
             tickerMenu (tickerActive model.inputFocused (Game.getActive game)) passed
+
+        Ended _ passed ->
+            tickerMenu Element.none passed
 
 
 inputEl : Layout -> Bool -> Maybe Athlete -> Element Msg
@@ -980,3 +993,16 @@ playing status =
 
         _ ->
             False
+
+
+getMenuState : Status -> Menu.MenuState
+getMenuState status =
+    case status of
+        Playing _ _ _ ->
+            Menu.InGame
+
+        Ended _ _ ->
+            Menu.Ended
+
+        _ ->
+            Menu.Title
