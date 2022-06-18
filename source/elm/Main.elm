@@ -483,15 +483,23 @@ ticker model =
         cursorAnimation =
             case cursorColorM of
                 Just cursorColor ->
-                    Animation.steps
-                        { startAt = [ AnimationProperty.backgroundColor (ElementColor.toCssString cursorColor) ]
-                        , options = [ Animation.loop ]
-                        }
-                        [ Animation.set [ AnimationProperty.backgroundColor (ElementColor.toCssString cursorColor) ]
-                        , Animation.wait 500
-                        , Animation.set [ AnimationProperty.backgroundColor "transparent" ]
-                        , Animation.wait 500
-                        ]
+                    if Maybe.isJust humanAthleteM then
+                        Animation.steps
+                            { startAt = []
+                            , options = [ Animation.loop ]
+                            }
+                            [ Animation.set [ AnimationProperty.backgroundColor (ElementColor.toCssString cursorColor) ]
+                            , Animation.wait 500
+                            , Animation.set [ AnimationProperty.backgroundColor "transparent" ]
+                            , Animation.wait 500
+                            ]
+
+                    else
+                        Animation.steps
+                            { startAt = []
+                            , options = []
+                            }
+                            [ Animation.set [ AnimationProperty.backgroundColor (ElementColor.toCssString cursorColor) ] ]
 
                 Nothing ->
                     Animation.empty
