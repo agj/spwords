@@ -39,6 +39,9 @@ import Palette
 import Random
 import SaveState
 import Score exposing (..)
+import Simple.Animation as Animation
+import Simple.Animation.Animated as Animated
+import Simple.Animation.Property as AnimationProperty
 import Simple.Transition as Transition
 import Speed exposing (Speed)
 import Task exposing (Task)
@@ -50,6 +53,7 @@ import Ticker.Passed as Passed exposing (Passed)
 import Time
 import Util exposing (fraction, ifElse)
 import Util.Element exposing (sides, toCssColor)
+import Util.Element.Color as ElementColor
 import Util.Element.Transition as Transition
 import Util.List as List exposing (appendWhen, consMaybe, consWhen)
 import Viewport exposing (Viewport)
@@ -465,17 +469,28 @@ mainScreen model =
 ticker : Model -> Element Msg
 ticker model =
     let
+        cursorColor =
+            case getActiveAthlete model.status of
+                Just athlete ->
+                    athleteColor athlete
+
+                Nothing ->
+                    Palette.transparent
+
         cursor =
-            el
+            animatedUi el
+                (Animation.steps
+                    { startAt = [ AnimationProperty.backgroundColor (ElementColor.toCssString cursorColor) ]
+                    , options = [ Animation.loop ]
+                    }
+                    [ Animation.set [ AnimationProperty.backgroundColor (ElementColor.toCssString cursorColor) ]
+                    , Animation.wait 500
+                    , Animation.set [ AnimationProperty.backgroundColor "transparent" ]
+                    , Animation.wait 500
+                    ]
+                )
                 [ width (px (Palette.spaceSmall model.layout))
                 , height (px (Palette.textSizeLarge model.layout * 2))
-                , Background.color <|
-                    case getActiveAthlete model.status of
-                        Just athlete ->
-                            athleteColor athlete
-
-                        Nothing ->
-                            Palette.transparent
                 ]
                 Element.none
 
@@ -1004,3 +1019,11 @@ getMenuState status =
 
         _ ->
             Menu.Title
+
+
+animatedUi =
+    Animated.ui
+        { behindContent = behindContent
+        , htmlAttribute = htmlAttribute
+        , html = Element.html
+        }
