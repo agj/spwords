@@ -21,7 +21,7 @@ import Element.Events.Pointer as Pointer
 import Element.Font as Font
 import Element.Input as Input
 import Element.Keyed as Keyed
-import Game exposing (Game)
+import Game exposing (Game, getActive)
 import Game.GameMode exposing (GameMode(..))
 import Game.Times as Times exposing (Times)
 import Html exposing (Html)
@@ -469,8 +469,15 @@ mainScreen model =
 ticker : Model -> Element Msg
 ticker model =
     let
+        athleteM =
+            getActiveAthlete model.status
+
+        humanAthleteM =
+            athleteM
+                |> Maybe.filter (isHumanAthlete model.mode)
+
         cursorColor =
-            case getActiveAthlete model.status of
+            case athleteM of
                 Just athlete ->
                     athleteColor athlete
 
@@ -500,18 +507,9 @@ ticker model =
             )
                 |> List.reverse
 
-        athleteM =
-            case model.status of
-                Playing _ _ game ->
-                    Game.getActiveAthlete game
-                        |> Maybe.filter (isHumanAthlete model.mode)
-
-                _ ->
-                    Nothing
-
         tickerEl act passed =
             el
-                [ inFront (inputEl model.layout model.inputFocused athleteM)
+                [ inFront (inputEl model.layout model.inputFocused humanAthleteM)
                 , Font.size (Palette.textSizeLarge model.layout)
                 , height (px (fraction 1.2 (Palette.textSizeLarge model.layout)))
                 , width fill
@@ -519,7 +517,7 @@ ticker model =
                 ]
                 (row
                     ([ alignRight, centerY ]
-                        |> consWhen (not model.inputFocused && Maybe.isJust athleteM)
+                        |> consWhen (not model.inputFocused && Maybe.isJust humanAthleteM)
                             (Attribute.blur 5)
                     )
                     (toTickerTexts act passed)
