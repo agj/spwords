@@ -45,6 +45,9 @@ tickInterval speed =
         Speed.Slow ->
             100
 
+        Speed.VerySlow ->
+            160
+
 
 timeDepletionRate : FractionPerTick
 timeDepletionRate =

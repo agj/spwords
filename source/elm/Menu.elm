@@ -253,6 +253,9 @@ titleLines mode speed =
                 Speed.Slow ->
                     "AMATEUR"
 
+                Speed.VerySlow ->
+                    "NOVICE"
+
         nextMode =
             case mode of
                 HotseatMode ->
@@ -267,6 +270,9 @@ titleLines mode speed =
                     Speed.Slow
 
                 Speed.Slow ->
+                    Speed.VerySlow
+
+                Speed.VerySlow ->
                     Speed.Normal
     in
     [ titleLine

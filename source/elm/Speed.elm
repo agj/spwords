@@ -7,6 +7,7 @@ import Json.Encode as Encode
 type Speed
     = Normal
     | Slow
+    | VerySlow
 
 
 encode : Speed -> Encode.Value
@@ -17,6 +18,9 @@ encode speed =
 
         Slow ->
             Encode.string "slow"
+
+        VerySlow ->
+            Encode.string "very-slow"
 
 
 decoder : Decode.Decoder Speed
@@ -30,6 +34,9 @@ decoder =
 
                     "slow" ->
                         Decode.succeed Slow
+
+                    "very-slow" ->
+                        Decode.succeed VerySlow
 
                     _ ->
                         Decode.fail "Game speed not recognized."
