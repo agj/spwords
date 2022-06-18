@@ -476,26 +476,29 @@ ticker model =
             athleteM
                 |> Maybe.filter (isHumanAthlete model.mode)
 
-        cursorColor =
-            case athleteM of
-                Just athlete ->
-                    athleteColor athlete
+        cursorColorM =
+            athleteM
+                |> Maybe.map athleteColor
+
+        cursorAnimation =
+            case cursorColorM of
+                Just cursorColor ->
+                    Animation.steps
+                        { startAt = [ AnimationProperty.backgroundColor (ElementColor.toCssString cursorColor) ]
+                        , options = [ Animation.loop ]
+                        }
+                        [ Animation.set [ AnimationProperty.backgroundColor (ElementColor.toCssString cursorColor) ]
+                        , Animation.wait 500
+                        , Animation.set [ AnimationProperty.backgroundColor "transparent" ]
+                        , Animation.wait 500
+                        ]
 
                 Nothing ->
-                    Palette.transparent
+                    Animation.empty
 
         cursor =
             animatedUi el
-                (Animation.steps
-                    { startAt = [ AnimationProperty.backgroundColor (ElementColor.toCssString cursorColor) ]
-                    , options = [ Animation.loop ]
-                    }
-                    [ Animation.set [ AnimationProperty.backgroundColor (ElementColor.toCssString cursorColor) ]
-                    , Animation.wait 500
-                    , Animation.set [ AnimationProperty.backgroundColor "transparent" ]
-                    , Animation.wait 500
-                    ]
-                )
+                cursorAnimation
                 [ width (px (Palette.spaceSmall model.layout))
                 , height (px (Palette.textSizeLarge model.layout * 2))
                 ]
