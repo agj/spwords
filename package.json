@@ -1,15 +1,15 @@
 {
   "dependencies": {
     "@types/gulp": "^4.0.9",
-    "@types/ramda": "^0.27.44",
+    "@types/ramda": "^0.28.15",
     "del": "^6.0.0",
     "dot-into": "^1.0.2",
     "elm": "^0.19.1-5",
     "elm-format": "^0.8.5",
-    "elm-go": "^5.0.13",
+    "elm-go": "^5.0.16",
     "gulp": "^4.0.2",
     "prettier": "^2.4.1",
-    "ramda": "^0.27.1",
+    "ramda": "^0.28.0",
     "ts-node": "^9.1.1",
     "typescript": "^4.4.3"
   },
