@@ -759,12 +759,12 @@ menuLine layout mode line =
         , height (px (Palette.textSizeNormal layout))
         ]
         (line
-            |> List.map (menuText layout mode)
+            |> List.map (menuText mode)
         )
 
 
-menuText : Layout -> GameMode -> MenuText -> Element Msg
-menuText layout mode mt =
+menuText : GameMode -> MenuText -> Element Msg
+menuText mode mt =
     case mt of
         MenuText.PlainText txt opts ->
             el (menuTextStyle mode opts)
