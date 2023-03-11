@@ -3,6 +3,9 @@
     "dev": "parcel ./source/index.html",
     "build": "parcel build ./source/index.html"
   },
+  "staticFiles": {
+    "staticPath": "source/public"
+  },
   "devDependencies": {
     "@parcel/config-default": "^2.8.3",
     "@parcel/core": "^2.8.3",
