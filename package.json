@@ -1,0 +1,20 @@
+{
+  "scripts": {
+    "dev": "parcel ./source/index.html",
+    "build": "parcel build ./source/index.html"
+  },
+  "staticFiles": {
+    "staticPath": "source/public"
+  },
+  "devDependencies": {
+    "@parcel/config-default": "^2.8.3",
+    "@parcel/core": "^2.8.3",
+    "@parcel/transformer-elm": "^2.8.3",
+    "elm": "npm:@lydell/elm@0.19.1-12",
+    "elm-format": "^0.8.6",
+    "parcel": "^2.8.3",
+    "prettier": "^2.8.4"
+  },
+  "private": true,
+  "type": "module"
+}
