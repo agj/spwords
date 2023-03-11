@@ -1,3 +1,5 @@
+import { Elm } from '../elm/Main.elm'
+
 const saveStateKey = "spwords-state";
 
 var app = Elm.Main.init({
