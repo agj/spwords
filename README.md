@@ -1,6 +1,6 @@
 # Spwords
 
-A web browser typing duel game that will test your stamina.
+A web browser typing duel game that will test your stamina. ⌨️🥊
 
 > WELCOME TO TONIGHT'S EXCITING MATCH! 
 > IT'S MENACING **COMPUTER** AGAINST CROWD FAVORITE **PLAYER**!
