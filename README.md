@@ -1,34 +1,29 @@
 # Spwords
 
-A typing duel game to test your stamina.
+A web browser typing duel game that will test your stamina.
 
-## Compilation
+> WELCOME TO TONIGHT'S EXCITING MATCH! 
+> IT'S MENACING **COMPUTER** AGAINST CROWD FAVORITE **PLAYER**!
+> REMEMBER THE RULES: 
+> THE TWO CONTESTANTS TAKE TURNS TO TYPE WORDS THAT **START** WITH THE **ROUND'S LETTER**. 
+> THEY ALSO MUST **CONTAIN** THE **LAS[T] LETTE[R] OF THE PREVIOUS WORD**. 
+> THEN, PRESS ENTER. 
+> **NO REPEATS**, AND WATCH THE TIME LIMIT! 
+> FIRST TO SEIZE **THREE ROUNDS** IS THE VICTOR. 
+> NOW, LET THE MATCH BEGIN!
 
-Run the following commands in the command line to compile the source.
 
-```sh
-gulp build
-```
+## Development
 
-Builds a release build in `output/`.
-
-```sh
-gulp debug
-```
-
-Builds a debug build in `output/`.
-
-```sh
-gulp develop
-```
-
-Creates a live server that reacts to file changes, while also automatically formatting changed files. Open the displayed address to see it running.
+You'll need [Node.js](https://nodejs.org/) (around v19) and [pnpm](https://pnpm.io/) (around v7).
 
 ```sh
-gulp format
-```
+# Start the development server (uses Parcel):
+pnpm run dev
 
-Automatically formats all source files.
+# Make a release build (will output to the `dist` folder):
+pnpm run build
+```
 
 ## Acknowledgements
 
@@ -38,7 +33,7 @@ Automatically formats all source files.
 
 ## License (MIT)
 
-Copyright 2021 Ale Grilli
+Copyright 2023 Ale Grilli
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
