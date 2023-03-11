@@ -1,7 +1,7 @@
 {
   "scripts": {
     "dev": "parcel ./source/index.html",
-    "build": "parcel build ./source/index.html"
+    "build": "rm -rf ./dist && parcel build --public-url '.' ./source/index.html"
   },
   "staticFiles": {
     "staticPath": "source/public"
