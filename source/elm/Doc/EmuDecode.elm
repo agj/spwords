@@ -25,12 +25,10 @@ fromEmu raw =
 
         Mark.Almost { result, errors } ->
             errors
-                |> Debug.log "Markup Errors:"
                 |> withErrors
 
         Mark.Failure errors ->
             errors
-                |> Debug.log "Markup Errors:"
                 |> withErrors
 
 
